@@ -59,7 +59,9 @@ swift test
 
 ## Privacy
 
-LettersToMy does not require a proprietary application server for the Apple-first release. Family content is stored locally and synchronized through the signedSee:
+LettersToMy does not require a proprietary application server for the Apple-first release. Family content is stored locally and synchronized through the signed-in user's iCloud account. Content in private and shared CloudKit databases counts against the originating owner's iCloud storage.
+
+See:
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/COLLABORATION.md`](docs/COLLABORATION.md)
