@@ -1,42 +1,27 @@
-import SwiftData
 import SwiftUI
 
 @main
 struct LettersToMyApp: App {
-    private let modelContainer: ModelContainer = {
-        let schema = Schema([
-            ChildProfile.self,
-            Letter.self,
-            LetterAttachment.self,
-            FamilyBranchRecord.self,
-            ArchiveFolderRecord.self,
-            ArchiveMemberRecord.self,
-            CollaborationInvitationRecord.self
-        ])
-        let configuration = ModelConfiguration(
-            "LettersToMy",
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            cloudKitDatabase: .automatic
-        )
+    private let persistence = PersistenceController.shared
 
-        do {
-            return try ModelContainer(for: schema, configurations: [configuration])
-        } catch {
-            fatalError("Unable to create LettersToMy model container: \(error)")
-        }
-    }()
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(LettersToMyApplicationDelegate.self)
+    private var applicationDelegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(LettersToMyApplicationDelegate.self)
+    private var applicationDelegate
+    #endif
 
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(\.managedObjectContext, persistence.container.viewContext)
         }
-        .modelContainer(modelContainer)
 
         #if os(macOS)
         Settings {
             SettingsView()
-                .modelContainer(modelContainer)
+                .environment(\.managedObjectContext, persistence.container.viewContext)
         }
         #endif
     }
