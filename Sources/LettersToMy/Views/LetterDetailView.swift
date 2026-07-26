@@ -1,28 +1,25 @@
-import SwiftData
+import CoreData
 import SwiftUI
 
 struct LetterDetailView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var attachments: [LetterAttachment]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @ObservedObject var letter: Letter
     @AppStorage("recipientPreview") private var recipientPreview = false
 
-    let letter: Letter
     let child: ChildProfile?
     let editAction: () -> Void
 
-    init(letter: Letter, child: ChildProfile?, editAction: @escaping () -> Void) {
-        self.letter = letter
-        self.child = child
-        self.editAction = editAction
-        let letterID = letter.id
-        _attachments = Query(
-            filter: #Predicate<LetterAttachment> { $0.letterID == letterID },
-            sort: \LetterAttachment.createdAt
-        )
+    private var attachments: [LetterAttachment] {
+        (letter.attachments?.allObjects as? [LetterAttachment] ?? [])
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
     private var isVisible: Bool {
         !recipientPreview || letter.isUnlocked(for: child)
+    }
+
+    private var canUpdate: Bool {
+        PersistenceController.shared.canUpdate(letter)
     }
 
     var body: some View {
@@ -51,26 +48,28 @@ struct LetterDetailView: View {
         .navigationTitle(letter.title.isEmpty ? "Untitled Letter" : letter.title)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    letter.isFavorite.toggle()
-                    letter.updatedAt = .now
-                    try? modelContext.save()
-                } label: {
-                    Label("Favorite", systemImage: letter.isFavorite ? "heart.fill" : "heart")
-                }
-
-                if !recipientPreview,
-                   !letter.isDraft,
-                   letter.unlockRuleKind == .lifeEvent,
-                   letter.manuallyReleasedAt == nil {
-                    Button("Release Now") {
-                        letter.manuallyReleasedAt = .now
+                if canUpdate {
+                    Button {
+                        letter.isFavorite.toggle()
                         letter.updatedAt = .now
-                        try? modelContext.save()
+                        try? PersistenceController.shared.save(managedObjectContext)
+                    } label: {
+                        Label("Favorite", systemImage: letter.isFavorite ? "heart.fill" : "heart")
                     }
-                }
 
-                Button("Edit", action: editAction)
+                    if !recipientPreview,
+                       !letter.isDraft,
+                       letter.unlockRuleKind == .lifeEvent,
+                       letter.manuallyReleasedAt == nil {
+                        Button("Release Now") {
+                            letter.manuallyReleasedAt = .now
+                            letter.updatedAt = .now
+                            try? PersistenceController.shared.save(managedObjectContext)
+                        }
+                    }
+
+                    Button("Edit", action: editAction)
+                }
             }
         }
     }
