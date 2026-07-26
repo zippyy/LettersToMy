@@ -172,7 +172,44 @@ enum LettersToMyManagedObjectModel {
             attribute("remoteIdentifier", .stringAttributeType, optional: true)
         ]
 
-        let entities = [child, letter, attachment, branch, folder, member, invitation, partition, backupRecord]
+        let deliveryAttachment = entity("DeliveryAttachmentEntity", DeliveryAttachmentEntity.self)
+        deliveryAttachment.properties = [
+            attribute("id", .UUIDAttributeType, defaultValue: zeroUUID),
+            attribute("fileName", .stringAttributeType, defaultValue: "Attachment"),
+            attribute("contentTypeIdentifier", .stringAttributeType, defaultValue: "public.data"),
+            attribute("kindRawValue", .stringAttributeType, defaultValue: "file"),
+            attribute("data", .binaryDataAttributeType, optional: true, externalStorage: true)
+        ]
+
+        let delivery = entity("DeliveryRecordEntity", DeliveryRecordEntity.self)
+        delivery.properties = [
+            attribute("id", .UUIDAttributeType, defaultValue: zeroUUID),
+            attribute("recipientID", .UUIDAttributeType, defaultValue: zeroUUID),
+            attribute("originalLetterID", .UUIDAttributeType, defaultValue: zeroUUID),
+            attribute("title", .stringAttributeType, defaultValue: ""),
+            attribute("body", .stringAttributeType, defaultValue: ""),
+            attribute("authorName", .stringAttributeType, defaultValue: ""),
+            attribute("deliveredAt", .dateAttributeType, defaultValue: epoch),
+            attribute("readAt", .dateAttributeType, optional: true),
+            attribute("replyBody", .stringAttributeType, optional: true),
+            attribute("repliedAt", .dateAttributeType, optional: true),
+            attribute("stateRawValue", .stringAttributeType, defaultValue: "delivered")
+        ]
+
+        let deliveryAttachments = toMany("deliveryAttachments", destination: deliveryAttachment, deleteRule: .cascadeDeleteRule)
+        let attachmentDelivery = toOne("delivery", destination: delivery, deleteRule: .nullifyDeleteRule)
+        inverse(deliveryAttachments, attachmentDelivery)
+        delivery.properties.append(deliveryAttachments)
+        deliveryAttachment.properties.append(attachmentDelivery)
+
+        attachPartitionRelationship(
+            source: delivery,
+            sourceName: "partition",
+            destination: partition,
+            destinationName: "deliveries"
+        )
+
+        let entities = [child, letter, attachment, branch, folder, member, invitation, partition, backupRecord, delivery, deliveryAttachment]
         model.entities = entities
         model.setEntities(entities, forConfigurationName: PersistenceController.privateConfigurationName)
         model.setEntities(entities, forConfigurationName: PersistenceController.sharedConfigurationName)

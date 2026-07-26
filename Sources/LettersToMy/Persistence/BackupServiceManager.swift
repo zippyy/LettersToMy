@@ -10,10 +10,10 @@ final class BackupServiceManager {
     let service = BackupService(appVersion: "0.1.0")
 
     private init() {
-        registerProviders()
+        Task { await registerProviders() }
     }
 
-    private func registerProviders() {
+    private func registerProviders() async {
         // Local file — writes to the app's Documents/Backups directory.
         if let docs = FileManager.default.urls(
             for: .documentDirectory, in: .userDomainMask
@@ -22,10 +22,10 @@ final class BackupServiceManager {
             try? FileManager.default.createDirectory(
                 at: dir, withIntermediateDirectories: true
             )
-            service.register(LocalFileBackupProvider(directoryURL: dir))
+            await service.register(LocalFileBackupProvider(directoryURL: dir))
         }
 
         // iCloud Drive — uses the app's ubiquitous container.
-        service.register(ICloudBackupProvider())
+        await service.register(ICloudBackupProvider())
     }
 }

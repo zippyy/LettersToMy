@@ -267,6 +267,7 @@ final class SharePartitionRecord: NSManagedObject, Identifiable {
     @NSManaged var folders: NSSet?
     @NSManaged var members: NSSet?
     @NSManaged var invitations: NSSet?
+    @NSManaged var deliveries: NSSet?
 
     override func awakeFromInsert() {
         super.awakeFromInsert()

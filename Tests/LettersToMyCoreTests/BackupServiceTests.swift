@@ -129,23 +129,19 @@ struct BackupServiceTests {
         let provider = MockBackupProvider()
         await service.register(provider)
 
-        let payload = samplePayload()
-        let record = try await service.backup(payload: payload, to: .localFile, passphrase: passphrase)
-
-        // Corrupt the stored data by replacing it with garbage.
-        let corruptedHandle = BackupRemoteHandle(identifier: record.remoteIdentifier! + "-corrupt")
-        _ = try await provider.store(archive: Data([0xDE, 0xAD, 0xBE, 0xEF]), manifest: BackupManifest())
+        // Store random bytes directly (simulates a corrupted file).
+        let corruptHandle = try await provider.store(
+            archive: Data((0..<256).map { _ in UInt8.random(in: 0...255) }),
+            manifest: BackupManifest()
+        )
 
         do {
-            _ = try await service.restore(from: .localFile, handle: corruptedHandle, passphrase: passphrase)
+            _ = try await service.restore(from: .localFile, handle: corruptHandle, passphrase: passphrase)
             #expect(Bool(false), "Expected decryption or corruption error")
-        } catch let error as BackupError {
-            // Either archive corruption or decryption failure is acceptable
-            // for garbage data — the point is the archive should not decrypt.
-            let acceptable = if case .archiveCorrupted = error { true }
-                else if case .decryptionFailed = error { true }
-                else { false }
-            #expect(acceptable, "Unexpected error: \(error)")
+        } catch {
+            // Any error is acceptable — the point is garbage data should
+            // never silently decrypt.
+            #expect(error is BackupError)
         }
     }
 

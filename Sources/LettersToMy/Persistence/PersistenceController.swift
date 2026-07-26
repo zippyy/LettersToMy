@@ -89,6 +89,10 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         // Transition any pending invitations whose target partitions now
         // have persisted CloudKit shares.
         linkExistingSharesToInvitations(into: context)
+
+        // Evaluate unlock rules and create deliveries for any letters
+        // that unlocked while the app was not running.
+        processPendingDeliveries(into: context)
     }
 
     func save(_ context: NSManagedObjectContext? = nil) throws {
@@ -238,6 +242,127 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         case .replyAsRecipient: .replyAsRecipient
         case .transferOwnership: .transferOwnership
         }
+    }
+
+    /// Evaluate all sealed letters against their unlock rules and create
+    /// recipient delivery records for any that have newly unlocked.
+    /// Idempotent — letters that already have a delivery are skipped.
+    func processPendingDeliveries(into context: NSManagedObjectContext? = nil) {
+        let context = context ?? container.viewContext
+
+        let childrenFetch = NSFetchRequest<ChildProfile>(entityName: "ChildProfile")
+        let lettersFetch = NSFetchRequest<Letter>(entityName: "Letter")
+        let deliveriesFetch = NSFetchRequest<DeliveryRecordEntity>(entityName: "DeliveryRecordEntity")
+
+        guard let children = try? context.fetch(childrenFetch),
+              let letters = try? context.fetch(lettersFetch),
+              let existingDeliveries = try? context.fetch(deliveriesFetch) else {
+            return
+        }
+
+        var existingDeliveryLetterIDs = Set(existingDeliveries.map(\.originalLetterID))
+        let now = Date()
+
+        for child in children {
+            let childLetters = letters.filter { $0.childID == child.id }
+            let letterPayloads = childLetters.map { letterPayload(from: $0) }
+
+            let pending = DeliveryPipeline.pendingDeliveries(
+                letters: letterPayloads,
+                childBirthDate: child.birthDate,
+                existingDeliveries: Array(existingDeliveryLetterIDs),
+                now: now
+            )
+
+            for letterPayload in pending {
+                guard let sourceLetter = childLetters.first(where: { $0.id == letterPayload.id }) else {
+                    continue
+                }
+
+                let attachmentPayloads = (sourceLetter.attachments?.allObjects as? [LetterAttachment] ?? []).map {
+                    AttachmentPayload(
+                        id: $0.id,
+                        letterID: $0.letterID,
+                        fileName: $0.fileName,
+                        contentTypeIdentifier: $0.contentTypeIdentifier,
+                        kindRawValue: $0.kindRawValue,
+                        createdAt: $0.createdAt,
+                        data: $0.data ?? Data()
+                    )
+                }
+
+                guard let deliveryRecord = DeliveryPipeline.prepareDelivery(
+                    from: letterPayload,
+                    for: child.id,
+                    attachments: attachmentPayloads,
+                    existingDeliveries: Array(existingDeliveryLetterIDs)
+                ) else { continue }
+
+                let deliveryEntity: DeliveryRecordEntity
+                if let partition = child.partition {
+                    deliveryEntity = insert(
+                        DeliveryRecordEntity.self,
+                        inSameStoreAs: partition,
+                        into: context
+                    )
+                    deliveryEntity.partition = partition
+                } else {
+                    deliveryEntity = insertPrivate(
+                        DeliveryRecordEntity.self,
+                        into: context
+                    )
+                }
+
+                deliveryEntity.id = deliveryRecord.id
+                deliveryEntity.recipientID = deliveryRecord.recipientID
+                deliveryEntity.originalLetterID = deliveryRecord.originalLetterID
+                deliveryEntity.title = deliveryRecord.title
+                deliveryEntity.body = deliveryRecord.body
+                deliveryEntity.authorName = deliveryRecord.authorName
+                deliveryEntity.deliveredAt = deliveryRecord.deliveredAt
+                deliveryEntity.state = deliveryRecord.state
+
+                for att in deliveryRecord.attachments {
+                    let attEntity = insert(
+                        DeliveryAttachmentEntity.self,
+                        inSameStoreAs: deliveryEntity,
+                        into: context
+                    )
+                    attEntity.id = att.id
+                    attEntity.fileName = att.fileName
+                    attEntity.contentTypeIdentifier = att.contentTypeIdentifier
+                    attEntity.kindRawValue = att.kindRawValue
+                    attEntity.data = att.data
+                    attEntity.delivery = deliveryEntity
+                }
+
+                existingDeliveryLetterIDs.insert(deliveryRecord.originalLetterID)
+            }
+        }
+
+        try? save(context)
+    }
+
+    private func letterPayload(from letter: Letter) -> LetterPayload {
+        LetterPayload(
+            id: letter.id,
+            childID: letter.childID,
+            branchID: letter.branchID,
+            folderID: letter.folderID,
+            authorMemberID: letter.authorMemberID,
+            title: letter.title,
+            body: letter.body,
+            authorName: letter.authorName,
+            createdAt: letter.createdAt,
+            updatedAt: letter.updatedAt,
+            sealedAt: letter.sealedAt,
+            isFavorite: letter.isFavorite,
+            unlockRuleRawValue: letter.unlockRuleRawValue,
+            unlockDate: letter.unlockDate,
+            unlockAgeYearsValue: letter.unlockAgeYears,
+            lifeEventName: letter.lifeEventName,
+            manuallyReleasedAt: letter.manuallyReleasedAt
+        )
     }
 
     func acceptShare(

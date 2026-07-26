@@ -132,12 +132,6 @@ final class ICloudBackupProvider: BackupProvider, @unchecked Sendable {
 
         try archive.write(to: archiveURL, options: .atomic)
 
-        // Encourage immediate upload.
-        try? (archiveURL as NSURL).setResourceValue(
-            URLUbiquitousItemDownloadingStatus.current as String,
-            forKey: .ubiquitousItemDownloadingStatusKey
-        )
-
         return BackupRemoteHandle(
             identifier: manifest.archiveID.uuidString,
             location: archiveURL.path,
