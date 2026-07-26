@@ -3,7 +3,7 @@ import Foundation
 import LettersToMyCore
 
 @objc(Letter)
-final class Letter: NSManagedObject {
+final class Letter: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var childID: UUID?
     @NSManaged var branchID: UUID?
