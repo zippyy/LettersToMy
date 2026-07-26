@@ -48,7 +48,9 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 return
             }
 
-            guard let store = self.container.persistentStoreCoordinator.persistentStore(for: description.url!) else {
+            guard let store = self.container.persistentStoreCoordinator.persistentStores.first(
+                where: { $0.configurationName == description.configuration }
+            ) else {
                 loadingError = PersistenceError.missingLoadedStore(description.url)
                 return
             }
@@ -96,6 +98,25 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         _ type: T.Type,
         into context: NSManagedObjectContext? = nil
     ) -> T {
+        insert(type, into: privateStore, context: context)
+    }
+
+    @discardableResult
+    func insert<T: NSManagedObject>(
+        _ type: T.Type,
+        inSameStoreAs owner: NSManagedObject,
+        into context: NSManagedObjectContext? = nil
+    ) -> T {
+        let store = owner.objectID.persistentStore ?? privateStore
+        return insert(type, into: store, context: context)
+    }
+
+    @discardableResult
+    private func insert<T: NSManagedObject>(
+        _ type: T.Type,
+        into store: NSPersistentStore,
+        context: NSManagedObjectContext?
+    ) -> T {
         let context = context ?? container.viewContext
         let entityName = String(describing: type)
         guard let object = NSEntityDescription.insertNewObject(
@@ -104,7 +125,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         ) as? T else {
             fatalError("Unable to insert Core Data entity \(entityName).")
         }
-        context.assign(object, to: privateStore)
+        context.assign(object, to: store)
         return object
     }
 
