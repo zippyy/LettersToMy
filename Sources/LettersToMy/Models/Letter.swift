@@ -6,6 +6,9 @@ import SwiftData
 final class Letter {
     var id: UUID = UUID()
     var childID: UUID?
+    var branchID: UUID?
+    var folderID: UUID?
+    var authorMemberID: UUID?
     var title: String = ""
     var body: String = ""
     var authorName: String = ""
@@ -22,12 +25,18 @@ final class Letter {
 
     init(
         childID: UUID? = nil,
+        branchID: UUID? = nil,
+        folderID: UUID? = nil,
+        authorMemberID: UUID? = nil,
         title: String = "",
         body: String = "",
         authorName: String = ""
     ) {
         self.id = UUID()
         self.childID = childID
+        self.branchID = branchID
+        self.folderID = folderID
+        self.authorMemberID = authorMemberID
         self.title = title
         self.body = body
         self.authorName = authorName
@@ -60,6 +69,20 @@ final class Letter {
     func status(for child: ChildProfile?, now: Date = .now) -> LetterStatus {
         if isDraft { return .draft }
         return isUnlocked(for: child, now: now) ? .unlocked : .scheduled
+    }
+
+    func collaborationContext(
+        for child: ChildProfile?,
+        now: Date = .now
+    ) -> CollaborationContext {
+        CollaborationContext(
+            branchID: branchID,
+            folderID: folderID,
+            recipientID: childID,
+            authorMemberID: authorMemberID,
+            isSealed: !isDraft && !isUnlocked(for: child, now: now),
+            isUnlocked: isUnlocked(for: child, now: now)
+        )
     }
 }
 
