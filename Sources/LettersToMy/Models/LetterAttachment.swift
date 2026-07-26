@@ -2,7 +2,7 @@ import CoreData
 import Foundation
 
 @objc(LetterAttachment)
-final class LetterAttachment: NSManagedObject {
+final class LetterAttachment: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var letterID: UUID
     @NSManaged var fileName: String
