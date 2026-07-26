@@ -158,7 +158,21 @@ enum LettersToMyManagedObjectModel {
             destinationName: "invitations"
         )
 
-        let entities = [child, letter, attachment, branch, folder, member, invitation, partition]
+        let backupRecord = entity("BackupRecordEntity", BackupRecordEntity.self)
+        backupRecord.properties = [
+            attribute("id", .UUIDAttributeType, defaultValue: zeroUUID),
+            attribute("destinationRawValue", .stringAttributeType, defaultValue: "localFile"),
+            attribute("statusRawValue", .stringAttributeType, defaultValue: "completed"),
+            attribute("createdAt", .dateAttributeType, defaultValue: epoch),
+            attribute("completedAt", .dateAttributeType, optional: true),
+            attribute("sizeBytes", .integer64AttributeType, defaultValue: Int64(0)),
+            attribute("letterCount", .integer64AttributeType, defaultValue: Int64(0)),
+            attribute("attachmentCount", .integer64AttributeType, defaultValue: Int64(0)),
+            attribute("errorMessage", .stringAttributeType, optional: true),
+            attribute("remoteIdentifier", .stringAttributeType, optional: true)
+        ]
+
+        let entities = [child, letter, attachment, branch, folder, member, invitation, partition, backupRecord]
         model.entities = entities
         model.setEntities(entities, forConfigurationName: PersistenceController.privateConfigurationName)
         model.setEntities(entities, forConfigurationName: PersistenceController.sharedConfigurationName)
