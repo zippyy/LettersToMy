@@ -1,18 +1,49 @@
+import CoreData
 import LettersToMyCore
-import SwiftData
 import SwiftUI
 
 struct CollaboratorsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \FamilyBranchRecord.createdAt) private var branches: [FamilyBranchRecord]
-    @Query(sort: \ArchiveFolderRecord.createdAt) private var folders: [ArchiveFolderRecord]
-    @Query(sort: \ArchiveMemberRecord.createdAt) private var members: [ArchiveMemberRecord]
-    @Query(sort: \CollaborationInvitationRecord.createdAt, order: .reverse) private var invitations: [CollaborationInvitationRecord]
-    @Query(sort: \ChildProfile.createdAt) private var children: [ChildProfile]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \FamilyBranchRecord.createdAt, ascending: true)],
+        animation: .default
+    ) private var branches: FetchedResults<FamilyBranchRecord>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \ArchiveFolderRecord.createdAt, ascending: true)],
+        animation: .default
+    ) private var folders: FetchedResults<ArchiveFolderRecord>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \ArchiveMemberRecord.createdAt, ascending: true)],
+        animation: .default
+    ) private var members: FetchedResults<ArchiveMemberRecord>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \CollaborationInvitationRecord.createdAt, ascending: false)],
+        animation: .default
+    ) private var invitations: FetchedResults<CollaborationInvitationRecord>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \ChildProfile.createdAt, ascending: true)],
+        animation: .default
+    ) private var children: FetchedResults<ChildProfile>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \SharePartitionRecord.createdAt, ascending: true)],
+        animation: .default
+    ) private var partitions: FetchedResults<SharePartitionRecord>
 
     @State private var showingInvite = false
     @State private var showingBranchEditor = false
     @State private var showingFolderEditor = false
+
+    private var privateBranches: [FamilyBranchRecord] {
+        branches.filter { $0.objectID.persistentStore === PersistenceController.shared.privateStore }
+    }
+
+    private var privateFolders: [ArchiveFolderRecord] {
+        folders.filter { $0.objectID.persistentStore === PersistenceController.shared.privateStore }
+    }
+
+    private var privatePartitions: [SharePartitionRecord] {
+        partitions.filter { $0.objectID.persistentStore === PersistenceController.shared.privateStore }
+    }
 
     private var pendingInvitations: [CollaborationInvitationRecord] {
         invitations.filter { $0.status == .pending }
@@ -22,9 +53,9 @@ struct CollaboratorsView: View {
         NavigationStack {
             List {
                 Section("Family sides and folders") {
-                    ForEach(branches) { branch in
+                    ForEach(privateBranches) { branch in
                         DisclosureGroup {
-                            let branchFolders = folders.filter { $0.branchID == branch.id }
+                            let branchFolders = privateFolders.filter { $0.branchID == branch.id }
                             if branchFolders.isEmpty {
                                 Text("No folders yet")
                                     .foregroundStyle(.secondary)
@@ -59,7 +90,7 @@ struct CollaboratorsView: View {
                     }
                 }
 
-                Section("Invitation plans") {
+                Section("Invitations") {
                     if pendingInvitations.isEmpty {
                         Text("No pending invitations")
                             .foregroundStyle(.secondary)
@@ -67,14 +98,15 @@ struct CollaboratorsView: View {
                         ForEach(pendingInvitations) { invitation in
                             InvitationRow(
                                 invitation: invitation,
-                                branches: branches,
-                                folders: folders,
-                                children: children
+                                branches: Array(branches),
+                                folders: Array(folders),
+                                children: Array(children),
+                                partitions: privatePartitions
                             )
                         }
                     }
                 } footer: {
-                    Text("Invitation plans are saved locally. Sending and accepting the private iCloud share becomes active after the shared CloudKit store migration.")
+                    Text("Each Send button opens Apple's CloudKit sharing sheet. Archive-wide parent/admin access can require more than one scoped share so narrow family permissions remain enforceable.")
                 }
             }
             .navigationTitle("People & Access")
@@ -98,36 +130,56 @@ struct CollaboratorsView: View {
                         } label: {
                             Label("Add Folder", systemImage: "folder.badge.plus")
                         }
-                        .disabled(branches.isEmpty)
+                        .disabled(privateBranches.isEmpty)
                     } label: {
                         Label("Add", systemImage: "plus")
                     }
                 }
             }
-            .task { seedDefaultBranches() }
+            .task { seedPrivateArchive() }
             .sheet(isPresented: $showingInvite) {
                 NavigationStack {
                     InviteCollaboratorView(
-                        branches: branches,
-                        folders: folders,
-                        children: children
+                        branches: privateBranches,
+                        folders: privateFolders,
+                        children: Array(children),
+                        partitions: privatePartitions
                     )
                 }
+                .environment(\.managedObjectContext, managedObjectContext)
                 .frame(minWidth: 480, minHeight: 600)
             }
             .sheet(isPresented: $showingBranchEditor) {
                 NavigationStack { AddBranchView() }
+                    .environment(\.managedObjectContext, managedObjectContext)
                     .frame(minWidth: 420, minHeight: 340)
             }
             .sheet(isPresented: $showingFolderEditor) {
-                NavigationStack { AddFolderView(branches: branches) }
+                NavigationStack { AddFolderView(branches: privateBranches) }
+                    .environment(\.managedObjectContext, managedObjectContext)
                     .frame(minWidth: 420, minHeight: 340)
             }
         }
     }
 
-    private func seedDefaultBranches() {
-        guard branches.isEmpty else { return }
+    private func seedPrivateArchive() {
+        let persistence = PersistenceController.shared
+        var archivePartition = privatePartitions.first(where: { $0.kind == .archiveAdministration })
+        if archivePartition == nil {
+            let created = persistence.insertPrivate(
+                SharePartitionRecord.self,
+                into: managedObjectContext
+            )
+            created.kind = .archiveAdministration
+            created.displayName = "Family Archive Administration"
+            archivePartition = created
+        }
+
+        guard privateBranches.isEmpty else {
+            try? persistence.save(managedObjectContext)
+            return
+        }
+
         let defaults: [(String, FamilyBranchKind)] = [
             ("Parents", .parents),
             ("Maternal Family", .maternal),
@@ -135,20 +187,55 @@ struct CollaboratorsView: View {
             ("Chosen Family", .chosenFamily)
         ]
         for (name, kind) in defaults {
-            modelContext.insert(FamilyBranchRecord(name: name, kind: kind))
+            let partition = persistence.insertPrivate(
+                SharePartitionRecord.self,
+                into: managedObjectContext
+            )
+            partition.kind = .branch
+            partition.displayName = name
+
+            let branch = persistence.insertPrivate(
+                FamilyBranchRecord.self,
+                into: managedObjectContext
+            )
+            branch.name = name
+            branch.kind = kind
+            partition.scopeID = branch.id
+            branch.partition = partition
         }
-        try? modelContext.save()
+        try? persistence.save(managedObjectContext)
     }
 }
 
 private struct InvitationRow: View {
-    let invitation: CollaborationInvitationRecord
+    @ObservedObject var invitation: CollaborationInvitationRecord
     let branches: [FamilyBranchRecord]
     let folders: [ArchiveFolderRecord]
     let children: [ChildProfile]
+    let partitions: [SharePartitionRecord]
+
+    private var grants: [SharePartitionRecord] {
+        let scope = invitation.scope
+        if scope.archiveWide && invitation.role == .parentAdmin {
+            return partitions
+        }
+        if scope.archiveWide {
+            return partitions.filter { $0.kind == .archiveAdministration }
+        }
+        if !scope.folderIDs.isEmpty {
+            return partitions.filter { $0.kind == .folder && $0.scopeID.map(scope.folderIDs.contains) == true }
+        }
+        if !scope.branchIDs.isEmpty {
+            return partitions.filter { $0.kind == .branch && $0.scopeID.map(scope.branchIDs.contains) == true }
+        }
+        if !scope.recipientIDs.isEmpty {
+            return partitions.filter { $0.kind == .recipientInbox && $0.scopeID.map(scope.recipientIDs.contains) == true }
+        }
+        return invitation.partition.map { [$0] } ?? []
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(invitation.inviteeDisplayName)
                     .font(.headline)
@@ -167,8 +254,24 @@ private struct InvitationRow: View {
             Text(invitation.inviteeAddress)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+
+            if grants.isEmpty {
+                Label("No share partition is available for this plan", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else {
+                ForEach(grants) { partition in
+                    ShareLink(
+                        item: partition.cloudShareItem,
+                        preview: SharePreview(partition.displayName)
+                    ) {
+                        Label("Send \(partition.displayName)", systemImage: "icloud.and.arrow.up")
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 5)
     }
 
     private var scopeSummary: String {
@@ -192,7 +295,7 @@ private struct InvitationRow: View {
 
 private struct AddBranchView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.managedObjectContext) private var managedObjectContext
 
     @State private var name = ""
     @State private var kind = FamilyBranchKind.custom
@@ -212,23 +315,37 @@ private struct AddBranchView: View {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Add") {
-                    modelContext.insert(FamilyBranchRecord(
-                        name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                        kind: kind
-                    ))
-                    try? modelContext.save()
-                    dismiss()
-                }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Add", action: add)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+    }
+
+    private func add() {
+        let persistence = PersistenceController.shared
+        let partition = persistence.insertPrivate(
+            SharePartitionRecord.self,
+            into: managedObjectContext
+        )
+        partition.kind = .branch
+        partition.displayName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let branch = persistence.insertPrivate(
+            FamilyBranchRecord.self,
+            into: managedObjectContext
+        )
+        branch.name = partition.displayName
+        branch.kind = kind
+        branch.partition = partition
+        partition.scopeID = branch.id
+        try? persistence.save(managedObjectContext)
+        dismiss()
     }
 }
 
 private struct AddFolderView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.managedObjectContext) private var managedObjectContext
 
     let branches: [FamilyBranchRecord]
 
@@ -251,28 +368,43 @@ private struct AddFolderView: View {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Add") {
-                    guard let branchID else { return }
-                    modelContext.insert(ArchiveFolderRecord(
-                        branchID: branchID,
-                        name: name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    ))
-                    try? modelContext.save()
-                    dismiss()
-                }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || branchID == nil)
+                Button("Add", action: add)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || branchID == nil)
             }
         }
+    }
+
+    private func add() {
+        guard let branchID else { return }
+        let persistence = PersistenceController.shared
+        let partition = persistence.insertPrivate(
+            SharePartitionRecord.self,
+            into: managedObjectContext
+        )
+        partition.kind = .folder
+        partition.displayName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let folder = persistence.insertPrivate(
+            ArchiveFolderRecord.self,
+            into: managedObjectContext
+        )
+        folder.branchID = branchID
+        folder.name = partition.displayName
+        folder.partition = partition
+        partition.scopeID = folder.id
+        try? persistence.save(managedObjectContext)
+        dismiss()
     }
 }
 
 private struct InviteCollaboratorView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.managedObjectContext) private var managedObjectContext
 
     let branches: [FamilyBranchRecord]
     let folders: [ArchiveFolderRecord]
     let children: [ChildProfile]
+    let partitions: [SharePartitionRecord]
 
     @State private var displayName = ""
     @State private var address = ""
@@ -325,7 +457,7 @@ private struct InviteCollaboratorView: View {
 
                 switch scopeKind {
                 case .archive:
-                    Text("Access applies across the complete family archive.")
+                    Text("The invitation will provide separate CloudKit shares for every current archive partition.")
                         .foregroundStyle(.secondary)
                 case .branch:
                     Picker("Family side", selection: $branchID) {
@@ -356,12 +488,6 @@ private struct InviteCollaboratorView: View {
                     }
                 }
             }
-
-            Section {
-                Text("This creates the role and scope plan now. The private iCloud invitation will use the same plan after the shared-store migration is complete.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
         }
         .navigationTitle(role == .recipient ? "Invite Recipient" : "Invite Collaborator")
         .toolbar {
@@ -369,7 +495,7 @@ private struct InviteCollaboratorView: View {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save Invite Plan") { save() }
+                Button("Create Invitation", action: save)
                     .disabled(!isValid)
             }
         }
@@ -392,30 +518,38 @@ private struct InviteCollaboratorView: View {
 
     private func save() {
         let scope: CollaborationScope
+        let partition: SharePartitionRecord?
         switch scopeKind {
         case .archive:
             scope = .archive
+            partition = partitions.first(where: { $0.kind == .archiveAdministration })
         case .branch:
             scope = CollaborationScope(branchIDs: branchID.map { [$0] } ?? [])
+            partition = branches.first(where: { $0.id == branchID })?.partition
         case .folder:
             scope = CollaborationScope(
                 branchIDs: branchID.map { [$0] } ?? [],
                 folderIDs: folderID.map { [$0] } ?? []
             )
+            partition = folders.first(where: { $0.id == folderID })?.partition
         case .recipient:
             scope = CollaborationScope(recipientIDs: recipientID.map { [$0] } ?? [])
+            partition = children.first(where: { $0.id == recipientID })?.partition
         }
 
-        modelContext.insert(CollaborationInvitationRecord(
-            inviteeDisplayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
-            inviteeAddress: address.trimmingCharacters(in: .whitespacesAndNewlines),
-            relationship: relationship.trimmingCharacters(in: .whitespacesAndNewlines),
-            role: role,
-            scope: scope,
-            intendedRecipientID: role == .recipient ? recipientID : nil,
-            canInviteOthers: canInviteOthers
-        ))
-        try? modelContext.save()
+        let invitation = PersistenceController.shared.insertPrivate(
+            CollaborationInvitationRecord.self,
+            into: managedObjectContext
+        )
+        invitation.inviteeDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        invitation.inviteeAddress = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        invitation.relationship = relationship.trimmingCharacters(in: .whitespacesAndNewlines)
+        invitation.role = role
+        invitation.scope = scope
+        invitation.intendedRecipientID = role == .recipient ? recipientID : nil
+        invitation.canInviteOthers = canInviteOthers
+        invitation.partition = partition
+        try? PersistenceController.shared.save(managedObjectContext)
         dismiss()
     }
 }
@@ -437,14 +571,10 @@ private enum InviteScopeKind: String, CaseIterable {
 
     static func allowed(for role: CollaborationRole) -> [InviteScopeKind] {
         switch role {
-        case .owner:
-            return [.archive]
-        case .parentAdmin:
-            return [.archive, .branch, .folder]
-        case .organizer, .contributor, .viewer:
-            return [.branch, .folder]
-        case .recipient:
-            return [.recipient]
+        case .owner: [.archive]
+        case .parentAdmin: [.archive, .branch, .folder]
+        case .organizer, .contributor, .viewer: [.branch, .folder]
+        case .recipient: [.recipient]
         }
     }
 }
@@ -453,8 +583,7 @@ private extension FamilyBranchKind {
     var systemImage: String {
         switch self {
         case .parents: "house.fill"
-        case .maternal: "person.2.fill"
-        case .paternal: "person.2.fill"
+        case .maternal, .paternal: "person.2.fill"
         case .chosenFamily: "heart.fill"
         case .custom: "point.3.connected.trianglepath.dotted"
         }
@@ -464,18 +593,12 @@ private extension FamilyBranchKind {
 private extension CollaborationRole {
     var explanation: String {
         switch self {
-        case .owner:
-            return "Controls the archive and can transfer ownership."
-        case .parentAdmin:
-            return "A spouse, co-parent, or guardian who can administer the archive."
-        case .organizer:
-            return "Can organize folders and manage content inside assigned family sides."
-        case .contributor:
-            return "Can create content and manage only their own contributions inside assigned scopes."
-        case .viewer:
-            return "Can read visible content but cannot edit it."
-        case .recipient:
-            return "Can read only their own unlocked deliveries and optionally reply."
+        case .owner: "Controls the archive and can transfer ownership."
+        case .parentAdmin: "A spouse, co-parent, or guardian who can administer the archive."
+        case .organizer: "Can organize folders and manage content inside assigned family sides."
+        case .contributor: "Can create content and manage only their own contributions inside assigned scopes."
+        case .viewer: "Can read visible content but cannot edit it."
+        case .recipient: "Can read only their own unlocked deliveries and optionally reply."
         }
     }
 }
