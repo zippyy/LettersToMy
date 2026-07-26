@@ -2,6 +2,7 @@ import CloudKit
 import Combine
 import CoreData
 import Foundation
+import LettersToMyCore
 
 final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let shared = PersistenceController()
@@ -80,6 +81,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         )
         context.transactionAuthor = "LettersToMy.app"
         context.name = "LettersToMy.viewContext"
+
+        // Catch up on any shared partition activation data that arrived
+        // while the app was not running or during a previous acceptance.
+        activateAcceptedMembers(into: context)
+
+        // Transition any pending invitations whose target partitions now
+        // have persisted CloudKit shares.
+        linkExistingSharesToInvitations(into: context)
     }
 
     func save(_ context: NSManagedObjectContext? = nil) throws {
@@ -150,6 +159,87 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         container.canDeleteRecord(forManagedObjectWith: object.objectID)
     }
 
+    /// The local archive member record for the signed-in user, if one
+    /// has been activated through ownership or share acceptance.
+    func currentMember(in context: NSManagedObjectContext? = nil) -> ArchiveMemberRecord? {
+        let context = context ?? container.viewContext
+        let fetch = NSFetchRequest<ArchiveMemberRecord>(entityName: "ArchiveMemberRecord")
+        fetch.predicate = NSPredicate(format: "statusRawValue == %@", MembershipStatus.active.rawValue)
+
+        // Prefer the private-store member (owner) if it exists;
+        // otherwise return the shared-store member (invited collaborator).
+        fetch.affectedStores = [privateStore]
+        if let owner = try? context.fetch(fetch).first {
+            return owner
+        }
+
+        fetch.affectedStores = [sharedStore]
+        return try? context.fetch(fetch).first
+    }
+
+    /// Check whether the current user is authorized to perform an action
+    /// in the given collaboration context. Combines CloudKit record-level
+    /// checks (for existing objects) with the portable permission engine.
+    func canPerform(
+        _ action: CollaborationAction,
+        context collaborationContext: CollaborationContext,
+        target: NSManagedObject? = nil,
+        in managedObjectContext: NSManagedObjectContext? = nil
+    ) -> Bool {
+        guard let member = currentMember(in: managedObjectContext) else {
+            // No member record yet — the current user is the archive
+            // owner and has full access.
+            if action == .transferOwnership {
+                return true
+            }
+            return CollaborationRole.owner.defaultPermissions.contains(
+                permission(for: action)
+            )
+        }
+
+        // CloudKit transport-level checks for existing objects.
+        if let target {
+            switch action {
+            case .editContent, .deleteContent:
+                if member.role != .owner && !canUpdate(target) {
+                    return false
+                }
+            case .deleteContent:
+                if member.role != .owner && !canDelete(target) {
+                    return false
+                }
+            default:
+                break
+            }
+        }
+
+        // Portable permission engine.
+        return CollaborationPolicy.allows(
+            member.domainMember,
+            action: action,
+            context: collaborationContext
+        )
+    }
+
+    private func permission(for action: CollaborationAction) -> CollaborationPermission {
+        switch action {
+        case .viewContent: .viewContent
+        case .createContent: .createContent
+        case .editContent: .editOwnContent
+        case .deleteContent: .deleteOwnContent
+        case .manageFolders: .manageFolders
+        case .inviteContributors: .inviteContributors
+        case .manageMembers: .manageMembers
+        case .managePermissions: .managePermissions
+        case .inviteRecipients: .inviteRecipients
+        case .manageRecipients: .manageRecipients
+        case .releaseLifeEventLetter: .releaseLifeEventLetters
+        case .exportArchive: .exportArchive
+        case .replyAsRecipient: .replyAsRecipient
+        case .transferOwnership: .transferOwnership
+        }
+    }
+
     func acceptShare(
         _ metadata: CKShare.Metadata,
         completion: @escaping @Sendable (Result<Void, Error>) -> Void = { _ in }
@@ -163,6 +253,58 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 }
             }
         }
+    }
+
+    /// After accepting one or more CloudKit shares, scan the shared store for
+    /// partitions that carry member-activation metadata and create the
+    /// corresponding local `ArchiveMemberRecord` with the intended role,
+    /// scope, and CloudKit participant identity.
+    func activateAcceptedMembers(
+        participantIdentity: VerifiedParticipantIdentity? = nil,
+        into context: NSManagedObjectContext? = nil
+    ) {
+        let context = context ?? container.viewContext
+        let fetchRequest = NSFetchRequest<SharePartitionRecord>(
+            entityName: "SharePartitionRecord"
+        )
+        fetchRequest.predicate = NSPredicate(format: "memberActivationData != nil")
+        fetchRequest.affectedStores = [sharedStore]
+
+        guard let partitions = try? context.fetch(fetchRequest) else { return }
+
+        for partition in partitions {
+            guard let activation = partition.memberActivation else { continue }
+
+            // Avoid creating duplicate member records for the same invitation.
+            let memberFetch = NSFetchRequest<ArchiveMemberRecord>(
+                entityName: "ArchiveMemberRecord"
+            )
+            memberFetch.predicate = NSPredicate(format: "id == %@", activation.intendedMemberID as CVarArg)
+            memberFetch.affectedStores = [sharedStore]
+            if let existing = try? context.fetch(memberFetch), !existing.isEmpty {
+                continue
+            }
+
+            let member = insert(ArchiveMemberRecord.self, into: sharedStore, context: context)
+            member.id = activation.intendedMemberID
+            member.displayName = activation.displayName
+            member.relationship = ""
+            member.role = activation.role
+            member.scope = activation.scope
+            member.status = .active
+            member.canInviteOthers = activation.canInviteOthers
+            member.partition = partition
+
+            if let identity = participantIdentity {
+                member.cloudKitParticipantRecordName = identity.userRecordName
+            }
+
+            // Clear the activation data after consumption to avoid
+            // re-creating the member on subsequent launches.
+            partition.memberActivationData = nil
+        }
+
+        try? save(context)
     }
 
     func existingShare(for objectURI: URL) throws -> CKShare? {
@@ -220,6 +362,50 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             }
         }
         return share
+    }
+
+    /// Link any pending invitations whose target partition now has a
+    /// persisted CloudKit share, transitioning them to the sent state.
+    func linkExistingSharesToInvitations(into context: NSManagedObjectContext? = nil) {
+        let context = context ?? container.viewContext
+        let fetchRequest = NSFetchRequest<SharePartitionRecord>(
+            entityName: "SharePartitionRecord"
+        )
+        fetchRequest.predicate = NSPredicate(format: "memberActivationData != nil")
+        fetchRequest.affectedStores = [privateStore]
+
+        guard let partitions = try? context.fetch(fetchRequest) else { return }
+
+        for partition in partitions {
+            let partitionURI = partition.objectID.uriRepresentation()
+            guard let objectID = container.persistentStoreCoordinator.managedObjectID(
+                forURIRepresentation: partitionURI
+            ),
+                  let share = try? container.fetchShares(matching: [objectID])[objectID],
+                  let activation = partition.memberActivation else {
+                continue
+            }
+
+            let invitationFetch = NSFetchRequest<CollaborationInvitationRecord>(
+                entityName: "CollaborationInvitationRecord"
+            )
+            invitationFetch.predicate = NSPredicate(
+                format: "id == %@ AND (statusRawValue == %@ OR statusRawValue == %@)",
+                activation.invitationID as CVarArg,
+                InvitationStatus.pending.rawValue,
+                InvitationStatus.delivered.rawValue
+            )
+            invitationFetch.affectedStores = [privateStore]
+            invitationFetch.fetchLimit = 1
+
+            if let invitation = try? context.fetch(invitationFetch).first {
+                invitation.markSent(
+                    ckShareRecordName: share.recordID.recordName
+                )
+            }
+        }
+
+        try? save(context)
     }
 
     private static func makeStoreDescription(

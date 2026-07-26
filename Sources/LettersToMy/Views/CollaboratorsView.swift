@@ -56,8 +56,16 @@ struct CollaboratorsView: View {
         return partitionResults.filter { $0.objectID.persistentStore === privateStore }
     }
 
-    private var pendingInvitations: [CollaborationInvitationRecord] {
-        invitationResults.filter { $0.status == .pending }
+    private var activeInvitations: [CollaborationInvitationRecord] {
+        invitationResults.filter {
+            [.pending, .delivered, .sent].contains($0.status)
+        }
+    }
+
+    private var settledInvitations: [CollaborationInvitationRecord] {
+        invitationResults.filter {
+            [.accepted, .declined, .expired, .revoked, .failed].contains($0.status)
+        }
     }
 
     var body: some View {
@@ -71,7 +79,8 @@ struct CollaboratorsView: View {
                 CollaboratorMembersSection(members: Array(memberResults))
 
                 InvitationPlansSection(
-                    invitations: pendingInvitations,
+                    activeInvitations: activeInvitations,
+                    settledInvitations: settledInvitations,
                     branches: Array(branchResults),
                     folders: Array(folderResults),
                     children: Array(childResults),
@@ -80,7 +89,10 @@ struct CollaboratorsView: View {
             }
             .navigationTitle("People & Access")
             .toolbar { addMenu }
-            .task { seedPrivateArchive() }
+            .task {
+                seedPrivateArchive()
+                PersistenceController.shared.linkExistingSharesToInvitations(into: context)
+            }
             .sheet(item: $sheet) { selectedSheet in
                 editor(for: selectedSheet)
                     .environment(\.managedObjectContext, context)
@@ -249,7 +261,8 @@ private struct CollaboratorMembersSection: View {
 }
 
 private struct InvitationPlansSection: View {
-    let invitations: [CollaborationInvitationRecord]
+    let activeInvitations: [CollaborationInvitationRecord]
+    let settledInvitations: [CollaborationInvitationRecord]
     let branches: [FamilyBranchRecord]
     let folders: [ArchiveFolderRecord]
     let children: [ChildProfile]
@@ -257,24 +270,32 @@ private struct InvitationPlansSection: View {
 
     var body: some View {
         Section {
-            if invitations.isEmpty {
-                Text("No pending invitations")
+            if activeInvitations.isEmpty && settledInvitations.isEmpty {
+                Text("No invitations yet")
                     .foregroundStyle(.secondary)
-            } else {
-                ForEach(invitations) { invitation in
-                    InvitationRow(
-                        invitation: invitation,
-                        branches: branches,
-                        folders: folders,
-                        children: children,
-                        partitions: partitions
-                    )
+            }
+
+            ForEach(activeInvitations) { invitation in
+                InvitationRow(
+                    invitation: invitation,
+                    branches: branches,
+                    folders: folders,
+                    children: children,
+                    partitions: partitions
+                )
+            }
+
+            if !settledInvitations.isEmpty {
+                ForEach(settledInvitations) { invitation in
+                    SettledInvitationRow(invitation: invitation)
                 }
             }
         } header: {
             Text("Invitations")
         } footer: {
-            Text("Each Send button opens Apple's CloudKit sharing sheet. Parent/admin access can require several scoped shares so narrow family permissions remain enforceable.")
+            if !activeInvitations.isEmpty {
+                Text("Each Send button opens Apple's CloudKit sharing sheet. Parent/admin access can require several scoped shares so narrow family permissions remain enforceable.")
+            }
         }
     }
 }
@@ -319,11 +340,18 @@ private struct InvitationRow: View {
                 Text(invitation.inviteeDisplayName)
                     .font(.headline)
                 Spacer()
-                Text(invitation.role.title)
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.quaternary, in: Capsule())
+                HStack(spacing: 6) {
+                    Text(invitation.status.title)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(invitation.status.color, in: Capsule())
+                    Text(invitation.role.title)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.quaternary, in: Capsule())
+                }
             }
 
             Text("\(invitation.relationship) · \(scopeSummary)")
@@ -355,6 +383,14 @@ private struct InvitationRow: View {
                     .buttonStyle(.bordered)
                 }
             }
+
+            HStack {
+                Spacer()
+                Button("Revoke Invitation", role: .destructive) {
+                    revoke()
+                }
+                .font(.caption)
+            }
         }
         .padding(.vertical, 5)
     }
@@ -379,6 +415,38 @@ private struct InvitationRow: View {
         }
 
         return "No scope selected"
+    }
+
+    private func revoke() {
+        invitation.markRevoked()
+        invitation.partition?.memberActivationData = nil
+        try? PersistenceController.shared.save()
+    }
+}
+
+/// A compact row for invitations whose lifecycle is complete:
+/// accepted, declined, expired, revoked, or failed.
+private struct SettledInvitationRow: View {
+    @ObservedObject var invitation: CollaborationInvitationRecord
+
+    var body: some View {
+        HStack {
+            Image(systemName: invitation.status.systemImage)
+                .foregroundStyle(invitation.status.color)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(invitation.inviteeDisplayName)
+                    .font(.subheadline)
+                Text("\(invitation.relationship) · \(invitation.status.title)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(invitation.role.title)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 2)
+        .opacity(0.6)
     }
 }
 
@@ -676,6 +744,13 @@ private struct InviteCollaboratorView: View {
         invitation.intendedRecipientID = role == .recipient ? recipientID : nil
         invitation.canInviteOthers = canInviteOthers
         invitation.partition = partition
+        invitation.intendedMemberID = UUID()
+
+        // Embed the member activation metadata in the target partition so the
+        // invitee can create a correct local ArchiveMemberRecord after
+        // acceptance without relying on the inviter's private store.
+        let activation = invitation.prepareMemberActivation()
+        partition?.memberActivation = activation
 
         try? PersistenceController.shared.save(context)
         dismiss()
@@ -727,6 +802,34 @@ private extension CollaborationRole {
         case .contributor: "Can create content and manage only their own contributions inside assigned scopes."
         case .viewer: "Can read visible content but cannot edit it."
         case .recipient: "Can read only their own unlocked deliveries and optionally reply."
+        }
+    }
+}
+
+private extension InvitationStatus {
+    var color: Color {
+        switch self {
+        case .pending: .orange
+        case .delivered: .blue
+        case .sent: .blue
+        case .accepted: .green
+        case .declined: .red
+        case .expired: .gray
+        case .revoked: .red
+        case .failed: .red
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .pending: "clock"
+        case .delivered: "paperplane"
+        case .sent: "paperplane.fill"
+        case .accepted: "checkmark.circle.fill"
+        case .declined: "xmark.circle.fill"
+        case .expired: "hourglass.tophalf.filled"
+        case .revoked: "person.fill.xmark"
+        case .failed: "exclamationmark.circle.fill"
         }
     }
 }

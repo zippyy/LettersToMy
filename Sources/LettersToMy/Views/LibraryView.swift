@@ -109,6 +109,12 @@ struct LibraryView: View {
     }
 
     private func delete(_ letter: Letter) {
+        guard PersistenceController.shared.canPerform(
+            .deleteContent,
+            context: letter.collaborationContext(for: primaryChild),
+            target: letter
+        ) else { return }
+
         if selection?.objectID == letter.objectID {
             selection = nil
         }

@@ -1,4 +1,6 @@
 import CloudKit
+import Foundation
+import LettersToMyCore
 
 #if os(iOS)
 import UIKit
@@ -23,7 +25,15 @@ final class LettersToMySceneDelegate: NSObject, UIWindowSceneDelegate {
         _ windowScene: UIWindowScene,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        PersistenceController.shared.acceptShare(cloudKitShareMetadata)
+        let participantIdentity = participantIdentity(from: cloudKitShareMetadata)
+        let persistence = PersistenceController.shared
+        persistence.acceptShare(cloudKitShareMetadata) { result in
+            if case .success = result {
+                persistence.activateAcceptedMembers(
+                    participantIdentity: participantIdentity
+                )
+            }
+        }
     }
 }
 
@@ -35,7 +45,33 @@ final class LettersToMyApplicationDelegate: NSObject, NSApplicationDelegate {
         _ application: NSApplication,
         userDidAcceptCloudKitShareWith metadata: CKShare.Metadata
     ) {
-        PersistenceController.shared.acceptShare(metadata)
+        let participantIdentity = participantIdentity(from: metadata)
+        let persistence = PersistenceController.shared
+        persistence.acceptShare(metadata) { result in
+            if case .success = result {
+                persistence.activateAcceptedMembers(
+                    participantIdentity: participantIdentity
+                )
+            }
+        }
     }
 }
 #endif
+
+/// Extract verified owner identity from share metadata.
+/// The accepting participant's own CloudKit identity is resolved
+/// separately and merged into the member record later.
+private func participantIdentity(
+    from metadata: CKShare.Metadata
+) -> VerifiedParticipantIdentity? {
+    let ownerIdentity = metadata.ownerIdentity
+    let recordName = ownerIdentity.userRecordID?.recordName
+        ?? ownerIdentity.lookupInfo?.emailAddress
+        ?? ownerIdentity.lookupInfo?.phoneNumber
+        ?? "unknown"
+
+    return VerifiedParticipantIdentity(
+        userRecordName: recordName,
+        participantType: "share_participant"
+    )
+}

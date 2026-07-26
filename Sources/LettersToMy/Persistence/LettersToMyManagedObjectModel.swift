@@ -98,7 +98,10 @@ enum LettersToMyManagedObjectModel {
             attribute("createdAt", .dateAttributeType, defaultValue: epoch),
             attribute("expiresAt", .dateAttributeType, optional: true),
             attribute("intendedRecipientID", .UUIDAttributeType, optional: true),
-            attribute("canInviteOthers", .booleanAttributeType, defaultValue: false)
+            attribute("canInviteOthers", .booleanAttributeType, defaultValue: false),
+            attribute("intendedMemberID", .UUIDAttributeType, optional: true),
+            attribute("ckShareRecordName", .stringAttributeType, optional: true),
+            attribute("memberActivationData", .binaryDataAttributeType, optional: true)
         ]
 
         let partition = entity("SharePartitionRecord", SharePartitionRecord.self)
@@ -108,7 +111,8 @@ enum LettersToMyManagedObjectModel {
             attribute("scopeID", .UUIDAttributeType, optional: true),
             attribute("displayName", .stringAttributeType, defaultValue: "Family Archive"),
             attribute("createdAt", .dateAttributeType, defaultValue: epoch),
-            attribute("updatedAt", .dateAttributeType, defaultValue: epoch)
+            attribute("updatedAt", .dateAttributeType, defaultValue: epoch),
+            attribute("memberActivationData", .binaryDataAttributeType, optional: true)
         ]
 
         let letterAttachments = toMany("attachments", destination: attachment, deleteRule: .cascadeDeleteRule)

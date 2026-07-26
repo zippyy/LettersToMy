@@ -139,6 +139,9 @@ final class CollaborationInvitationRecord: NSManagedObject, Identifiable {
     @NSManaged var expiresAt: Date?
     @NSManaged var intendedRecipientID: UUID?
     @NSManaged var canInviteOthers: Bool
+    @NSManaged var intendedMemberID: UUID?
+    @NSManaged var ckShareRecordName: String?
+    @NSManaged var memberActivationData: Data?
     @NSManaged var partition: SharePartitionRecord?
 
     override func awakeFromInsert() {
@@ -173,6 +176,64 @@ final class CollaborationInvitationRecord: NSManagedObject, Identifiable {
         }
         set { scopeData = try? JSONEncoder().encode(newValue) }
     }
+
+    var memberActivation: ShareMemberActivation? {
+        get {
+            guard let memberActivationData,
+                  let decoded = try? JSONDecoder().decode(ShareMemberActivation.self, from: memberActivationData) else {
+                return nil
+            }
+            return decoded
+        }
+        set { memberActivationData = try? JSONEncoder().encode(newValue) }
+    }
+
+    func prepareMemberActivation() -> ShareMemberActivation {
+        let activation = ShareMemberActivation(
+            invitationID: id,
+            intendedMemberID: intendedMemberID ?? UUID(),
+            displayName: inviteeDisplayName,
+            role: role,
+            scope: scope,
+            canInviteOthers: canInviteOthers
+        )
+        memberActivation = activation
+        return activation
+    }
+
+    func markDelivered() {
+        guard status == .pending else { return }
+        status = .delivered
+    }
+
+    func markSent(ckShareRecordName: String) {
+        self.ckShareRecordName = ckShareRecordName
+        status = .sent
+    }
+
+    func markAccepted() {
+        status = .accepted
+    }
+
+    func markDeclined() {
+        guard status == .pending || status == .delivered || status == .sent else { return }
+        status = .declined
+    }
+
+    func markRevoked() {
+        guard status != .revoked else { return }
+        status = .revoked
+    }
+
+    func markExpired() {
+        guard status == .pending || status == .delivered || status == .sent else { return }
+        status = .expired
+    }
+
+    func markFailed() {
+        guard status == .pending || status == .delivered || status == .sent else { return }
+        status = .failed
+    }
 }
 
 enum SharePartitionKind: String, CaseIterable {
@@ -199,6 +260,7 @@ final class SharePartitionRecord: NSManagedObject, Identifiable {
     @NSManaged var displayName: String
     @NSManaged var createdAt: Date
     @NSManaged var updatedAt: Date
+    @NSManaged var memberActivationData: Data?
     @NSManaged var children: NSSet?
     @NSManaged var letters: NSSet?
     @NSManaged var branches: NSSet?
@@ -225,5 +287,16 @@ final class SharePartitionRecord: NSManagedObject, Identifiable {
             partitionURI: objectID.uriRepresentation(),
             title: displayName
         )
+    }
+
+    var memberActivation: ShareMemberActivation? {
+        get {
+            guard let memberActivationData,
+                  let decoded = try? JSONDecoder().decode(ShareMemberActivation.self, from: memberActivationData) else {
+                return nil
+            }
+            return decoded
+        }
+        set { memberActivationData = try? JSONEncoder().encode(newValue) }
     }
 }

@@ -22,6 +22,14 @@ struct LetterDetailView: View {
         PersistenceController.shared.canUpdate(letter)
     }
 
+    private var canRelease: Bool {
+        PersistenceController.shared.canPerform(
+            .releaseLifeEventLetter,
+            context: letter.collaborationContext(for: child),
+            target: letter
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -60,7 +68,8 @@ struct LetterDetailView: View {
                     if !recipientPreview,
                        !letter.isDraft,
                        letter.unlockRuleKind == .lifeEvent,
-                       letter.manuallyReleasedAt == nil {
+                       letter.manuallyReleasedAt == nil,
+                       canRelease {
                         Button("Release Now") {
                             letter.manuallyReleasedAt = .now
                             letter.updatedAt = .now

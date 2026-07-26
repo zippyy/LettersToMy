@@ -195,6 +195,21 @@ struct LetterEditorView: View {
 
     private func save(sealed: Bool) {
         let persistence = PersistenceController.shared
+        let isNew = letter == nil
+
+        // Permission check before mutating the store.
+        let collabContext = CollaborationContext(
+            branchID: branchID,
+            folderID: folderID,
+            recipientID: child?.id,
+            authorMemberID: letter?.authorMemberID
+        )
+        guard persistence.canPerform(
+            isNew ? .createContent : .editContent,
+            context: collabContext,
+            target: letter
+        ) else { return }
+
         let target = letter ?? persistence.insertPrivate(Letter.self, into: managedObjectContext)
 
         target.childID = child?.id
