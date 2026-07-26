@@ -14,25 +14,38 @@ This follows the architecture used for DankDiary rather than starting with a gen
 ## Native application
 
 - **UI:** SwiftUI
-- **Prototype persistence:** SwiftData with private CloudKit mirroring
-- **Production collaboration persistence:** Core Data through `NSPersistentCloudKitContainer`, with private and shared stores
+- **Persistence and synchronization:** Core Data through `NSPersistentCloudKitContainer`
+- **Owned data:** CloudKit private-database store
+- **Accepted collaboration:** CloudKit shared-database store
 - **Shared domain logic:** `LettersToMyCore`, a platform-neutral Swift package
 - **Minimum targets:** iOS/iPadOS 17 and macOS 14
 
 The app has separate iOS and macOS products but shares the implementation under `Sources/LettersToMy`.
 
-## Persistence decision
+## Persistent stores
 
-SwiftData is useful for the initial single-family-device prototype, but its CloudKit integration cannot consume shared CloudKit databases. Collaboration is a core product requirement, so the production Apple persistence adapter will migrate to `NSPersistentCloudKitContainer`.
+The Core Data stack uses:
 
-The Core Data stack will use:
+- `LettersToMy-private.sqlite` for records owned by the current iCloud user
+- `LettersToMy-shared.sqlite` for records other archive owners share with the current user
+- Persistent history and remote-change notifications
+- A view context that automatically merges CloudKit imports
+- Core Data and CloudKit record-level update and delete checks for shared objects
 
-- A private store for records owned by the current iCloud user
-- A shared store for records other archive owners share with the current user
-- CloudKit share roots partitioned by administration, family branch, folder, and recipient inbox
-- Persistent history and remote-change notifications for responsive multi-device updates
+New owned objects are explicitly assigned to the private store. Objects created while editing accepted shared content are assigned to the same store as their parent object.
 
-The portable domain layer remains independent of Core Data. This prevents permission rules, unlock behavior, and share planning from becoming Apple-only code.
+## Share partitions
+
+`SharePartitionRecord` is the root of a Core Data CloudKit share. The current partition types are:
+
+- Archive administration
+- Family side
+- Folder
+- Recipient inbox
+
+Letters and related attachments connect to their share partition through Core Data relationships. Branches, folders, children, members, and invitations also connect to their corresponding root. This provides enforceable CloudKit boundaries instead of relying only on client-side filtering.
+
+Parent/admin access can require several shares because a single CloudKit record cannot belong to multiple independently permissioned share zones. The People & Access screen presents every required share through `ShareLink`.
 
 ## Stable identifiers
 
@@ -45,6 +58,7 @@ Records use stable UUID values for cross-platform references:
 - Folder IDs
 - Archive member IDs
 - Invitation IDs
+- Share-partition IDs
 
 Those identifiers remain stable across Core Data, CloudKit, the web adapter, exports, and a future Android client.
 
@@ -72,18 +86,25 @@ CloudKit supplies broad read-only or read/write enforcement for each share. The 
 
 Recipients receive a dedicated read-only delivery inbox. Sealed master records are never shared with a recipient before release.
 
-See `COLLABORATION.md` for the full permission and invitation design.
+## Share invitation lifecycle
+
+- SwiftUI `ShareLink` uses `CKShareTransferRepresentation` to create or manage a share.
+- iOS routes accepted metadata through a custom `UIWindowSceneDelegate`.
+- macOS routes accepted metadata through `NSApplicationDelegate`.
+- Both platforms call `acceptShareInvitations(from:into:completion:)` and import accepted content into the shared store.
+
+See `COLLABORATION.md` and `CORE_DATA_MIGRATION.md` for implementation details.
 
 ## Privacy boundary
 
 Private family content is stored locally and synchronized through the signed-in user's iCloud account. A proprietary LettersToMy server is not required to hold letters or media for the Apple-first release.
 
-Recovery contacts, encrypted archive export, succession handling, and revocation testing must be completed before a public release because this product is designed to preserve content for decades.
+Recovery contacts, encrypted archive export, succession handling, participant revocation, and multi-account testing must be completed before a public release because this product is designed to preserve content for decades.
 
 ## Web boundary
 
 The future web application will use CloudKit JS or CloudKit Web Services with an API token and user authentication. It must use the native app's established CloudKit schema and never create an independent source of truth.
 
-The web client must apply the same permission evaluator and must never infer access merely because it can name a record identifier.
+The web client must query owned data from the private scope and accepted collaboration from the shared scope, apply the same permission evaluator, and never infer access merely because it can name a record identifier.
 
 See `CLOUDKIT_WEB.md` for the integration contract.
