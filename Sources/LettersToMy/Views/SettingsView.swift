@@ -16,14 +16,20 @@ struct SettingsView: View {
 
             Section("iCloud") {
                 LabeledContent("Account", value: iCloudStatus)
-                Text("Letters and attachments synchronize through the app’s private CloudKit database across signed-in Apple devices.")
+                Text("The current prototype synchronizes owned records through the private CloudKit database. Shared collaborator records will use private and shared CloudKit stores after the Core Data migration.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Roadmap") {
+            Section("Collaboration") {
+                Label("Roles, family sides, folders, and invitation plans are available", systemImage: "person.3.fill")
+                Label("Live private iCloud invitations require the shared-store migration", systemImage: "icloud.and.arrow.up")
+                Label("Recipients receive only their own unlocked deliveries", systemImage: "tray.full.fill")
+            }
+
+            Section("Release requirements") {
                 Label("Encrypted archive export and recovery contacts", systemImage: "lock.doc")
-                Label("Family collaboration through CloudKit sharing", systemImage: "person.2")
+                Label("CloudKit invitation acceptance and revocation", systemImage: "person.crop.circle.badge.checkmark")
                 Label("Integrated web client using the same CloudKit container", systemImage: "safari")
             }
         }
