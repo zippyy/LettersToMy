@@ -1,9 +1,15 @@
-import SwiftData
+import CoreData
 import SwiftUI
 
 struct TimelineView: View {
-    @Query(sort: \Letter.createdAt, order: .reverse) private var letters: [Letter]
-    @Query(sort: \ChildProfile.createdAt) private var children: [ChildProfile]
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Letter.createdAt, ascending: false)],
+        animation: .default
+    ) private var letters: FetchedResults<Letter>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \ChildProfile.createdAt, ascending: true)],
+        animation: .default
+    ) private var children: FetchedResults<ChildProfile>
 
     private var child: ChildProfile? { children.first }
 
