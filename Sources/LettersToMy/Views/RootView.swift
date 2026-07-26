@@ -28,6 +28,9 @@ private struct MainTabView: View {
             FamilyView()
                 .tabItem { Label("Family", systemImage: "person.2.fill") }
 
+            CollaboratorsView()
+                .tabItem { Label("People", systemImage: "person.3.fill") }
+
             #if os(iOS)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
@@ -60,7 +63,7 @@ private struct WelcomeView: View {
 
             VStack(alignment: .leading, spacing: 14) {
                 Label("Write now and unlock on a future birthday", systemImage: "birthday.cake")
-                Label("Keep family memories together in private iCloud storage", systemImage: "icloud")
+                Label("Invite spouses and family into carefully scoped spaces", systemImage: "person.3.fill")
                 Label("Use the same archive on iPhone, iPad, Mac, and later the web", systemImage: "rectangle.3.group")
             }
             .font(.headline)
