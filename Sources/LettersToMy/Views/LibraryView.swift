@@ -1,10 +1,16 @@
-import SwiftData
+import CoreData
 import SwiftUI
 
 struct LibraryView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Letter.updatedAt, order: .reverse) private var letters: [Letter]
-    @Query(sort: \ChildProfile.createdAt) private var children: [ChildProfile]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Letter.updatedAt, ascending: false)],
+        animation: .default
+    ) private var letters: FetchedResults<Letter>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \ChildProfile.createdAt, ascending: true)],
+        animation: .default
+    ) private var children: FetchedResults<ChildProfile>
 
     @State private var selection: Letter?
     @State private var statusFilter: LetterStatus?
@@ -52,12 +58,16 @@ struct LibraryView: View {
                         LetterRow(letter: letter, child: primaryChild)
                             .tag(letter)
                             .contextMenu {
-                                Button("Edit") {
-                                    editingLetter = letter
-                                    showingEditor = true
+                                if PersistenceController.shared.canUpdate(letter) {
+                                    Button("Edit") {
+                                        editingLetter = letter
+                                        showingEditor = true
+                                    }
                                 }
-                                Button("Delete", role: .destructive) {
-                                    delete(letter)
+                                if PersistenceController.shared.canDelete(letter) {
+                                    Button("Delete", role: .destructive) {
+                                        delete(letter)
+                                    }
                                 }
                             }
                     }
@@ -93,32 +103,22 @@ struct LibraryView: View {
             NavigationStack {
                 LetterEditorView(letter: editingLetter, child: primaryChild)
             }
+            .environment(\.managedObjectContext, managedObjectContext)
             .frame(minWidth: 480, minHeight: 620)
         }
     }
 
     private func delete(_ letter: Letter) {
-        if selection?.id == letter.id {
+        if selection?.objectID == letter.objectID {
             selection = nil
         }
-
-        let letterID = letter.id
-        let descriptor = FetchDescriptor<LetterAttachment>(
-            predicate: #Predicate { $0.letterID == letterID }
-        )
-        if let attachments = try? modelContext.fetch(descriptor) {
-            for attachment in attachments {
-                modelContext.delete(attachment)
-            }
-        }
-
-        modelContext.delete(letter)
-        try? modelContext.save()
+        managedObjectContext.delete(letter)
+        try? PersistenceController.shared.save(managedObjectContext)
     }
 }
 
 private struct LetterRow: View {
-    let letter: Letter
+    @ObservedObject var letter: Letter
     let child: ChildProfile?
 
     private var status: LetterStatus { letter.status(for: child) }
