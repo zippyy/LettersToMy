@@ -1,19 +1,20 @@
+import CoreData
 import Foundation
-import SwiftData
 
-@Model
-final class ChildProfile {
-    var id: UUID = UUID()
-    var name: String = ""
-    var birthDate: Date?
-    var createdAt: Date = Date.now
-    var updatedAt: Date = Date.now
+@objc(ChildProfile)
+final class ChildProfile: NSManagedObject {
+    @NSManaged var id: UUID
+    @NSManaged var name: String
+    @NSManaged var birthDate: Date?
+    @NSManaged var createdAt: Date
+    @NSManaged var updatedAt: Date
+    @NSManaged var partition: SharePartitionRecord?
 
-    init(name: String = "", birthDate: Date? = nil) {
-        self.id = UUID()
-        self.name = name
-        self.birthDate = birthDate
-        self.createdAt = Date.now
-        self.updatedAt = Date.now
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        name = ""
+        createdAt = .now
+        updatedAt = .now
     }
 }
