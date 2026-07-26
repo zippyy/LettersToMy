@@ -1,0 +1,32 @@
+name: Apple builds
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build iOS app
+        run: >-
+          xcodebuild
+          -project LettersToMy.xcodeproj
+          -scheme LettersToMy
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Build macOS app
+        run: >-
+          xcodebuild
+          -project LettersToMy.xcodeproj
+          -scheme LettersToMyMac
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO
+          build
