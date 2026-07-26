@@ -256,7 +256,7 @@ private struct InvitationPlansSection: View {
     let partitions: [SharePartitionRecord]
 
     var body: some View {
-        Section("Invitations") {
+        Section {
             if invitations.isEmpty {
                 Text("No pending invitations")
                     .foregroundStyle(.secondary)
@@ -271,6 +271,8 @@ private struct InvitationPlansSection: View {
                     )
                 }
             }
+        } header: {
+            Text("Invitations")
         } footer: {
             Text("Each Send button opens Apple's CloudKit sharing sheet. Parent/admin access can require several scoped shares so narrow family permissions remain enforceable.")
         }
@@ -626,10 +628,14 @@ private struct InviteCollaboratorView: View {
         }
 
         switch scopeKind {
-        case .archive: true
-        case .branch: branchID != nil
-        case .folder: folderID != nil
-        case .recipient: recipientID != nil
+        case .archive:
+            return true
+        case .branch:
+            return branchID != nil
+        case .folder:
+            return folderID != nil
+        case .recipient:
+            return recipientID != nil
         }
     }
 
