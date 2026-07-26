@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 struct LetterEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \FamilyBranchRecord.createdAt) private var branches: [FamilyBranchRecord]
+    @Query(sort: \ArchiveFolderRecord.createdAt) private var folders: [ArchiveFolderRecord]
 
     let letter: Letter?
     let child: ChildProfile?
@@ -13,6 +15,8 @@ struct LetterEditorView: View {
     @State private var title: String
     @State private var bodyText: String
     @State private var authorName: String
+    @State private var branchID: UUID?
+    @State private var folderID: UUID?
     @State private var unlockKind: UnlockRuleKind
     @State private var unlockDate: Date
     @State private var unlockAgeYears: Int
@@ -27,10 +31,17 @@ struct LetterEditorView: View {
         _title = State(initialValue: letter?.title ?? "")
         _bodyText = State(initialValue: letter?.body ?? "")
         _authorName = State(initialValue: letter?.authorName ?? "")
+        _branchID = State(initialValue: letter?.branchID)
+        _folderID = State(initialValue: letter?.folderID)
         _unlockKind = State(initialValue: letter?.unlockRuleKind ?? .specificDate)
         _unlockDate = State(initialValue: letter?.unlockDate ?? Calendar.current.date(byAdding: .year, value: 1, to: .now) ?? .now)
         _unlockAgeYears = State(initialValue: letter?.unlockAgeYears ?? 5)
         _lifeEventName = State(initialValue: letter?.lifeEventName ?? "")
+    }
+
+    private var availableFolders: [ArchiveFolderRecord] {
+        guard let branchID else { return [] }
+        return folders.filter { $0.branchID == branchID }
     }
 
     var body: some View {
@@ -42,6 +53,33 @@ struct LetterEditorView: View {
                 TextEditor(text: $bodyText)
                     .frame(minHeight: 220)
                     .accessibilityLabel("Letter message")
+            }
+
+            Section("Family side and folder") {
+                Picker("Family side", selection: $branchID) {
+                    Text("Unassigned").tag(nil as UUID?)
+                    ForEach(branches) { branch in
+                        Text(branch.name).tag(branch.id as UUID?)
+                    }
+                }
+                .onChange(of: branchID) { _, newBranchID in
+                    guard let folderID else { return }
+                    if !folders.contains(where: { $0.id == folderID && $0.branchID == newBranchID }) {
+                        self.folderID = nil
+                    }
+                }
+
+                Picker("Folder", selection: $folderID) {
+                    Text("No folder").tag(nil as UUID?)
+                    ForEach(availableFolders) { folder in
+                        Text(folder.name).tag(folder.id as UUID?)
+                    }
+                }
+                .disabled(branchID == nil)
+
+                Text("Family sides and folders determine which collaborators can work with this letter.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Unlock") {
@@ -136,6 +174,8 @@ struct LetterEditorView: View {
         }
 
         target.childID = child?.id
+        target.branchID = branchID
+        target.folderID = folderID
         target.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         target.body = bodyText
         target.authorName = authorName.trimmingCharacters(in: .whitespacesAndNewlines)
