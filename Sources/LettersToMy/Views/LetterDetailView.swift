@@ -59,6 +59,17 @@ struct LetterDetailView: View {
                     Label("Favorite", systemImage: letter.isFavorite ? "heart.fill" : "heart")
                 }
 
+                if !recipientPreview,
+                   !letter.isDraft,
+                   letter.unlockRuleKind == .lifeEvent,
+                   letter.manuallyReleasedAt == nil {
+                    Button("Release Now") {
+                        letter.manuallyReleasedAt = .now
+                        letter.updatedAt = .now
+                        try? modelContext.save()
+                    }
+                }
+
                 Button("Edit", action: editAction)
             }
         }
