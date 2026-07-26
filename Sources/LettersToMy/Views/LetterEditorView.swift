@@ -86,10 +86,15 @@ struct LetterEditorView: View {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItemGroup(placement: .confirmationAction) {
-                Button("Save Draft") { save(sealed: false) }
-                Button("Seal Letter") { save(sealed: true) }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!canSeal)
+                if letter?.isDraft == false {
+                    Button("Save Changes") { save(sealed: true) }
+                        .buttonStyle(.borderedProminent)
+                } else {
+                    Button("Save Draft") { save(sealed: false) }
+                    Button("Seal Letter") { save(sealed: true) }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!canSeal)
+                }
             }
         }
         .fileImporter(
