@@ -7,7 +7,11 @@ struct LettersToMyApp: App {
         let schema = Schema([
             ChildProfile.self,
             Letter.self,
-            LetterAttachment.self
+            LetterAttachment.self,
+            FamilyBranchRecord.self,
+            ArchiveFolderRecord.self,
+            ArchiveMemberRecord.self,
+            CollaborationInvitationRecord.self
         ])
         let configuration = ModelConfiguration(
             "LettersToMy",
