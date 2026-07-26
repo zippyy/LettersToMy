@@ -1,9 +1,12 @@
-import SwiftData
+import CoreData
 import SwiftUI
 
 struct FamilyView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \ChildProfile.createdAt) private var children: [ChildProfile]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \ChildProfile.createdAt, ascending: true)],
+        animation: .default
+    ) private var children: FetchedResults<ChildProfile>
 
     @State private var name = ""
     @State private var birthDate = Date.now
@@ -18,7 +21,12 @@ struct FamilyView: View {
                     TextField("Name", text: $name)
                     Toggle("Birth date is known", isOn: $hasBirthDate)
                     if hasBirthDate {
-                        DatePicker("Birth date", selection: $birthDate, in: ...Date.now, displayedComponents: .date)
+                        DatePicker(
+                            "Birth date",
+                            selection: $birthDate,
+                            in: ...Date.now,
+                            displayedComponents: .date
+                        )
                     }
                 }
 
@@ -26,7 +34,7 @@ struct FamilyView: View {
                     Button("Save Family Profile") { save() }
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 } footer: {
-                    Text("The birth date is used only to calculate age-based letter unlocks and is stored in your private app data.")
+                    Text("The birth date is used only to calculate age-based letter unlocks and stays inside the private or explicitly shared family archive.")
                 }
             }
             .navigationTitle("Family")
@@ -44,13 +52,32 @@ struct FamilyView: View {
     }
 
     private func save() {
-        let target = child ?? ChildProfile()
-        if child == nil {
-            modelContext.insert(target)
+        let persistence = PersistenceController.shared
+        let target: ChildProfile
+        if let child {
+            target = child
+        } else {
+            target = persistence.insertPrivate(ChildProfile.self, into: managedObjectContext)
         }
+
         target.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         target.birthDate = hasBirthDate ? birthDate : nil
         target.updatedAt = .now
-        try? modelContext.save()
+
+        if target.partition == nil {
+            let partition = persistence.insertPrivate(
+                SharePartitionRecord.self,
+                into: managedObjectContext
+            )
+            partition.kind = .recipientInbox
+            partition.scopeID = target.id
+            partition.displayName = "\(target.name)'s Recipient Inbox"
+            target.partition = partition
+        } else {
+            target.partition?.displayName = "\(target.name)'s Recipient Inbox"
+            target.partition?.updatedAt = .now
+        }
+
+        try? persistence.save(managedObjectContext)
     }
 }
