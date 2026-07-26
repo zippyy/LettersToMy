@@ -17,17 +17,21 @@ struct LibraryView: View {
     @State private var searchText = ""
     @State private var showingEditor = false
     @State private var editingLetter: Letter?
+    @State private var selectedChildID: UUID?
 
-    private var primaryChild: ChildProfile? { children.first }
+    private var selectedChild: ChildProfile? {
+        children.first { $0.id == selectedChildID } ?? children.first
+    }
 
     private var filteredLetters: [Letter] {
         letters.filter { letter in
-            let matchesStatus = statusFilter == nil || letter.status(for: primaryChild) == statusFilter
+            let matchesChild = selectedChildID == nil || letter.childID == selectedChildID
+            let matchesStatus = statusFilter == nil || letter.status(for: selectedChild) == statusFilter
             let matchesSearch = searchText.isEmpty
                 || letter.title.localizedCaseInsensitiveContains(searchText)
                 || letter.body.localizedCaseInsensitiveContains(searchText)
                 || letter.authorName.localizedCaseInsensitiveContains(searchText)
-            return matchesStatus && matchesSearch
+            return matchesChild && matchesStatus && matchesSearch
         }
     }
 
@@ -55,7 +59,7 @@ struct LibraryView: View {
                     )
                 } else {
                     List(filteredLetters, selection: $selection) { letter in
-                        LetterRow(letter: letter, child: primaryChild)
+                        LetterRow(letter: letter, child: selectedChild)
                             .tag(letter)
                             .contextMenu {
                                 if PersistenceController.shared.canUpdate(letter) {
@@ -84,10 +88,15 @@ struct LibraryView: View {
                         Label("New Letter", systemImage: "square.and.pencil")
                     }
                 }
+                if children.count > 1 {
+                    ToolbarItem(placement: .navigation) {
+                        childPicker
+                    }
+                }
             }
         } detail: {
             if let selection {
-                LetterDetailView(letter: selection, child: primaryChild) {
+                LetterDetailView(letter: selection, child: selectedChild) {
                     editingLetter = selection
                     showingEditor = true
                 }
@@ -101,17 +110,31 @@ struct LibraryView: View {
         }
         .sheet(isPresented: $showingEditor) {
             NavigationStack {
-                LetterEditorView(letter: editingLetter, child: primaryChild)
+                LetterEditorView(letter: editingLetter, child: selectedChild)
             }
             .environment(\.managedObjectContext, managedObjectContext)
             .frame(minWidth: 480, minHeight: 620)
         }
+        .onAppear {
+            if selectedChildID == nil { selectedChildID = children.first?.id }
+        }
+    }
+
+    private var childPicker: some View {
+        Picker("Recipient", selection: $selectedChildID) {
+            Text("All Children").tag(nil as UUID?)
+            ForEach(children) { child in
+                Text(child.name.isEmpty ? "Unnamed" : child.name)
+                    .tag(child.id as UUID?)
+            }
+        }
+        .pickerStyle(.menu)
     }
 
     private func delete(_ letter: Letter) {
         guard PersistenceController.shared.canPerform(
             .deleteContent,
-            context: letter.collaborationContext(for: primaryChild),
+            context: letter.collaborationContext(for: selectedChild),
             target: letter
         ) else { return }
 

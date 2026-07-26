@@ -17,6 +17,10 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     private(set) var privateStore: NSPersistentStore!
     private(set) var sharedStore: NSPersistentStore!
 
+    /// Published for SwiftUI views to observe CloudKit account state.
+    @Published var cloudKitAccountStatus: CKAccountStatus = .couldNotDetermine
+    @Published var lastSyncError: String?
+
     init(inMemory: Bool = false) {
         let model = LettersToMyManagedObjectModel.makeModel()
         container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
@@ -93,6 +97,50 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         // Evaluate unlock rules and create deliveries for any letters
         // that unlocked while the app was not running.
         processPendingDeliveries(into: context)
+
+        // Observe CloudKit account and sync state.
+        Task { await refreshCloudKitAccountStatus() }
+        observeRemoteChanges()
+    }
+
+    // MARK: - CloudKit Status
+
+    func refreshCloudKitAccountStatus() async {
+        do {
+            cloudKitAccountStatus = try await cloudKitContainer.accountStatus()
+        } catch {
+            cloudKitAccountStatus = .couldNotDetermine
+            lastSyncError = error.localizedDescription
+        }
+    }
+
+    private func observeRemoteChanges() {
+        NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: container,
+            queue: .main
+        ) { [weak self] notification in
+            guard let event = notification.userInfo?[
+                NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+            ] as? NSPersistentCloudKitContainer.Event else {
+                return
+            }
+
+            switch event.type {
+            case .setup:
+                break
+            case .import:
+                if let error = event.error {
+                    self?.lastSyncError = "Import error: \(error.localizedDescription)"
+                }
+            case .export:
+                if let error = event.error {
+                    self?.lastSyncError = "Export error: \(error.localizedDescription)"
+                }
+            @unknown default:
+                break
+            }
+        }
     }
 
     func save(_ context: NSManagedObjectContext? = nil) throws {

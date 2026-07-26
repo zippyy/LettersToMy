@@ -117,11 +117,30 @@ struct LetterDetailView: View {
                 .font(.title2.bold())
 
             ForEach(attachments) { attachment in
-                Label(attachment.fileName, systemImage: attachment.kind.systemImage)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+                HStack {
+                    Label(attachment.fileName, systemImage: attachment.kind.systemImage)
+                        .padding(12)
+                    Spacer()
+                    if canUpdate {
+                        Button(role: .destructive) {
+                            deleteAttachment(attachment)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(.trailing, 8)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
             }
         }
+    }
+
+    private func deleteAttachment(_ attachment: LetterAttachment) {
+        attachment.letter = nil
+        managedObjectContext.delete(attachment)
+        try? PersistenceController.shared.save(managedObjectContext)
     }
 }

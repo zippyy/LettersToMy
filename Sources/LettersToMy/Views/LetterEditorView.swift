@@ -34,6 +34,7 @@ struct LetterEditorView: View {
     @State private var showingFileImporter = false
     @State private var pendingAttachments: [PendingAttachment] = []
     @State private var importError: String?
+    @State private var selectedMilestone: MilestoneTemplate?
 
     init(letter: Letter?, child: ChildProfile?) {
         self.letter = letter
@@ -72,6 +73,20 @@ struct LetterEditorView: View {
 
     var body: some View {
         Form {
+            if letter == nil {
+                Section("Quick Start") {
+                    Picker("Milestone", selection: $selectedMilestone) {
+                        Text("Start from scratch").tag(nil as MilestoneTemplate?)
+                        ForEach(MilestoneTemplate.all) { milestone in
+                            Text(milestone.title).tag(milestone as MilestoneTemplate?)
+                        }
+                    }
+                    .onChange(of: selectedMilestone) { _, milestone in
+                        if let milestone { applyMilestone(milestone) }
+                    }
+                }
+            }
+
             Section("Letter") {
                 TextField("Title", text: $title)
                 TextField("From", text: $authorName)
@@ -290,6 +305,18 @@ struct LetterEditorView: View {
             importError = error.localizedDescription
         }
     }
+
+    private func applyMilestone(_ milestone: MilestoneTemplate) {
+        title = milestone.title
+        bodyText = milestone.body
+        unlockKind = milestone.unlockKind
+        if milestone.unlockKind == .birthdayAge {
+            unlockAgeYears = milestone.unlockAge ?? 5
+        } else if milestone.unlockKind == .lifeEvent {
+            lifeEventName = milestone.lifeEventName ?? ""
+        }
+        selectedMilestone = nil
+    }
 }
 
 private struct PendingAttachment: Identifiable {
@@ -312,4 +339,74 @@ private extension AttachmentKind {
             self = .file
         }
     }
+}
+
+// MARK: - Milestone Templates
+
+struct MilestoneTemplate: Identifiable, Hashable {
+    let id = UUID()
+    let title: String
+    let body: String
+    let unlockKind: UnlockRuleKind
+    let unlockAge: Int?
+    let lifeEventName: String?
+
+    static let all: [MilestoneTemplate] = [
+        MilestoneTemplate(
+            title: "Your First Birthday",
+            body: "Dear little one,\n\nHappy first birthday! You've grown so much this year…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 1,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Starting School",
+            body: "Today you start school. I remember when…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 5,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Your 10th Birthday",
+            body: "Double digits! You're growing up so fast…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 10,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Sweet Sixteen",
+            body: "Sixteen years old. I am so proud of the person you're becoming…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 16,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Graduation Day",
+            body: "Today you graduate. All those years of hard work…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Graduation"
+        ),
+        MilestoneTemplate(
+            title: "Your Wedding Day",
+            body: "On this beautiful day, as you start this new chapter…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Wedding"
+        ),
+        MilestoneTemplate(
+            title: "Becoming a Parent",
+            body: "Now you understand. The moment you held your own child…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Becoming a parent"
+        ),
+        MilestoneTemplate(
+            title: "A Letter for When You Need It",
+            body: "If you're reading this, you might be having a hard day…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Encouragement"
+        ),
+    ]
 }

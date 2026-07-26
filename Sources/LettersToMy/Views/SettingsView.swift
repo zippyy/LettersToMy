@@ -1,9 +1,19 @@
-import CloudKit
 import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("recipientPreview") private var recipientPreview = false
-    @State private var iCloudStatus = "Checking…"
+    @ObservedObject private var persistence = PersistenceController.shared
+
+    private var iCloudStatus: String {
+        switch persistence.cloudKitAccountStatus {
+        case .available: "Available"
+        case .noAccount: "Not signed in"
+        case .restricted: "Restricted"
+        case .couldNotDetermine: "Checking…"
+        case .temporarilyUnavailable: "Temporarily unavailable"
+        @unknown default: "Unknown"
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -57,28 +67,6 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-        }
-        .task { await refreshCloudStatus() }
-    }
-
-    private func refreshCloudStatus() async {
-        do {
-            switch try await CKContainer.default().accountStatus() {
-            case .available:
-                iCloudStatus = "Available"
-            case .noAccount:
-                iCloudStatus = "Not signed in"
-            case .restricted:
-                iCloudStatus = "Restricted"
-            case .couldNotDetermine:
-                iCloudStatus = "Unavailable"
-            case .temporarilyUnavailable:
-                iCloudStatus = "Temporarily unavailable"
-            @unknown default:
-                iCloudStatus = "Unknown"
-            }
-        } catch {
-            iCloudStatus = "Unavailable"
         }
     }
 }
