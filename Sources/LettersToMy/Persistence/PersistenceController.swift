@@ -75,7 +75,9 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
         let context = container.viewContext
         context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.mergePolicy = NSMergePolicy(
+            merge: .mergeByPropertyObjectTrumpMergePolicyType
+        )
         context.transactionAuthor = "LettersToMy.app"
         context.name = "LettersToMy.viewContext"
     }
@@ -88,7 +90,9 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
     func newBackgroundContext(author: String = "LettersToMy.background") -> NSManagedObjectContext {
         let context = container.newBackgroundContext()
-        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.mergePolicy = NSMergePolicy(
+            merge: .mergeByPropertyObjectTrumpMergePolicyType
+        )
         context.transactionAuthor = author
         return context
     }
@@ -98,7 +102,10 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         _ type: T.Type,
         into context: NSManagedObjectContext? = nil
     ) -> T {
-        insert(type, into: privateStore, context: context)
+        guard let privateStore else {
+            fatalError("The private Core Data store is not loaded.")
+        }
+        return insert(type, into: privateStore, context: context)
     }
 
     @discardableResult
@@ -107,7 +114,9 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         inSameStoreAs owner: NSManagedObject,
         into context: NSManagedObjectContext? = nil
     ) -> T {
-        let store = owner.objectID.persistentStore ?? privateStore
+        guard let store = owner.objectID.persistentStore ?? privateStore else {
+            fatalError("No persistent store is available for the new object.")
+        }
         return insert(type, into: store, context: context)
     }
 
@@ -143,7 +152,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
     func acceptShare(
         _ metadata: CKShare.Metadata,
-        completion: @escaping (Result<Void, Error>) -> Void = { _ in }
+        completion: @escaping @Sendable (Result<Void, Error>) -> Void = { _ in }
     ) {
         container.acceptShareInvitations(from: [metadata], into: sharedStore) { _, error in
             DispatchQueue.main.async {
