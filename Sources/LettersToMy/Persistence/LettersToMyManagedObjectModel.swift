@@ -195,6 +195,19 @@ enum LettersToMyManagedObjectModel {
             attribute("remoteIdentifier", .stringAttributeType, optional: true)
         ]
 
+        let recoveryContact = entity("RecoveryContactEntity", RecoveryContactEntity.self)
+        recoveryContact.properties = [
+            attribute("id", .UUIDAttributeType, defaultValue: zeroUUID),
+            attribute("displayName", .stringAttributeType, defaultValue: ""),
+            attribute("emailAddress", .stringAttributeType, defaultValue: ""),
+            attribute("phoneNumber", .stringAttributeType, optional: true),
+            attribute("relationship", .stringAttributeType, defaultValue: ""),
+            attribute("recoveryKeyHash", .binaryDataAttributeType, optional: true),
+            attribute("notes", .stringAttributeType, optional: true),
+            attribute("createdAt", .dateAttributeType, defaultValue: epoch),
+            attribute("updatedAt", .dateAttributeType, defaultValue: epoch)
+        ]
+
         let deliveryAttachment = entity("DeliveryAttachmentEntity", DeliveryAttachmentEntity.self)
         deliveryAttachment.properties = [
             attribute("id", .UUIDAttributeType, defaultValue: zeroUUID),
@@ -232,7 +245,7 @@ enum LettersToMyManagedObjectModel {
             destinationName: "deliveries"
         )
 
-        let entities = [child, letter, attachment, branch, folder, member, invitation, partition, backupRecord, delivery, deliveryAttachment]
+        let entities = [child, letter, attachment, branch, folder, member, invitation, partition, backupRecord, recoveryContact, delivery, deliveryAttachment]
         model.entities = entities
         model.setEntities(entities, forConfigurationName: PersistenceController.privateConfigurationName)
         model.setEntities(entities, forConfigurationName: PersistenceController.sharedConfigurationName)

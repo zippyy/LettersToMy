@@ -636,6 +636,42 @@ public actor BackupService {
 import CryptoKit
 
 extension BackupService {
+    /// Public entry point for decrypting a serialised archive without
+    /// going through the full backup service pipeline. Used by the
+    /// restore flow to preview an archive before committing the import.
+    public static func decryptPayload(
+        data: Data,
+        passphrase: String
+    ) throws -> BackupPayload {
+        guard let keyData = passphrase.data(using: .utf8) else {
+            throw BackupError.decryptionFailed("Invalid passphrase encoding.")
+        }
+
+        let key = SymmetricKey(data: SHA256.hash(data: keyData))
+
+        let sealed: AES.GCM.SealedBox
+        do {
+            sealed = try AES.GCM.SealedBox(combined: data)
+        } catch {
+            throw BackupError.archiveCorrupted("Invalid ciphertext format.")
+        }
+
+        let decrypted: Data
+        do {
+            decrypted = try AES.GCM.open(sealed, using: key)
+        } catch CryptoKitError.authenticationFailure {
+            throw BackupError.decryptionFailed("Wrong passphrase or corrupted archive.")
+        } catch {
+            throw BackupError.decryptionFailed(error.localizedDescription)
+        }
+
+        do {
+            return try JSONDecoder().decode(BackupPayload.self, from: decrypted)
+        } catch {
+            throw BackupError.archiveCorrupted("Payload deserialization failed: \(error.localizedDescription)")
+        }
+    }
+
     private func serializeAndEncrypt(
         payload: BackupPayload,
         passphrase: String

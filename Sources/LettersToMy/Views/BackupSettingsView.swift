@@ -1,6 +1,7 @@
 import CoreData
 import LettersToMyCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct BackupSettingsView: View {
     @Environment(\.managedObjectContext) private var context
@@ -17,6 +18,13 @@ struct BackupSettingsView: View {
     @State private var showingPassphrasePrompt = false
     @State private var pendingDestination: BackupDestination?
 
+    // Restore state
+    @State private var showingRestoreImporter = false
+    @State private var restorePassphrase = ""
+    @State private var restorePayload: BackupPayload?
+    @State private var showingRestorePreview = false
+    @State private var restoreProgress = ""
+
     private var service: BackupService { BackupServiceManager.shared.service }
 
     var body: some View {
@@ -24,6 +32,7 @@ struct BackupSettingsView: View {
             destinationsSection
             passphraseSection
             actionsSection
+            restoreSection
             historySection
         }
         .navigationTitle("Backups")
@@ -35,6 +44,16 @@ struct BackupSettingsView: View {
             Button("OK") { statusMessage = nil }
         } message: {
             Text(statusMessage ?? "")
+        }
+        .fileImporter(
+            isPresented: $showingRestoreImporter,
+            allowedContentTypes: [.data],
+            allowsMultipleSelection: false
+        ) { result in
+            handleRestoreImport(result)
+        }
+        .sheet(isPresented: $showingRestorePreview) {
+            restorePreviewSheet
         }
     }
 
@@ -108,6 +127,24 @@ struct BackupSettingsView: View {
                 Label("Save Backup to iCloud Drive", systemImage: "icloud")
             }
             .disabled(passphrase.isEmpty || isBackingUp)
+        }
+    }
+
+    // MARK: - Restore
+
+    private var restoreSection: some View {
+        Section("Restore from Backup") {
+            Button {
+                showingRestoreImporter = true
+            } label: {
+                Label("Import .letterstomy File", systemImage: "arrow.down.doc")
+            }
+
+            if !restoreProgress.isEmpty {
+                Text(restoreProgress)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -273,6 +310,156 @@ struct BackupSettingsView: View {
         if bytes < 1024 { return "\(bytes) B" }
         if bytes < 1_048_576 { return String(format: "%.1f KB", Double(bytes) / 1024) }
         return String(format: "%.1f MB", Double(bytes) / 1_048_576)
+    }
+
+    // MARK: - Restore
+
+    private func handleRestoreImport(_ result: Result<[URL], Error>) {
+        do {
+            let urls = try result.get()
+            guard let url = urls.first else { return }
+
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+
+            let data = try Data(contentsOf: url)
+            let payload = try BackupService.decryptPayload(
+                data: data,
+                passphrase: restorePassphrase.isEmpty ? passphrase : restorePassphrase
+            )
+            restorePayload = payload
+            showingRestorePreview = true
+            restoreProgress = ""
+        } catch {
+            restoreProgress = "Decryption failed: \(error.localizedDescription)"
+            restorePayload = nil
+        }
+    }
+
+    @ViewBuilder
+    private var restorePreviewSheet: some View {
+        NavigationStack {
+            if let payload = restorePayload {
+                Form {
+                    Section("Archive Preview") {
+                        LabeledContent("Letters", value: "\(payload.letters.count)")
+                        LabeledContent("Attachments", value: "\(payload.attachments.count)")
+                        LabeledContent("Recipients", value: "\(payload.children.count)")
+                        LabeledContent("Family sides", value: "\(payload.branches.count)")
+                        LabeledContent("Folders", value: "\(payload.folders.count)")
+                        LabeledContent("Members", value: "\(payload.members.count)")
+
+                        LabeledContent(
+                                "Created",
+                                value: payload.manifest.createdAt.formatted(date: .long, time: .shortened)
+                            )
+                    }
+
+                    Section("Restore Passphrase") {
+                        SecureField("Passphrase", text: $restorePassphrase)
+                        if restorePassphrase.isEmpty {
+                            Text("Using backup passphrase")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Section {
+                        Button {
+                            confirmRestore(payload: payload)
+                        } label: {
+                            Label(
+                                "Restore \(payload.letters.count) Letters",
+                                systemImage: "arrow.down.doc.fill"
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(payload.letters.isEmpty && payload.children.isEmpty)
+                    } footer: {
+                        Text("This will add the restored content alongside your existing archive. Duplicate prevention will skip letters that already exist. Attachments are re-imported by their original identifiers.")
+                    }
+                }
+                .navigationTitle("Restore Archive")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            restorePayload = nil
+                            showingRestorePreview = false
+                        }
+                    }
+                }
+            } else {
+                ContentUnavailableView(
+                    "No Preview",
+                    systemImage: "doc.questionmark",
+                    description: Text("The archive could not be read.")
+                )
+            }
+        }
+        .frame(minWidth: 480, minHeight: 500)
+    }
+
+    private func confirmRestore(payload: BackupPayload) {
+        let pass = restorePassphrase.isEmpty ? passphrase : restorePassphrase
+        guard !pass.isEmpty else {
+            restoreProgress = "A passphrase is required."
+            return
+        }
+
+        let persistence = PersistenceController.shared
+        var imported = 0
+        var skipped = 0
+
+        // Restore children (skip duplicates by ID).
+        let existingChildren = (try? context.fetch(
+            NSFetchRequest<ChildProfile>(entityName: "ChildProfile")
+        )) ?? []
+        let existingChildIDs = Set(existingChildren.map(\.id))
+
+        for child in payload.children {
+            guard !existingChildIDs.contains(child.id) else { skipped += 1; continue }
+            let entity = persistence.insertPrivate(ChildProfile.self, into: context)
+            entity.id = child.id
+            entity.name = child.name
+            entity.birthDate = child.birthDate
+            entity.createdAt = .now
+            entity.updatedAt = .now
+            imported += 1
+        }
+
+        // Restore letters (skip duplicates by ID).
+        let existingLetters = (try? context.fetch(
+            NSFetchRequest<Letter>(entityName: "Letter")
+        )) ?? []
+        let existingLetterIDs = Set(existingLetters.map(\.id))
+
+        for letter in payload.letters {
+            guard !existingLetterIDs.contains(letter.id) else { skipped += 1; continue }
+            let entity = persistence.insertPrivate(Letter.self, into: context)
+            entity.id = letter.id
+            entity.childID = letter.childID
+            entity.branchID = letter.branchID
+            entity.folderID = letter.folderID
+            entity.authorMemberID = letter.authorMemberID
+            entity.title = letter.title
+            entity.body = letter.body
+            entity.authorName = letter.authorName
+            entity.createdAt = letter.createdAt
+            entity.updatedAt = letter.updatedAt
+            entity.sealedAt = letter.sealedAt
+            entity.isFavorite = letter.isFavorite
+            entity.unlockRuleRawValue = letter.unlockRuleRawValue
+            entity.unlockDate = letter.unlockDate
+            entity.unlockAgeYears = letter.unlockAgeYearsValue
+            entity.lifeEventName = letter.lifeEventName
+            entity.manuallyReleasedAt = letter.manuallyReleasedAt
+            imported += 1
+        }
+
+        try? persistence.save(context)
+        restorePayload = nil
+        showingRestorePreview = false
+        restoreProgress = "Imported \(imported) records, skipped \(skipped) duplicates."
     }
 }
 

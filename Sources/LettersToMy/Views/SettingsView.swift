@@ -39,6 +39,17 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("Recovery") {
+                    NavigationLink {
+                        RecoveryContactsView()
+                    } label: {
+                        Label("Recovery Contacts", systemImage: "person.badge.key")
+                    }
+                    Text("Designate people who can help recover your archive through a defined process. They do not gain access until you initiate recovery.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Release requirements") {
                     Label("Encrypted archive export and recovery contacts", systemImage: "lock.doc")
                     Label("Participant revocation and multi-account integration tests", systemImage: "person.crop.circle.badge.checkmark")
