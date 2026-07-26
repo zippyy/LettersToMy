@@ -4,6 +4,29 @@ import Foundation
 // The model is built in code so the repository remains XcodeGen-friendly while the
 // schema is still changing quickly. Its entity and property names are stable and
 // become the CloudKit record contract used by the native and web clients.
+//
+// Versioning strategy:
+//   - versionIdentifiers = ["LettersToMyCoreDataV1"] is the initial schema.
+//   - Future versions add new identifiers (e.g. "LettersToMyCoreDataV2") while
+//     keeping all prior identifiers. Core Data lightweight migration handles
+//     additive changes (new entities, new optional attributes) automatically.
+//   - Renames, required-attribute additions, or relationship cardinality changes
+//     require an explicit mapping model.
+//   - Never ship a version that removes entities or attributes that have been
+//     deployed to CloudKit without a migration window.
+//
+// UUID indexes:
+//   Fetch indexes on stable UUID attributes speed up lookups by letter ID,
+//   child ID, branch ID, and member ID — the common query patterns used by
+//   the collaboration and delivery pipelines.
+//
+// Delete rules:
+//   - Letter → Attachment: cascade (deleting a letter removes its attachments).
+//   - Partition → child entities: nullify (deleting a share partition must
+//     never cascade-delete the data it organizes). The partition exists to
+//     group records for sharing; removing a share leaves the records intact.
+//   - Delivery → DeliveryAttachment: cascade.
+//   - All other relationships: nullify by default.
 enum LettersToMyManagedObjectModel {
     static func makeModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
@@ -213,6 +236,34 @@ enum LettersToMyManagedObjectModel {
         model.entities = entities
         model.setEntities(entities, forConfigurationName: PersistenceController.privateConfigurationName)
         model.setEntities(entities, forConfigurationName: PersistenceController.sharedConfigurationName)
+
+        // Add fetch indexes on stable UUID attributes for the most common
+        // query patterns: lookups by child ID, letter ID, branch ID, member ID,
+        // and invitation ID.
+        addUUIDIndex(to: child, attribute: "id")
+        addUUIDIndex(to: letter, attribute: "id")
+        addUUIDIndex(to: letter, attribute: "childID")
+        addUUIDIndex(to: attachment, attribute: "letterID")
+        addUUIDIndex(to: branch, attribute: "id")
+        addUUIDIndex(to: folder, attribute: "branchID")
+        addUUIDIndex(to: member, attribute: "id")
+        addUUIDIndex(to: invitation, attribute: "id")
+        addUUIDIndex(to: partition, attribute: "id")
+        addUUIDIndex(to: delivery, attribute: "recipientID")
+        addUUIDIndex(to: delivery, attribute: "originalLetterID")
+        addUUIDIndex(to: backupRecord, attribute: "id")
+
+        // Runtime hardening: verify critical delete rules before deployment.
+        validatePartitionDeleteRules(
+            model: model,
+            partition: partition
+        )
+        validateCascadeRules(
+            model: model,
+            letter: letter,
+            delivery: delivery
+        )
+
         return model
     }
 
@@ -288,9 +339,74 @@ enum LettersToMyManagedObjectModel {
         destinationName: String
     ) {
         let toPartition = toOne(sourceName, destination: destination, deleteRule: .nullifyDeleteRule)
-        let fromPartition = toMany(destinationName, destination: source, deleteRule: .cascadeDeleteRule)
+        let fromPartition = toMany(destinationName, destination: source, deleteRule: .nullifyDeleteRule)
         inverse(toPartition, fromPartition)
         source.properties.append(toPartition)
         destination.properties.append(fromPartition)
+    }
+
+    /// Adds a Core Data fetch index on a single UUID attribute so that
+    /// queries filtering by that attribute use an indexed scan instead of
+    /// a full table scan. CloudKit does not use these indexes directly,
+    /// but the local SQLite store benefits significantly.
+    private static func addUUIDIndex(
+        to entity: NSEntityDescription,
+        attribute name: String
+    ) {
+        guard let property = entity.propertiesByName[name] as? NSAttributeDescription else {
+            return
+        }
+        let element = NSFetchIndexElementDescription(
+            property: property,
+            collationType: .binary
+        )
+        let index = NSFetchIndexDescription(
+            name: "\(entity.name!)_\(name)_idx",
+            elements: [element]
+        )
+        entity.indexes.append(index)
+    }
+
+    /// Guards against accidental data loss: partition relationships must
+    /// use nullify, never cascade. If a future edit regresses this, the
+    /// assertion fires at app launch during development.
+    private static func validatePartitionDeleteRules(
+        model: NSManagedObjectModel,
+        partition: NSEntityDescription
+    ) {
+        let relationships = [
+            "children", "letters", "branches", "folders",
+            "members", "invitations", "deliveries"
+        ]
+        for name in relationships {
+            guard let rel = partition.relationshipsByName[name] else { continue }
+            assert(
+                rel.deleteRule == .nullifyDeleteRule,
+                "Partition relationship '\(name)' must use nullify, not cascade. "
+                + "Found: \(rel.deleteRule.rawValue)"
+            )
+        }
+    }
+
+    /// Guards the intentional cascade rules: letter→attachments and
+    /// delivery→attachments must cascade so deleting a parent cleans up
+    /// child records.
+    private static func validateCascadeRules(
+        model: NSManagedObjectModel,
+        letter: NSEntityDescription,
+        delivery: NSEntityDescription
+    ) {
+        if let letterAtt = letter.relationshipsByName["attachments"] {
+            assert(
+                letterAtt.deleteRule == .cascadeDeleteRule,
+                "Letter→attachments must use cascade. Found: \(letterAtt.deleteRule.rawValue)"
+            )
+        }
+        if let deliveryAtt = delivery.relationshipsByName["deliveryAttachments"] {
+            assert(
+                deliveryAtt.deleteRule == .cascadeDeleteRule,
+                "Delivery→attachments must use cascade. Found: \(deliveryAtt.deleteRule.rawValue)"
+            )
+        }
     }
 }
