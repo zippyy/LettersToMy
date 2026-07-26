@@ -1,27 +1,24 @@
+import CoreData
 import Foundation
 import LettersToMyCore
-import SwiftData
 
-@Model
-final class FamilyBranchRecord {
-    var id: UUID = UUID()
-    var name: String = ""
-    var kindRawValue: String = FamilyBranchKind.custom.rawValue
-    var parentBranchID: UUID?
-    var createdAt: Date = Date.now
-    var updatedAt: Date = Date.now
+@objc(FamilyBranchRecord)
+final class FamilyBranchRecord: NSManagedObject {
+    @NSManaged var id: UUID
+    @NSManaged var name: String
+    @NSManaged var kindRawValue: String
+    @NSManaged var parentBranchID: UUID?
+    @NSManaged var createdAt: Date
+    @NSManaged var updatedAt: Date
+    @NSManaged var partition: SharePartitionRecord?
 
-    init(
-        name: String,
-        kind: FamilyBranchKind,
-        parentBranchID: UUID? = nil
-    ) {
-        self.id = UUID()
-        self.name = name
-        self.kindRawValue = kind.rawValue
-        self.parentBranchID = parentBranchID
-        self.createdAt = .now
-        self.updatedAt = .now
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        name = ""
+        kindRawValue = FamilyBranchKind.custom.rawValue
+        createdAt = .now
+        updatedAt = .now
     }
 
     var kind: FamilyBranchKind {
@@ -30,65 +27,52 @@ final class FamilyBranchRecord {
     }
 }
 
-@Model
-final class ArchiveFolderRecord {
-    var id: UUID = UUID()
-    var branchID: UUID = UUID()
-    var parentFolderID: UUID?
-    var name: String = ""
-    var createdAt: Date = Date.now
-    var updatedAt: Date = Date.now
+@objc(ArchiveFolderRecord)
+final class ArchiveFolderRecord: NSManagedObject {
+    @NSManaged var id: UUID
+    @NSManaged var branchID: UUID
+    @NSManaged var parentFolderID: UUID?
+    @NSManaged var name: String
+    @NSManaged var createdAt: Date
+    @NSManaged var updatedAt: Date
+    @NSManaged var partition: SharePartitionRecord?
 
-    init(
-        branchID: UUID,
-        name: String,
-        parentFolderID: UUID? = nil
-    ) {
-        self.id = UUID()
-        self.branchID = branchID
-        self.parentFolderID = parentFolderID
-        self.name = name
-        self.createdAt = .now
-        self.updatedAt = .now
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        branchID = UUID()
+        name = ""
+        createdAt = .now
+        updatedAt = .now
     }
 }
 
-@Model
-final class ArchiveMemberRecord {
-    var id: UUID = UUID()
-    var displayName: String = ""
-    var relationship: String = ""
-    var roleRawValue: String = CollaborationRole.viewer.rawValue
-    var statusRawValue: String = MembershipStatus.invited.rawValue
-    var scopeData: Data?
-    var grantedPermissionsData: Data?
-    var deniedPermissionsData: Data?
-    var canInviteOthers: Bool = false
-    var cloudKitParticipantRecordName: String?
-    var createdAt: Date = Date.now
-    var updatedAt: Date = Date.now
+@objc(ArchiveMemberRecord)
+final class ArchiveMemberRecord: NSManagedObject {
+    @NSManaged var id: UUID
+    @NSManaged var displayName: String
+    @NSManaged var relationship: String
+    @NSManaged var roleRawValue: String
+    @NSManaged var statusRawValue: String
+    @NSManaged var scopeData: Data?
+    @NSManaged var grantedPermissionsData: Data?
+    @NSManaged var deniedPermissionsData: Data?
+    @NSManaged var canInviteOthers: Bool
+    @NSManaged var cloudKitParticipantRecordName: String?
+    @NSManaged var createdAt: Date
+    @NSManaged var updatedAt: Date
+    @NSManaged var partition: SharePartitionRecord?
 
-    init(
-        displayName: String,
-        relationship: String,
-        role: CollaborationRole,
-        status: MembershipStatus = .invited,
-        scope: CollaborationScope,
-        grantedPermissions: Set<CollaborationPermission> = [],
-        deniedPermissions: Set<CollaborationPermission> = [],
-        canInviteOthers: Bool = false
-    ) {
-        self.id = UUID()
-        self.displayName = displayName
-        self.relationship = relationship
-        self.roleRawValue = role.rawValue
-        self.statusRawValue = status.rawValue
-        self.scopeData = try? JSONEncoder().encode(scope)
-        self.grantedPermissionsData = try? JSONEncoder().encode(grantedPermissions)
-        self.deniedPermissionsData = try? JSONEncoder().encode(deniedPermissions)
-        self.canInviteOthers = canInviteOthers
-        self.createdAt = .now
-        self.updatedAt = .now
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        displayName = ""
+        relationship = ""
+        roleRawValue = CollaborationRole.viewer.rawValue
+        statusRawValue = MembershipStatus.invited.rawValue
+        canInviteOthers = false
+        createdAt = .now
+        updatedAt = .now
     }
 
     var role: CollaborationRole {
@@ -112,6 +96,16 @@ final class ArchiveMemberRecord {
         set { scopeData = try? JSONEncoder().encode(newValue) }
     }
 
+    var grantedPermissions: Set<CollaborationPermission> {
+        get { decodePermissions(grantedPermissionsData) }
+        set { grantedPermissionsData = try? JSONEncoder().encode(newValue) }
+    }
+
+    var deniedPermissions: Set<CollaborationPermission> {
+        get { decodePermissions(deniedPermissionsData) }
+        set { deniedPermissionsData = try? JSONEncoder().encode(newValue) }
+    }
+
     var domainMember: ArchiveMember {
         ArchiveMember(
             id: id,
@@ -120,8 +114,8 @@ final class ArchiveMemberRecord {
             role: role,
             status: status,
             scope: scope,
-            grantedPermissions: decodePermissions(grantedPermissionsData),
-            deniedPermissions: decodePermissions(deniedPermissionsData),
+            grantedPermissions: grantedPermissions,
+            deniedPermissions: deniedPermissions,
             canInviteOthers: canInviteOthers
         )
     }
@@ -132,39 +126,31 @@ final class ArchiveMemberRecord {
     }
 }
 
-@Model
-final class CollaborationInvitationRecord {
-    var id: UUID = UUID()
-    var inviteeDisplayName: String = ""
-    var inviteeAddress: String = ""
-    var relationship: String = ""
-    var roleRawValue: String = CollaborationRole.contributor.rawValue
-    var scopeData: Data?
-    var statusRawValue: String = InvitationStatus.pending.rawValue
-    var createdAt: Date = Date.now
-    var expiresAt: Date?
-    var intendedRecipientID: UUID?
-    var canInviteOthers: Bool = false
+@objc(CollaborationInvitationRecord)
+final class CollaborationInvitationRecord: NSManagedObject {
+    @NSManaged var id: UUID
+    @NSManaged var inviteeDisplayName: String
+    @NSManaged var inviteeAddress: String
+    @NSManaged var relationship: String
+    @NSManaged var roleRawValue: String
+    @NSManaged var scopeData: Data?
+    @NSManaged var statusRawValue: String
+    @NSManaged var createdAt: Date
+    @NSManaged var expiresAt: Date?
+    @NSManaged var intendedRecipientID: UUID?
+    @NSManaged var canInviteOthers: Bool
+    @NSManaged var partition: SharePartitionRecord?
 
-    init(
-        inviteeDisplayName: String,
-        inviteeAddress: String,
-        relationship: String,
-        role: CollaborationRole,
-        scope: CollaborationScope,
-        intendedRecipientID: UUID? = nil,
-        canInviteOthers: Bool = false
-    ) {
-        self.id = UUID()
-        self.inviteeDisplayName = inviteeDisplayName
-        self.inviteeAddress = inviteeAddress
-        self.relationship = relationship
-        self.roleRawValue = role.rawValue
-        self.scopeData = try? JSONEncoder().encode(scope)
-        self.statusRawValue = InvitationStatus.pending.rawValue
-        self.createdAt = .now
-        self.intendedRecipientID = intendedRecipientID
-        self.canInviteOthers = canInviteOthers
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        inviteeDisplayName = ""
+        inviteeAddress = ""
+        relationship = ""
+        roleRawValue = CollaborationRole.contributor.rawValue
+        statusRawValue = InvitationStatus.pending.rawValue
+        createdAt = .now
+        canInviteOthers = false
     }
 
     var role: CollaborationRole {
@@ -186,5 +172,58 @@ final class CollaborationInvitationRecord {
             return decoded
         }
         set { scopeData = try? JSONEncoder().encode(newValue) }
+    }
+}
+
+enum SharePartitionKind: String, CaseIterable {
+    case archiveAdministration
+    case branch
+    case folder
+    case recipientInbox
+
+    var title: String {
+        switch self {
+        case .archiveAdministration: "Archive Administration"
+        case .branch: "Family Side"
+        case .folder: "Folder"
+        case .recipientInbox: "Recipient Inbox"
+        }
+    }
+}
+
+@objc(SharePartitionRecord)
+final class SharePartitionRecord: NSManagedObject {
+    @NSManaged var id: UUID
+    @NSManaged var kindRawValue: String
+    @NSManaged var scopeID: UUID?
+    @NSManaged var displayName: String
+    @NSManaged var createdAt: Date
+    @NSManaged var updatedAt: Date
+    @NSManaged var children: NSSet?
+    @NSManaged var letters: NSSet?
+    @NSManaged var branches: NSSet?
+    @NSManaged var folders: NSSet?
+    @NSManaged var members: NSSet?
+    @NSManaged var invitations: NSSet?
+
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        kindRawValue = SharePartitionKind.archiveAdministration.rawValue
+        displayName = "Family Archive"
+        createdAt = .now
+        updatedAt = .now
+    }
+
+    var kind: SharePartitionKind {
+        get { SharePartitionKind(rawValue: kindRawValue) ?? .archiveAdministration }
+        set { kindRawValue = newValue.rawValue }
+    }
+
+    var cloudShareItem: CloudKitShareItem {
+        CloudKitShareItem(
+            partitionURI: objectID.uriRepresentation(),
+            title: displayName
+        )
     }
 }
