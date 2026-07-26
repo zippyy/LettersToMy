@@ -14,25 +14,20 @@ A private, Apple-first family time capsule for writing letters, preserving memor
 The repository foundation contains:
 
 - Shared SwiftUI screens for iPhone, iPad, and macOS
-- SwiftData models for the current private-archive prototype
+- `NSPersistentCloudKitContainer` with private and shared CloudKit-backed stores
+- Persistent-history tracking, remote-change notifications, and automatic merging
 - Draft, scheduled, and unlocked letter states
 - Specific-date, birthday-age, and parent-released life-event rules
 - Photo, video, and audio attachment ingestion
 - Recipient preview mode that hides sealed content
-- A portable Swift core package with automated tests
 - Owner, parent/admin, organizer, contributor, viewer, and recipient roles
-- Archive, family-branch, folder, and recipient permission scopes
+- Archive, family-side, folder, and recipient permission scopes
 - Explicit permission grants and denials
-- CloudKit share planning for spouses, grandparents, other contributors, and recipients
-- Separate read-only recipient inboxes that receive only unlocked deliveries
+- Real CloudKit share creation and invitation acceptance
+- Separate share roots for administration, family sides, folders, and recipient inboxes
+- A portable Swift core package with automated tests
 - A documented CloudKit contract for the future web client
 - An XcodeGen project definition for separate iOS and macOS products
-
-## Collaboration persistence migration
-
-Live collaboration requires CloudKit's shared database. SwiftData's CloudKit integration currently handles the private database but not shared databases, so the production persistence layer will migrate to `NSPersistentCloudKitContainer` with private and shared stores before invitation delivery is enabled.
-
-The collaboration domain and tests already live in `LettersToMyCore`, so the permission rules and share topology will remain shared across Apple, web, and Android clients.
 
 ## Open the project
 
@@ -57,6 +52,10 @@ Both products use the CloudKit container `iCloud.com.bayoumountainholdings.Lette
 swift test
 ```
 
+## Development-store migration
+
+LettersToMy has not shipped a production build, so the Core Data implementation starts with new private and shared stores. The earlier SwiftData development database is not imported. Do not change persistence implementations after release without adding an explicit user-data migration.
+
 ## Privacy
 
 LettersToMy does not require a proprietary application server for the Apple-first release. Family content is stored locally and synchronized through the signed-in user's iCloud account. Content in private and shared CloudKit databases counts against the originating owner's iCloud storage.
@@ -65,4 +64,5 @@ See:
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/COLLABORATION.md`](docs/COLLABORATION.md)
+- [`docs/CORE_DATA_MIGRATION.md`](docs/CORE_DATA_MIGRATION.md)
 - [`docs/CLOUDKIT_WEB.md`](docs/CLOUDKIT_WEB.md)
