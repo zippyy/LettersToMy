@@ -3,7 +3,7 @@ import Foundation
 import LettersToMyCore
 
 @objc(FamilyBranchRecord)
-final class FamilyBranchRecord: NSManagedObject {
+final class FamilyBranchRecord: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var name: String
     @NSManaged var kindRawValue: String
@@ -28,7 +28,7 @@ final class FamilyBranchRecord: NSManagedObject {
 }
 
 @objc(ArchiveFolderRecord)
-final class ArchiveFolderRecord: NSManagedObject {
+final class ArchiveFolderRecord: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var branchID: UUID
     @NSManaged var parentFolderID: UUID?
@@ -48,7 +48,7 @@ final class ArchiveFolderRecord: NSManagedObject {
 }
 
 @objc(ArchiveMemberRecord)
-final class ArchiveMemberRecord: NSManagedObject {
+final class ArchiveMemberRecord: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var displayName: String
     @NSManaged var relationship: String
@@ -127,7 +127,7 @@ final class ArchiveMemberRecord: NSManagedObject {
 }
 
 @objc(CollaborationInvitationRecord)
-final class CollaborationInvitationRecord: NSManagedObject {
+final class CollaborationInvitationRecord: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var inviteeDisplayName: String
     @NSManaged var inviteeAddress: String
@@ -192,7 +192,7 @@ enum SharePartitionKind: String, CaseIterable {
 }
 
 @objc(SharePartitionRecord)
-final class SharePartitionRecord: NSManagedObject {
+final class SharePartitionRecord: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var kindRawValue: String
     @NSManaged var scopeID: UUID?
