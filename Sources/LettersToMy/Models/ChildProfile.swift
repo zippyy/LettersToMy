@@ -2,7 +2,7 @@ import CoreData
 import Foundation
 
 @objc(ChildProfile)
-final class ChildProfile: NSManagedObject {
+final class ChildProfile: NSManagedObject, Identifiable {
     @NSManaged var id: UUID
     @NSManaged var name: String
     @NSManaged var birthDate: Date?
