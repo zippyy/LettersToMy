@@ -1,0 +1,14 @@
+name: Core tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test portable domain logic
+        run: swift test
