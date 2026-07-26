@@ -101,6 +101,17 @@ struct LibraryView: View {
         if selection?.id == letter.id {
             selection = nil
         }
+
+        let letterID = letter.id
+        let descriptor = FetchDescriptor<LetterAttachment>(
+            predicate: #Predicate { $0.letterID == letterID }
+        )
+        if let attachments = try? modelContext.fetch(descriptor) {
+            for attachment in attachments {
+                modelContext.delete(attachment)
+            }
+        }
+
         modelContext.delete(letter)
         try? modelContext.save()
     }
