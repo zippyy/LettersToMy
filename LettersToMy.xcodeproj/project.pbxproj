@@ -10,6 +10,7 @@
 		0080F2322653AD7C2691143C /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED48EC99484C6FF1EC93FC5 /* RootView.swift */; };
 		055356B370F7CBC589EF1A50 /* FamilyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB35F01553CCEE09C5C52D6B /* FamilyView.swift */; };
 		05CCB6F7D19C834C304ECC73 /* RecoveryContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */; };
+		0CBEB126DCDB45A64329D74B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D2F6B20A9E077D9E2DE54AFC /* Assets.xcassets */; };
 		19CEFC043AF7D080C43CEA29 /* CloudKitShareDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB311684BD87C308E2B1D04 /* CloudKitShareDelegates.swift */; };
 		1BDBCADC4BB4EABDF3C835FF /* LettersToMyManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */; };
 		2578BA1BDE9430F4C096A99D /* BackupProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85C3FC066655BA92BC30361 /* BackupProviders.swift */; };
@@ -62,6 +63,7 @@
 		F3C61167E07BF36C348D51FE /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */; };
 		FA6D3B0C97BC0BF4A4E0439F /* LettersToMyCore in Frameworks */ = {isa = PBXBuildFile; productRef = C4353EC3A214FA369BFCBA6A /* LettersToMyCore */; };
+		FC377294E356E4B1A6C8AC37 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D2F6B20A9E077D9E2DE54AFC /* Assets.xcassets */; };
 		FD83B6BED8968F05F5A4E40E /* LettersToMyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 08C64F2FE497D3092A0C2EB3 /* LettersToMyCore */; };
 /* End PBXBuildFile section */
 
@@ -105,6 +107,7 @@
 		CCEA85461F92C44C1FA40A48 /* CollaborationSharePlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationSharePlanTests.swift; sourceTree = "<group>"; };
 		CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryContactEntity.swift; sourceTree = "<group>"; };
 		D2A9917E2D311875E0790B9B /* CollaborationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationPolicyTests.swift; sourceTree = "<group>"; };
+		D2F6B20A9E077D9E2DE54AFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D58B48CE6639E02B94646058 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
 		E2CC07F3B82784F2223049EF /* LetterAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterAttachment.swift; sourceTree = "<group>"; };
@@ -197,6 +200,7 @@
 				933C6D65D4D309681372BF4C /* LettersToMy */,
 				57471201624C69697E8A10BE /* LettersToMyCoreTests */,
 				19B0657594B6483E2C11D00A /* Packages */,
+				DB1B3F2C13E1B7D84C407FE1 /* Resources */,
 				0BBE9ADAC6C2B6B4B9C16749 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -216,6 +220,14 @@
 				51466AA6963287351167A822 /* TimelineView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		DB1B3F2C13E1B7D84C407FE1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D2F6B20A9E077D9E2DE54AFC /* Assets.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		EA58277C6A0FCC60614E696A /* Persistence */ = {
@@ -252,6 +264,7 @@
 			buildConfigurationList = BB062DFFEBEDC229ED742FE2 /* Build configuration list for PBXNativeTarget "LettersToMy" */;
 			buildPhases = (
 				19380CA2EB9F577C1F89D114 /* Sources */,
+				37E1B143757D088FC21B35A6 /* Resources */,
 				020D186136E3758F1C13F8E9 /* Frameworks */,
 			);
 			buildRules = (
@@ -271,6 +284,7 @@
 			buildConfigurationList = 239D43EF3F2B25664990B55E /* Build configuration list for PBXNativeTarget "LettersToMyMac" */;
 			buildPhases = (
 				77E9584058730053F4121A1F /* Sources */,
+				605BC51D0E7F4893E5DA44DD /* Resources */,
 				39BC99B95DF5C619125DCD99 /* Frameworks */,
 			);
 			buildRules = (
@@ -337,6 +351,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		37E1B143757D088FC21B35A6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0CBEB126DCDB45A64329D74B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		605BC51D0E7F4893E5DA44DD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FC377294E356E4B1A6C8AC37 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0A4C6A3806C19A8BB8B8139F /* Sources */ = {
