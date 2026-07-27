@@ -42,6 +42,9 @@ targets:
       - path: Sources/LettersToMy
     resources:
       - path: Resources
+        includes:
+          - "**/*.xcassets"
+          - "**/*.png"
     dependencies:
       - package: LettersToMyCore
     settings:
@@ -62,6 +65,9 @@ targets:
       - path: Sources/LettersToMy
     resources:
       - path: Resources
+        includes:
+          - "**/*.xcassets"
+          - "**/*.png"
     dependencies:
       - package: LettersToMyCore
     settings:

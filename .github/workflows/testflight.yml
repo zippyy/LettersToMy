@@ -47,12 +47,11 @@ jobs:
           EXPORT_DIR="$RUNNER_TEMP/export"
           EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
 
-          # Compile asset catalog
+          # Compile asset catalog to Assets.car in Resources
           if [ -d "Resources/Assets.xcassets" ]; then
-            xcrun actool Resources/Assets.xcassets --compile "$RUNNER_TEMP" \
+            xcrun actool Resources/Assets.xcassets --compile Resources \
               --platform iphoneos --minimum-deployment-target 17.0 \
               --app-icon AppIcon --output-partial-info-plist /tmp/assetcatalog.plist
-            /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog.plist" "$EXPORT_PLIST" 2>/dev/null || true
           fi
 
           /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
