@@ -50,7 +50,6 @@ targets:
         PRODUCT_NAME: Letters to My
         INFOPLIST_FILE: Config/Info-iOS.plist
         CODE_SIGN_ENTITLEMENTS: Config/LettersToMy-iOS.entitlements
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"
     entitlements:
       path: Config/LettersToMy-iOS.entitlements
@@ -70,7 +69,6 @@ targets:
         PRODUCT_NAME: Letters to My
         INFOPLIST_FILE: Config/Info-macOS.plist
         CODE_SIGN_ENTITLEMENTS: Config/LettersToMy-macOS.entitlements
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
     entitlements:
       path: Config/LettersToMy-macOS.entitlements
