@@ -112,7 +112,8 @@ jobs:
             -exportPath "$EXPORT_DIR" \
             -exportOptionsPlist "$EXPORT_PLIST" \
             CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="e76f9d91-430c-4cad-bbed-086a2506a7f8"
           IPA_PATH=$(find "$EXPORT_DIR" -name '*.ipa' | head -1)
           echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
 
@@ -229,7 +230,8 @@ jobs:
             -exportPath "$EXPORT_DIR" \
             -exportOptionsPlist "$EXPORT_PLIST" \
             CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="e76f9d91-430c-4cad-bbed-086a2506a7f8"
           PKG_PATH=$(find "$EXPORT_DIR" -name '*.pkg' | head -1)
           echo "PKG_PATH=$PKG_PATH" >> "$GITHUB_ENV"
 
