@@ -76,7 +76,7 @@ jobs:
           set -euo pipefail
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/letters-to-my-ios.mobileprovision"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/e76f9d91-430c-4cad-bbed-086a2506a7f8.mobileprovision"
           ls -la "$PROFILE_PATH/"
 
       - name: Archive iOS app
@@ -194,7 +194,7 @@ jobs:
           set -euo pipefail
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/letters-to-my-mac.mobileprovision"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/3b46dd54-9c35-4260-92f3-f51891d85010.mobileprovision"
           ls -la "$PROFILE_PATH/"
 
       - name: Archive macOS app
