@@ -27,7 +27,7 @@ jobs:
       PROJECT: LettersToMy.xcodeproj
       SCHEME: LettersToMy
       BUNDLE_ID: com.bayoumountainholdings.LettersToMy
-      PROFILE_UUID: e76f9d91-430c-4cad-bbed-086a2506a7f8
+      PROFILE_UUID: b45ab7db-22b5-4323-aa81-b881079901b5
 
     steps:
       - uses: actions/checkout@v4
