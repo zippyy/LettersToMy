@@ -74,6 +74,8 @@ jobs:
           mkdir -p "$PROFILE_PATH"
           echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/$PROFILE_UUID.mobileprovision"
           ls -la "$PROFILE_PATH/"
+          echo "=== verify profile can be parsed ==="
+          security cms -D -i "$PROFILE_PATH/$PROFILE_UUID.mobileprovision" 2>&1 | plutil -p - 2>&1 | grep -E 'UUID|Name|Team' | head -5 || true
 
       - name: Archive and export
         run: |
