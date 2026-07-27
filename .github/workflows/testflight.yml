@@ -86,6 +86,15 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.bayoumountainholdings.LettersToMy string b45ab7db-22b5-4323-aa81-b881079901b5" "$EXPORT_PLIST"
 
+          # Compile asset catalog icons
+          if [ -d "Resources/Assets.xcassets" ]; then
+            mkdir -p "$RUNNER_TEMP/asset-output"
+            xcrun actool Resources/Assets.xcassets --compile "$RUNNER_TEMP/asset-output" \
+              --platform iphoneos --minimum-deployment-target 17.0 \
+              --app-icon AppIcon --output-partial-info-plist /tmp/assetcatalog.plist || true
+            cp "$RUNNER_TEMP/asset-output"/*.png Resources/ 2>/dev/null || true
+          fi
+
           xcodebuild archive \
             -project LettersToMy.xcodeproj \
             -scheme LettersToMy \
