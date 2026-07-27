@@ -45,6 +45,16 @@ targets:
         includes:
           - "**/*.xcassets"
           - "**/*.png"
+    preBuildScripts:
+      - name: "Compile Asset Catalog"
+        inputFiles:
+          - $(SRCROOT)/Resources/Assets.xcassets
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/Assets.car
+        script: |
+          xcrun actool "$SRCROOT/Resources/Assets.xcassets" --compile "$TARGET_BUILD_DIR" \
+            --platform iphoneos --minimum-deployment-target 17.0 \
+            --app-icon AppIcon --output-partial-info-plist "$TEMP_DIR/assetcatalog.plist" || true
     dependencies:
       - package: LettersToMyCore
     settings:
@@ -68,6 +78,16 @@ targets:
         includes:
           - "**/*.xcassets"
           - "**/*.png"
+    preBuildScripts:
+      - name: "Compile Asset Catalog"
+        inputFiles:
+          - $(SRCROOT)/Resources/Assets.xcassets
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/Assets.car
+        script: |
+          xcrun actool "$SRCROOT/Resources/Assets.xcassets" --compile "$TARGET_BUILD_DIR" \
+            --platform iphoneos --minimum-deployment-target 17.0 \
+            --app-icon AppIcon --output-partial-info-plist "$TEMP_DIR/assetcatalog.plist" || true
     dependencies:
       - package: LettersToMyCore
     settings:
