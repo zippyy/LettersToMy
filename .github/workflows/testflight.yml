@@ -49,10 +49,11 @@ jobs:
 
           # Compile asset catalog and merge icon info into plist
           if [ -d "Resources/Assets.xcassets" ]; then
+            mkdir -p "$RUNNER_TEMP/asset-output"
             xcrun actool Resources/Assets.xcassets --compile "$RUNNER_TEMP/asset-output" \
               --platform iphoneos --minimum-deployment-target 17.0 \
               --app-icon AppIcon --output-partial-info-plist /tmp/assetcatalog.plist
-            cp "$RUNNER_TEMP/asset-output/Assets.car" Resources/
+            cp "$RUNNER_TEMP/asset-output"/*.png Resources/ 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog.plist" Config/Info-iOS.plist 2>/dev/null || true
           fi
 
