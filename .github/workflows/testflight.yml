@@ -66,6 +66,7 @@ jobs:
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
           echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/b45ab7db.mobileprovision"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/b45ab7db-22b5-4323-aa81-b881079901b5.mobileprovision"
           echo "Profile size: $(wc -c < "$PROFILE_PATH/b45ab7db.mobileprovision") bytes"
           ls -la "$PROFILE_PATH/"
           echo "--- xcodebuild show provisioning profiles ---"
