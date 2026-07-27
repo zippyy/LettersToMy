@@ -259,3 +259,18 @@ jobs:
           name: LettersToMy-macos-build-${{ inputs.build_number }}
           path: ${{ env.PKG_PATH }}
           if-no-files-found: error
+
+  summary:
+    if: always()
+    needs: [ios, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "## TestFlight Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| iOS      | ${{ needs.ios.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| macOS    | ${{ needs.macos.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Build: #${{ inputs.build_number }}" >> $GITHUB_STEP_SUMMARY
