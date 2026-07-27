@@ -92,7 +92,8 @@ jobs:
             -archivePath "$ARCHIVE_PATH" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="e76f9d91-430c-4cad-bbed-086a2506a7f8"
           echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
 
       - name: Export IPA
@@ -208,7 +209,8 @@ jobs:
             -archivePath "$ARCHIVE_PATH" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="3b46dd54-9c35-4260-92f3-f51891d85010"
           echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
 
       - name: Export macOS app
