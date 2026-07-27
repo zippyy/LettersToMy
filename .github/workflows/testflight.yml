@@ -201,6 +201,8 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.bayoumountainholdings.LettersToMy.mac string 91405fb4-afd9-4825-96a1-893de956e073" "$EXPORT_PLIST"
 
           xcodebuild archive \
             -project LettersToMy.xcodeproj \
