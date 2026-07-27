@@ -197,6 +197,8 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.bayoumountainholdings.LettersToMy.mac string 6fd90045-93ba-495f-98c5-4045abc52249" "$EXPORT_PLIST"
 
+          /usr/libexec/PlistBuddy -c "Add :installerIdentity string Apple Distribution: BAYOU MOUNTAIN HOLDINGS LLC (${{ secrets.APPLE_TEAM_ID }})" "$EXPORT_PLIST" 2>/dev/null || true
+
           xcodebuild archive \
             -project LettersToMy.xcodeproj \
             -scheme LettersToMyMac \
