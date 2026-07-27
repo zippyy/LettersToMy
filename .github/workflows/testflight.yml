@@ -180,9 +180,9 @@ jobs:
           set -euo pipefail
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/6fd90045.mobileprovision"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/6fd90045-93ba-495f-98c5-4045abc52249.mobileprovision"
-          echo "Profile size: $(wc -c < "$PROFILE_PATH/6fd90045.mobileprovision") bytes"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/91405fb4.mobileprovision"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/91405fb4-93ba-495f-98c5-4045abc52249.mobileprovision"
+          echo "Profile size: $(wc -c < "$PROFILE_PATH/91405fb4.mobileprovision") bytes"
           ls -la "$PROFILE_PATH/"
 
       - name: Install ASC API key
@@ -201,8 +201,6 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.bayoumountainholdings.LettersToMy.mac string 6fd90045-93ba-495f-98c5-4045abc52249" "$EXPORT_PLIST"
 
           xcodebuild archive \
             -project LettersToMy.xcodeproj \
@@ -214,7 +212,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="6fd90045-93ba-495f-98c5-4045abc52249"
+            PROVISIONING_PROFILE_SPECIFIER="91405fb4-93ba-495f-98c5-4045abc52249"
 
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
