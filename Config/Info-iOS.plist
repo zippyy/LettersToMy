@@ -73,6 +73,8 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -82,31 +84,3 @@
 	</array>
 </dict>
 </plist>
-	<key>CFBundleIconFiles</key>
-	<array>
-		<string>icon-120</string>
-		<string>icon-152</string>
-		<string>icon-76</string>
-	</array>
-	<key>CFBundleIcons</key>
-	<dict>
-		<key>CFBundlePrimaryIcon</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>icon-120</string>
-				<string>icon-76</string>
-			</array>
-		</dict>
-	</dict>
-	<key>CFBundleIcons~ipad</key>
-	<dict>
-		<key>CFBundlePrimaryIcon</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>icon-152</string>
-				<string>icon-76</string>
-			</array>
-		</dict>
-	</dict>
