@@ -253,18 +253,13 @@ enum LettersToMyManagedObjectModel {
         // Add fetch indexes on stable UUID attributes for the most common
         // query patterns: lookups by child ID, letter ID, branch ID, member ID,
         // and invitation ID.
-        addUUIDIndex(to: child, attribute: "id")
-        addUUIDIndex(to: letter, attribute: "id")
+        // NOTE: Do NOT index entity "id" attributes — NSPersistentCloudKitContainer
+        // auto-creates these during store load, and duplicate indexes crash.
         addUUIDIndex(to: letter, attribute: "childID")
         addUUIDIndex(to: attachment, attribute: "letterID")
-        addUUIDIndex(to: branch, attribute: "id")
         addUUIDIndex(to: folder, attribute: "branchID")
-        addUUIDIndex(to: member, attribute: "id")
-        addUUIDIndex(to: invitation, attribute: "id")
-        addUUIDIndex(to: partition, attribute: "id")
         addUUIDIndex(to: delivery, attribute: "recipientID")
         addUUIDIndex(to: delivery, attribute: "originalLetterID")
-        addUUIDIndex(to: backupRecord, attribute: "id")
 
         // Runtime hardening: verify critical delete rules before deployment.
         validatePartitionDeleteRules(
