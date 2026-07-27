@@ -34,10 +34,11 @@ jobs:
           sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
           xcodegen generate
 
-      - name: Install App Store Connect API key
+      - name: Install API key
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          mkdir -p ~/private_keys
+          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          ls -la ~/private_keys/
 
       - name: Archive and export
         run: |
@@ -59,6 +60,7 @@ jobs:
             -destination "generic/platform=iOS" \
             -archivePath "$ARCHIVE_PATH" \
             -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
             -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
@@ -68,6 +70,7 @@ jobs:
             -exportPath "$EXPORT_DIR" \
             -exportOptionsPlist "$EXPORT_PLIST" \
             -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
             -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
 
@@ -105,10 +108,11 @@ jobs:
           sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
           xcodegen generate
 
-      - name: Install App Store Connect API key
+      - name: Install API key
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          mkdir -p ~/private_keys
+          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          ls -la ~/private_keys/
 
       - name: Archive and export
         run: |
@@ -130,6 +134,7 @@ jobs:
             -destination "generic/platform=macOS" \
             -archivePath "$ARCHIVE_PATH" \
             -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
             -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
@@ -139,6 +144,7 @@ jobs:
             -exportPath "$EXPORT_DIR" \
             -exportOptionsPlist "$EXPORT_PLIST" \
             -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
             -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
 
