@@ -31,8 +31,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: agent/core-data-cloudkit-sharing
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -154,8 +152,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: agent/core-data-cloudkit-sharing
 
       - name: Install XcodeGen
         run: brew install xcodegen
