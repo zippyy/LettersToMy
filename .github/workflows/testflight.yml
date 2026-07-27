@@ -221,7 +221,16 @@ jobs:
             -exportPath "$EXPORT_DIR" \
             -exportOptionsPlist "$EXPORT_PLIST"
 
-          PKG_PATH=$(find "$EXPORT_DIR" -name '*.pkg' | head -1)
+          # Xcode 26.5 incorrectly validates installer cert against profile.
+          # Sign the PKG manually with productsign using the Mac Installer identity.
+          UNSIGNED_PKG=$(find "$EXPORT_DIR" -name '*.pkg' | head -1)
+          if [ -n "$UNSIGNED_PKG" ]; then
+            SIGNED_PKG="$RUNNER_TEMP/signed.pkg"
+            productsign --sign "3rd Party Mac Developer Installer: BAYOU MOUNTAIN HOLDINGS LLC (${{ secrets.APPLE_TEAM_ID }})" "$UNSIGNED_PKG" "$SIGNED_PKG"
+            PKG_PATH="$SIGNED_PKG"
+          else
+            PKG_PATH="$UNSIGNED_PKG"
+          fi
           echo "PKG_PATH=$PKG_PATH" >> "$GITHUB_ENV"
 
       - name: Upload to TestFlight
