@@ -1,47 +1,45 @@
+import CoreData
 import Foundation
 import LettersToMyCore
-import SwiftData
 
-@Model
-final class Letter {
-    var id: UUID = UUID()
-    var childID: UUID?
-    var branchID: UUID?
-    var folderID: UUID?
-    var authorMemberID: UUID?
-    var title: String = ""
-    var body: String = ""
-    var authorName: String = ""
-    var createdAt: Date = Date.now
-    var updatedAt: Date = Date.now
-    var sealedAt: Date?
-    var isFavorite: Bool = false
+@objc(Letter)
+final class Letter: NSManagedObject, Identifiable {
+    @NSManaged var id: UUID
+    @NSManaged var childID: UUID?
+    @NSManaged var branchID: UUID?
+    @NSManaged var folderID: UUID?
+    @NSManaged var authorMemberID: UUID?
+    @NSManaged var title: String
+    @NSManaged var body: String
+    @NSManaged var authorName: String
+    @NSManaged var createdAt: Date
+    @NSManaged var updatedAt: Date
+    @NSManaged var sealedAt: Date?
+    @NSManaged var isFavorite: Bool
+    @NSManaged var unlockRuleRawValue: String
+    @NSManaged var unlockDate: Date?
+    @NSManaged var unlockAgeYearsValue: NSNumber?
+    @NSManaged var lifeEventName: String
+    @NSManaged var manuallyReleasedAt: Date?
+    @NSManaged var partition: SharePartitionRecord?
+    @NSManaged var attachments: NSSet?
 
-    var unlockRuleRawValue: String = UnlockRuleKind.specificDate.rawValue
-    var unlockDate: Date?
-    var unlockAgeYears: Int?
-    var lifeEventName: String = ""
-    var manuallyReleasedAt: Date?
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        title = ""
+        body = ""
+        authorName = ""
+        createdAt = .now
+        updatedAt = .now
+        isFavorite = false
+        unlockRuleRawValue = UnlockRuleKind.specificDate.rawValue
+        lifeEventName = ""
+    }
 
-    init(
-        childID: UUID? = nil,
-        branchID: UUID? = nil,
-        folderID: UUID? = nil,
-        authorMemberID: UUID? = nil,
-        title: String = "",
-        body: String = "",
-        authorName: String = ""
-    ) {
-        self.id = UUID()
-        self.childID = childID
-        self.branchID = branchID
-        self.folderID = folderID
-        self.authorMemberID = authorMemberID
-        self.title = title
-        self.body = body
-        self.authorName = authorName
-        self.createdAt = Date.now
-        self.updatedAt = Date.now
+    var unlockAgeYears: Int? {
+        get { unlockAgeYearsValue?.intValue }
+        set { unlockAgeYearsValue = newValue.map(NSNumber.init(value:)) }
     }
 
     var unlockRuleKind: UnlockRuleKind {

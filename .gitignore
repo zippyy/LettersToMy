@@ -4,4 +4,20 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 .swiftpm/
-LettersToMy.xcodeproj/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+*.ipa
+*.pkg
+*.dSYM.zip
+
+# Build artifacts
+build/
+
+# Ruby
+.bundle/
+vendor/bundle
+Gemfile.lock

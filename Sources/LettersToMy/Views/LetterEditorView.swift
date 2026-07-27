@@ -1,13 +1,23 @@
+import CoreData
 import LettersToMyCore
-import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct LetterEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \FamilyBranchRecord.createdAt) private var branches: [FamilyBranchRecord]
-    @Query(sort: \ArchiveFolderRecord.createdAt) private var folders: [ArchiveFolderRecord]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \FamilyBranchRecord.createdAt, ascending: true)],
+        animation: .default
+    ) private var allBranches: FetchedResults<FamilyBranchRecord>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \ArchiveFolderRecord.createdAt, ascending: true)],
+        animation: .default
+    ) private var allFolders: FetchedResults<ArchiveFolderRecord>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \SharePartitionRecord.createdAt, ascending: true)],
+        animation: .default
+    ) private var allPartitions: FetchedResults<SharePartitionRecord>
 
     let letter: Letter?
     let child: ChildProfile?
@@ -24,6 +34,7 @@ struct LetterEditorView: View {
     @State private var showingFileImporter = false
     @State private var pendingAttachments: [PendingAttachment] = []
     @State private var importError: String?
+    @State private var selectedMilestone: MilestoneTemplate?
 
     init(letter: Letter?, child: ChildProfile?) {
         self.letter = letter
@@ -39,6 +50,22 @@ struct LetterEditorView: View {
         _lifeEventName = State(initialValue: letter?.lifeEventName ?? "")
     }
 
+    private var targetStore: NSPersistentStore? {
+        letter?.objectID.persistentStore ?? PersistenceController.shared.privateStore
+    }
+
+    private var branches: [FamilyBranchRecord] {
+        allBranches.filter { $0.objectID.persistentStore === targetStore }
+    }
+
+    private var folders: [ArchiveFolderRecord] {
+        allFolders.filter { $0.objectID.persistentStore === targetStore }
+    }
+
+    private var partitions: [SharePartitionRecord] {
+        allPartitions.filter { $0.objectID.persistentStore === targetStore }
+    }
+
     private var availableFolders: [ArchiveFolderRecord] {
         guard let branchID else { return [] }
         return folders.filter { $0.branchID == branchID }
@@ -46,6 +73,20 @@ struct LetterEditorView: View {
 
     var body: some View {
         Form {
+            if letter == nil {
+                Section("Quick Start") {
+                    Picker("Milestone", selection: $selectedMilestone) {
+                        Text("Start from scratch").tag(nil as MilestoneTemplate?)
+                        ForEach(MilestoneTemplate.all) { milestone in
+                            Text(milestone.title).tag(milestone as MilestoneTemplate?)
+                        }
+                    }
+                    .onChange(of: selectedMilestone) { _, milestone in
+                        if let milestone { applyMilestone(milestone) }
+                    }
+                }
+            }
+
             Section("Letter") {
                 TextField("Title", text: $title)
                 TextField("From", text: $authorName)
@@ -77,7 +118,7 @@ struct LetterEditorView: View {
                 }
                 .disabled(branchID == nil)
 
-                Text("Family sides and folders determine which collaborators can work with this letter.")
+                Text("Family sides and folders determine the CloudKit share that contains this letter and which collaborators can receive it.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -168,10 +209,23 @@ struct LetterEditorView: View {
     }
 
     private func save(sealed: Bool) {
-        let target = letter ?? Letter(childID: child?.id)
-        if letter == nil {
-            modelContext.insert(target)
-        }
+        let persistence = PersistenceController.shared
+        let isNew = letter == nil
+
+        // Permission check before mutating the store.
+        let collabContext = CollaborationContext(
+            branchID: branchID,
+            folderID: folderID,
+            recipientID: child?.id,
+            authorMemberID: letter?.authorMemberID
+        )
+        guard persistence.canPerform(
+            isNew ? .createContent : .editContent,
+            context: collabContext,
+            target: letter
+        ) else { return }
+
+        let target = letter ?? persistence.insertPrivate(Letter.self, into: managedObjectContext)
 
         target.childID = child?.id
         target.branchID = branchID
@@ -185,19 +239,48 @@ struct LetterEditorView: View {
         target.lifeEventName = unlockKind == .lifeEvent ? lifeEventName.trimmingCharacters(in: .whitespacesAndNewlines) : ""
         target.updatedAt = .now
         target.sealedAt = sealed ? (target.sealedAt ?? .now) : nil
+        target.partition = selectedPartition(using: persistence)
 
-        for attachment in pendingAttachments {
-            modelContext.insert(LetterAttachment(
-                letterID: target.id,
-                fileName: attachment.fileName,
-                contentTypeIdentifier: attachment.contentTypeIdentifier,
-                kind: attachment.kind,
-                data: attachment.data
-            ))
+        for pending in pendingAttachments {
+            let attachment = persistence.insert(
+                LetterAttachment.self,
+                inSameStoreAs: target,
+                into: managedObjectContext
+            )
+            attachment.letterID = target.id
+            attachment.fileName = pending.fileName
+            attachment.contentTypeIdentifier = pending.contentTypeIdentifier
+            attachment.kind = pending.kind
+            attachment.data = pending.data
+            attachment.letter = target
         }
 
-        try? modelContext.save()
+        try? persistence.save(managedObjectContext)
         dismiss()
+    }
+
+    private func selectedPartition(using persistence: PersistenceController) -> SharePartitionRecord {
+        if let folderID,
+           let folder = folders.first(where: { $0.id == folderID }),
+           let partition = folder.partition {
+            return partition
+        }
+        if let branchID,
+           let branch = branches.first(where: { $0.id == branchID }),
+           let partition = branch.partition {
+            return partition
+        }
+        if let archive = partitions.first(where: { $0.kind == .archiveAdministration }) {
+            return archive
+        }
+
+        let partition = persistence.insertPrivate(
+            SharePartitionRecord.self,
+            into: managedObjectContext
+        )
+        partition.kind = .archiveAdministration
+        partition.displayName = "Family Archive Administration"
+        return partition
     }
 
     private func importFiles(_ result: Result<[URL], Error>) {
@@ -222,6 +305,18 @@ struct LetterEditorView: View {
             importError = error.localizedDescription
         }
     }
+
+    private func applyMilestone(_ milestone: MilestoneTemplate) {
+        title = milestone.title
+        bodyText = milestone.body
+        unlockKind = milestone.unlockKind
+        if milestone.unlockKind == .birthdayAge {
+            unlockAgeYears = milestone.unlockAge ?? 5
+        } else if milestone.unlockKind == .lifeEvent {
+            lifeEventName = milestone.lifeEventName ?? ""
+        }
+        selectedMilestone = nil
+    }
 }
 
 private struct PendingAttachment: Identifiable {
@@ -244,4 +339,74 @@ private extension AttachmentKind {
             self = .file
         }
     }
+}
+
+// MARK: - Milestone Templates
+
+struct MilestoneTemplate: Identifiable, Hashable {
+    let id = UUID()
+    let title: String
+    let body: String
+    let unlockKind: UnlockRuleKind
+    let unlockAge: Int?
+    let lifeEventName: String?
+
+    static let all: [MilestoneTemplate] = [
+        MilestoneTemplate(
+            title: "Your First Birthday",
+            body: "Dear little one,\n\nHappy first birthday! You've grown so much this year…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 1,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Starting School",
+            body: "Today you start school. I remember when…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 5,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Your 10th Birthday",
+            body: "Double digits! You're growing up so fast…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 10,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Sweet Sixteen",
+            body: "Sixteen years old. I am so proud of the person you're becoming…\n\n",
+            unlockKind: .birthdayAge,
+            unlockAge: 16,
+            lifeEventName: nil
+        ),
+        MilestoneTemplate(
+            title: "Graduation Day",
+            body: "Today you graduate. All those years of hard work…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Graduation"
+        ),
+        MilestoneTemplate(
+            title: "Your Wedding Day",
+            body: "On this beautiful day, as you start this new chapter…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Wedding"
+        ),
+        MilestoneTemplate(
+            title: "Becoming a Parent",
+            body: "Now you understand. The moment you held your own child…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Becoming a parent"
+        ),
+        MilestoneTemplate(
+            title: "A Letter for When You Need It",
+            body: "If you're reading this, you might be having a hard day…\n\n",
+            unlockKind: .lifeEvent,
+            unlockAge: nil,
+            lifeEventName: "Encouragement"
+        ),
+    ]
 }

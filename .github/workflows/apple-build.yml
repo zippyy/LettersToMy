@@ -15,18 +15,44 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Build iOS app
-        run: >-
-          xcodebuild
-          -project LettersToMy.xcodeproj
-          -scheme LettersToMy
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO
-          build
+        id: ios_build
+        shell: bash
+        run: |
+          set +e
+          xcodebuild \
+            -project LettersToMy.xcodeproj \
+            -scheme LettersToMy \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build > ios-build.log 2>&1
+          status=$?
+          grep -E '(error:|warning:|BUILD (SUCCEEDED|FAILED)|^\*\*)' ios-build.log > ios-diagnostics.txt || true
+          cat ios-diagnostics.txt
+          exit $status
+      - name: Upload iOS diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-diagnostics
+          path: ios-diagnostics.txt
       - name: Build macOS app
-        run: >-
-          xcodebuild
-          -project LettersToMy.xcodeproj
-          -scheme LettersToMyMac
-          -destination 'platform=macOS'
-          CODE_SIGNING_ALLOWED=NO
-          build
+        id: macos_build
+        shell: bash
+        run: |
+          set +e
+          xcodebuild \
+            -project LettersToMy.xcodeproj \
+            -scheme LettersToMyMac \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build > macos-build.log 2>&1
+          status=$?
+          grep -E '(error:|warning:|BUILD (SUCCEEDED|FAILED)|^\*\*)' macos-build.log > macos-diagnostics.txt || true
+          cat macos-diagnostics.txt
+          exit $status
+      - name: Upload macOS diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-diagnostics
+          path: macos-diagnostics.txt

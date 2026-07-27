@@ -1,11 +1,7 @@
-import LettersToMyCore
-import SwiftData
 import SwiftUI
 
 struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \FamilyBranchRecord.createdAt) private var branches: [FamilyBranchRecord]
 
     var body: some View {
         Group {
@@ -17,21 +13,6 @@ struct RootView: View {
                 }
             }
         }
-        .task { seedDefaultBranches() }
-    }
-
-    private func seedDefaultBranches() {
-        guard branches.isEmpty else { return }
-        let defaults: [(String, FamilyBranchKind)] = [
-            ("Parents", .parents),
-            ("Maternal Family", .maternal),
-            ("Paternal Family", .paternal),
-            ("Chosen Family", .chosenFamily)
-        ]
-        for (name, kind) in defaults {
-            modelContext.insert(FamilyBranchRecord(name: name, kind: kind))
-        }
-        try? modelContext.save()
     }
 }
 

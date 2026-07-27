@@ -1,32 +1,25 @@
+import CoreData
 import Foundation
-import SwiftData
 
-@Model
-final class LetterAttachment {
-    var id: UUID = UUID()
-    var letterID: UUID = UUID()
-    var fileName: String = "Attachment"
-    var contentTypeIdentifier: String = "public.data"
-    var createdAt: Date = Date.now
-    var kindRawValue: String = AttachmentKind.file.rawValue
+@objc(LetterAttachment)
+final class LetterAttachment: NSManagedObject, Identifiable {
+    @NSManaged var id: UUID
+    @NSManaged var letterID: UUID
+    @NSManaged var fileName: String
+    @NSManaged var contentTypeIdentifier: String
+    @NSManaged var createdAt: Date
+    @NSManaged var kindRawValue: String
+    @NSManaged var data: Data?
+    @NSManaged var letter: Letter?
 
-    @Attribute(.externalStorage)
-    var data: Data?
-
-    init(
-        letterID: UUID,
-        fileName: String,
-        contentTypeIdentifier: String,
-        kind: AttachmentKind,
-        data: Data
-    ) {
-        self.id = UUID()
-        self.letterID = letterID
-        self.fileName = fileName
-        self.contentTypeIdentifier = contentTypeIdentifier
-        self.createdAt = Date.now
-        self.kindRawValue = kind.rawValue
-        self.data = data
+    override func awakeFromInsert() {
+        super.awakeFromInsert()
+        id = UUID()
+        letterID = UUID()
+        fileName = "Attachment"
+        contentTypeIdentifier = "public.data"
+        createdAt = .now
+        kindRawValue = AttachmentKind.file.rawValue
     }
 
     var kind: AttachmentKind {

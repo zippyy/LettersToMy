@@ -216,10 +216,67 @@ public struct ArchiveMember: Codable, Equatable, Identifiable, Sendable {
 
 public enum InvitationStatus: String, Codable, Sendable {
     case pending
+    case delivered
+    case sent
     case accepted
     case declined
     case expired
     case revoked
+    case failed
+
+    public var title: String {
+        switch self {
+        case .pending: "Pending"
+        case .delivered: "Delivered"
+        case .sent: "Sent"
+        case .accepted: "Accepted"
+        case .declined: "Declined"
+        case .expired: "Expired"
+        case .revoked: "Revoked"
+        case .failed: "Failed"
+        }
+    }
+}
+
+/// Lightweight metadata placed inside a shared partition so the accepting
+/// participant can activate the correct local member record with the intended
+/// role and scope. The inviter writes this before sharing; the invitee reads
+/// it after accepting.
+public struct ShareMemberActivation: Codable, Equatable, Sendable {
+    public var invitationID: UUID
+    public var intendedMemberID: UUID
+    public var displayName: String
+    public var role: CollaborationRole
+    public var scope: CollaborationScope
+    public var canInviteOthers: Bool
+
+    public init(
+        invitationID: UUID,
+        intendedMemberID: UUID,
+        displayName: String,
+        role: CollaborationRole,
+        scope: CollaborationScope,
+        canInviteOthers: Bool = false
+    ) {
+        self.invitationID = invitationID
+        self.intendedMemberID = intendedMemberID
+        self.displayName = displayName
+        self.role = role
+        self.scope = scope
+        self.canInviteOthers = canInviteOthers
+    }
+}
+
+/// CloudKit participant identity that has been verified through share
+/// acceptance rather than inferred from a user-provided email address.
+public struct VerifiedParticipantIdentity: Codable, Equatable, Sendable {
+    public var userRecordName: String
+    public var participantType: String
+
+    public init(userRecordName: String, participantType: String = "unknown") {
+        self.userRecordName = userRecordName
+        self.participantType = participantType
+    }
 }
 
 public struct CollaborationInvitation: Codable, Equatable, Identifiable, Sendable {
