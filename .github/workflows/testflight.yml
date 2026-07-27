@@ -70,7 +70,7 @@ jobs:
 
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/$PROFILE_UUID.mobileprovision"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/b45ab7db.mobileprovision"
 
           echo "--- verify with xcodebuild ---"
           xcodebuild -showBuildSettings -project "$PROJECT" -scheme "$SCHEME" 2>&1 | grep -i "PROVISIONING_PROFILE" || true
