@@ -1,4 +1,4 @@
-name: Release to TestFlight
+name: Deploy to TestFlight
 
 on:
   workflow_dispatch:
