@@ -78,11 +78,8 @@ jobs:
           security cms -D -i "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision" 2>&1 | head -5 || true
 
       - name: Archive app
-        env:
-          ASC_KEY_PATH: /tmp/AuthKey.p8
         run: |
           set -euo pipefail
-          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > "$ASC_KEY_PATH"
           ARCHIVE_PATH="$RUNNER_TEMP/LettersToMy-iOS.xcarchive"
 
           xcodebuild archive \
@@ -92,9 +89,6 @@ jobs:
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -archivePath "$ARCHIVE_PATH" \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
-            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
@@ -234,6 +228,13 @@ jobs:
         run: |
           set -euo pipefail
           EXPORT_DIR="$RUNNER_TEMP/export"
+          EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
+          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${{ env.BUNDLE_ID }} string ${{ env.PROFILE_UUID }}" "$EXPORT_PLIST"
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_DIR" \
