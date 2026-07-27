@@ -204,8 +204,6 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.bayoumountainholdings.LettersToMy.mac string 6fd90045-93ba-495f-98c5-4045abc52249" "$EXPORT_PLIST"
 
-          /usr/libexec/PlistBuddy -c "Add :installerIdentity string Apple Distribution: BAYOU MOUNTAIN HOLDINGS LLC (${{ secrets.APPLE_TEAM_ID }})" "$EXPORT_PLIST" 2>/dev/null || true
-
           xcodebuild archive \
             -project LettersToMy.xcodeproj \
             -scheme LettersToMyMac \
@@ -221,11 +219,7 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_DIR" \
-            -exportOptionsPlist "$EXPORT_PLIST" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
-            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
-            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+            -exportOptionsPlist "$EXPORT_PLIST"
 
           PKG_PATH=$(find "$EXPORT_DIR" -name '*.pkg' | head -1)
           echo "PKG_PATH=$PKG_PATH" >> "$GITHUB_ENV"
