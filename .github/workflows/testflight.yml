@@ -97,7 +97,7 @@ jobs:
             xcrun actool Resources/Assets.xcassets --compile "$RUNNER_TEMP/asset-output" \
               --platform iphoneos --minimum-deployment-target 17.0 \
               --app-icon AppIcon --output-partial-info-plist /tmp/assetcatalog.plist || true
-            cp "$RUNNER_TEMP/asset-output"/*.png Resources/ 2>/dev/null || true
+            cp "$RUNNER_TEMP/asset-output"/*.png Sources/LettersToMy/ 2>/dev/null || true
           fi
 
           xcodebuild archive \
