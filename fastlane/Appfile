@@ -1,9 +1,0 @@
-# fastlane Appfile
-#
-# Apple ID and team configuration.
-
-app_identifier("com.bayoumountainholdings.LettersToMy")
-apple_id(ENV["FASTLANE_APPLE_EMAIL"] || "")
-team_id(ENV["FASTLANE_TEAM_ID"] || "")
-
-# For macOS builds, fastlane resolves the bundle ID from the project.
