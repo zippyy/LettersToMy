@@ -377,6 +377,11 @@ enum LettersToMyManagedObjectModel {
             name: "\(entity.name!)_\(name)_idx",
             elements: [element]
         )
+        // NSPersistentCloudKitContainer may auto-create an index for
+        // the "id" attribute; avoid a duplicate-index crash.
+        if entity.indexes.contains(where: { $0.name == index.name }) {
+            return
+        }
         entity.indexes.append(index)
     }
 

@@ -256,10 +256,6 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 if member.role != .owner && !canUpdate(target) {
                     return false
                 }
-            case .deleteContent:
-                if member.role != .owner && !canDelete(target) {
-                    return false
-                }
             default:
                 break
             }
