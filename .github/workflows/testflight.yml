@@ -1,4 +1,4 @@
-name: Deploy to TestFlight
+name: Release to TestFlight
 
 on:
   workflow_dispatch:
@@ -8,39 +8,38 @@ on:
         required: true
         default: 'both'
         type: choice
-        options:
-          - ios
-          - mac
-          - both
+        options: ['ios', 'macos', 'both']
       build_number:
-        description: 'Build number (increment each upload)'
+        description: 'Build number'
         required: true
         type: string
-  release:
-    types: [published]
 
 permissions:
   contents: write
 
 jobs:
   ios:
-    if: |
-      github.event_name == 'release' ||
-      github.event.inputs.platform == 'ios' ||
-      github.event.inputs.platform == 'both'
-    name: iOS → TestFlight
-    runs-on: macos-15
+    if: inputs.platform == 'ios' || inputs.platform == 'both'
+    runs-on: macos-26
     timeout-minutes: 45
+    env:
+      PROJECT: LettersToMy.xcodeproj
+      SCHEME: LettersToMy
+      BUNDLE_ID: com.bayoumountainholdings.LettersToMy
+      PROFILE_UUID: e76f9d91-430c-4cad-bbed-086a2506a7f8
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: agent/core-data-cloudkit-sharing
 
       - name: Install XcodeGen
         run: brew install xcodegen
 
       - name: Generate Xcode project
         run: |
-          BUILD_NUM="${{ github.event.inputs.build_number || github.run_number }}"
-          sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${BUILD_NUM}/" project.yml
+          sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
           xcodegen generate
 
       - name: Import signing certificate
@@ -67,23 +66,34 @@ jobs:
             -s -k "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
 
-      - name: Install provisioning profile (iOS)
+      - name: Install provisioning profile
         env:
           PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
           set -euo pipefail
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/letters-to-my-ios.mobileprovision"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision"
+          echo "Profile size: $(wc -c < "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision") bytes"
           ls -la "$PROFILE_PATH/"
+          echo "--- verify profile ---"
+          security cms -D -i "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision" 2>&1 | head -5 || true
 
-      - name: Archive iOS app
+      - name: Archive app
         run: |
           set -euo pipefail
           ARCHIVE_PATH="$RUNNER_TEMP/LettersToMy-iOS.xcarchive"
+          EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
+          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${{ env.BUNDLE_ID }} string ${{ env.PROFILE_UUID }}" "$EXPORT_PLIST"
+
           xcodebuild archive \
-            -project LettersToMy.xcodeproj \
-            -scheme LettersToMy \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
@@ -91,17 +101,14 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="Apple Distribution"
+
           echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+          echo "EXPORT_PLIST=$EXPORT_PLIST" >> "$GITHUB_ENV"
 
       - name: Export IPA
         run: |
           set -euo pipefail
           EXPORT_DIR="$RUNNER_TEMP/export"
-          EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
-          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_DIR" \
@@ -118,8 +125,8 @@ jobs:
           API_KEY_BASE64: ${{ secrets.ASC_KEY }}
         run: |
           set -euo pipefail
+          mkdir -p ~/.private_keys
           KEY_PATH="$HOME/.private_keys/AuthKey_${API_KEY_ID}.p8"
-          mkdir -p "$HOME/.private_keys"
           echo -n "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           xcrun altool --upload-app \
             -f "$IPA_PATH" \
@@ -128,31 +135,34 @@ jobs:
             --apiIssuer "$API_ISSUER_ID"
 
       - name: Upload IPA artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ipa
+          name: LettersToMy-ios-build-${{ inputs.build_number }}
           path: ${{ env.IPA_PATH }}
-          retention-days: 7
+          if-no-files-found: error
 
-  mac:
-    if: |
-      github.event_name == 'release' ||
-      github.event.inputs.platform == 'mac' ||
-      github.event.inputs.platform == 'both'
-    name: macOS → TestFlight
-    runs-on: macos-15
+  macos:
+    if: inputs.platform == 'macos' || inputs.platform == 'both'
+    runs-on: macos-26
     timeout-minutes: 45
+    env:
+      PROJECT: LettersToMy.xcodeproj
+      SCHEME: LettersToMyMac
+      BUNDLE_ID: com.bayoumountainholdings.LettersToMy.mac
+      PROFILE_UUID: 3b46dd54-9c35-4260-92f3-f51891d85010
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: agent/core-data-cloudkit-sharing
 
       - name: Install XcodeGen
         run: brew install xcodegen
 
       - name: Generate Xcode project
         run: |
-          BUILD_NUM="${{ github.event.inputs.build_number || github.run_number }}"
-          sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${BUILD_NUM}/" project.yml
+          sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
           xcodegen generate
 
       - name: Import signing certificate
@@ -179,23 +189,34 @@ jobs:
             -s -k "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
 
-      - name: Install provisioning profile (macOS)
+      - name: Install provisioning profile
         env:
           PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64_MAC }}
         run: |
           set -euo pipefail
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/letters-to-my-mac.mobileprovision"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision"
+          echo "Profile size: $(wc -c < "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision") bytes"
           ls -la "$PROFILE_PATH/"
+          echo "--- verify profile ---"
+          security cms -D -i "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision" 2>&1 | head -5 || true
 
-      - name: Archive macOS app
+      - name: Archive app
         run: |
           set -euo pipefail
           ARCHIVE_PATH="$RUNNER_TEMP/LettersToMy-macOS.xcarchive"
+          EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
+          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${{ env.BUNDLE_ID }} string ${{ env.PROFILE_UUID }}" "$EXPORT_PLIST"
+
           xcodebuild archive \
-            -project LettersToMy.xcodeproj \
-            -scheme LettersToMyMac \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -sdk macosx \
             -destination "generic/platform=macOS" \
@@ -203,17 +224,14 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="Apple Distribution"
+
           echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+          echo "EXPORT_PLIST=$EXPORT_PLIST" >> "$GITHUB_ENV"
 
       - name: Export macOS app
         run: |
           set -euo pipefail
           EXPORT_DIR="$RUNNER_TEMP/export"
-          EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
-          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_DIR" \
@@ -223,41 +241,25 @@ jobs:
           PKG_PATH=$(find "$EXPORT_DIR" -name '*.pkg' | head -1)
           echo "PKG_PATH=$PKG_PATH" >> "$GITHUB_ENV"
 
-      - name: Upload to TestFlight (macOS)
+      - name: Upload to Mac App Store
         env:
           API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           API_KEY_BASE64: ${{ secrets.ASC_KEY }}
         run: |
           set -euo pipefail
+          mkdir -p ~/.private_keys
           KEY_PATH="$HOME/.private_keys/AuthKey_${API_KEY_ID}.p8"
-          mkdir -p "$HOME/.private_keys"
           echo -n "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           xcrun altool --upload-app \
             -f "$PKG_PATH" \
-            -t osx \
+            -t macos \
             --apiKey "$API_KEY_ID" \
             --apiIssuer "$API_ISSUER_ID"
 
-      - name: Upload PKG artifact
-        if: always()
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-pkg
+          name: LettersToMy-macos-build-${{ inputs.build_number }}
           path: ${{ env.PKG_PATH }}
-          retention-days: 7
-
-  summary:
-    if: always()
-    needs: [ios, mac]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "## TestFlight Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "| Platform | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| iOS      | ${{ needs.ios.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| macOS    | ${{ needs.mac.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo ""
-          echo "Build: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          if-no-files-found: error
