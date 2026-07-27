@@ -75,6 +75,11 @@
 	</array>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>CFBundleIconFiles</key>
+	<array>
+		<string>AppIcon60x60</string>
+		<string>AppIcon76x76</string>
+	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
