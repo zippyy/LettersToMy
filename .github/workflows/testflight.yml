@@ -72,6 +72,11 @@ jobs:
           echo "--- xcodebuild show provisioning profiles ---"
           xcodebuild -showBuildSettings -project LettersToMy.xcodeproj -scheme LettersToMy 2>&1 | grep -i "PROVISIONING_PROFILE\|DEVELOPMENT_TEAM" || true
 
+      - name: Install ASC API key
+        run: |
+          mkdir -p ~/private_keys
+          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
       - name: Archive and export
         run: |
           set -euo pipefail
