@@ -33,6 +33,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: agent/core-data-cloudkit-sharing
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -145,6 +147,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: agent/core-data-cloudkit-sharing
 
       - name: Install XcodeGen
         run: brew install xcodegen
