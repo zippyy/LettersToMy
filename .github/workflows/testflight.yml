@@ -22,15 +22,9 @@ jobs:
     if: inputs.platform == 'ios' || inputs.platform == 'both'
     runs-on: macos-15
     timeout-minutes: 45
-    env:
-      PROJECT: LettersToMy.xcodeproj
-      SCHEME: LettersToMy
-      BUNDLE_ID: com.bayoumountainholdings.LettersToMy
-      PROFILE_UUID: e76f9d91-430c-4cad-bbed-086a2506a7f8
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -40,97 +34,52 @@ jobs:
           sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
           xcodegen generate
 
-      - name: Import signing certificate
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      - name: Install App Store Connect API key
         run: |
-          set -euo pipefail
-          CERT_PATH="$RUNNER_TEMP/distribution.p12"
-          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
-          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
-          echo -n "$CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" \
-            -k "$KEYCHAIN_PATH" \
-            -P "$CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign \
-            -T /usr/bin/security
-          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
-          security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: \
-            -s -k "$KEYCHAIN_PASSWORD" \
-            "$KEYCHAIN_PATH"
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
 
-      - name: Install provisioning profile
-        env:
-          PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          set -euo pipefail
-          PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
-          mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision"
-          echo "Profile size: $(wc -c < "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision") bytes"
-          ls -la "$PROFILE_PATH/"
-          echo "--- verify profile ---"
-          security cms -D -i "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision" 2>&1 | head -5 || true
-
-      - name: Archive app
+      - name: Archive and export
         run: |
           set -euo pipefail
           ARCHIVE_PATH="$RUNNER_TEMP/LettersToMy-iOS.xcarchive"
-
-          xcodebuild archive \
-            -project "$PROJECT" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
-            -archivePath "$ARCHIVE_PATH" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="LettersToMY-iOS"
-
-          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
-
-      - name: Export IPA
-        run: |
-          set -euo pipefail
           EXPORT_DIR="$RUNNER_TEMP/export"
           EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
+
           /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${{ env.BUNDLE_ID }} string ${{ env.PROFILE_UUID }}" "$EXPORT_PLIST"
+
+          xcodebuild archive \
+            -project LettersToMy.xcodeproj \
+            -scheme LettersToMy \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_DIR" \
             -exportOptionsPlist "$EXPORT_PLIST" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            -allowProvisioningUpdates \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+
           IPA_PATH=$(find "$EXPORT_DIR" -name '*.ipa' | head -1)
           echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
 
       - name: Upload to TestFlight
-        env:
-          API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          API_KEY_BASE64: ${{ secrets.ASC_KEY }}
         run: |
-          set -euo pipefail
-          mkdir -p ~/.private_keys
-          KEY_PATH="$HOME/.private_keys/AuthKey_${API_KEY_ID}.p8"
-          echo -n "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           xcrun altool --upload-app \
             -f "$IPA_PATH" \
             -t ios \
-            --apiKey "$API_KEY_ID" \
-            --apiIssuer "$API_ISSUER_ID"
+            --apiKey "${{ secrets.ASC_KEY_ID }}" \
+            --apiIssuer "${{ secrets.ASC_ISSUER_ID }}"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -143,15 +92,9 @@ jobs:
     if: inputs.platform == 'macos' || inputs.platform == 'both'
     runs-on: macos-15
     timeout-minutes: 45
-    env:
-      PROJECT: LettersToMy.xcodeproj
-      SCHEME: LettersToMyMac
-      BUNDLE_ID: com.bayoumountainholdings.LettersToMy.mac
-      PROFILE_UUID: 3b46dd54-9c35-4260-92f3-f51891d85010
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -161,102 +104,52 @@ jobs:
           sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
           xcodegen generate
 
-      - name: Import signing certificate
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      - name: Install App Store Connect API key
         run: |
-          set -euo pipefail
-          CERT_PATH="$RUNNER_TEMP/distribution.p12"
-          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
-          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
-          echo -n "$CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" \
-            -k "$KEYCHAIN_PATH" \
-            -P "$CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign \
-            -T /usr/bin/security
-          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
-          security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: \
-            -s -k "$KEYCHAIN_PASSWORD" \
-            "$KEYCHAIN_PATH"
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
 
-      - name: Install provisioning profile
-        env:
-          PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64_MAC }}
-        run: |
-          set -euo pipefail
-          PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
-          mkdir -p "$PROFILE_PATH"
-          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision"
-          echo "Profile size: $(wc -c < "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision") bytes"
-          ls -la "$PROFILE_PATH/"
-          echo "--- verify profile ---"
-          security cms -D -i "$PROFILE_PATH/${{ env.PROFILE_UUID }}.mobileprovision" 2>&1 | head -5 || true
-
-      - name: Archive app
+      - name: Archive and export
         run: |
           set -euo pipefail
           ARCHIVE_PATH="$RUNNER_TEMP/LettersToMy-macOS.xcarchive"
+          EXPORT_DIR="$RUNNER_TEMP/export"
           EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
+
           /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
           /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${{ env.BUNDLE_ID }} string ${{ env.PROFILE_UUID }}" "$EXPORT_PLIST"
 
           xcodebuild archive \
-            -project "$PROJECT" \
-            -scheme "$SCHEME" \
+            -project LettersToMy.xcodeproj \
+            -scheme LettersToMyMac \
             -configuration Release \
             -sdk macosx \
             -destination "generic/platform=macOS" \
             -archivePath "$ARCHIVE_PATH" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="LettersToMy-Mac"
+            -allowProvisioningUpdates \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
 
-          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
-
-      - name: Export macOS app
-        run: |
-          set -euo pipefail
-          EXPORT_DIR="$RUNNER_TEMP/export"
-          EXPORT_PLIST="$RUNNER_TEMP/exportOptions.plist"
-          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :teamID string ${{ secrets.APPLE_TEAM_ID }}" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :manageAppVersionAndBuildNumber bool false" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$EXPORT_PLIST"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${{ env.BUNDLE_ID }} string ${{ env.PROFILE_UUID }}" "$EXPORT_PLIST"
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_DIR" \
-            -exportOptionsPlist "$EXPORT_PLIST"
+            -exportOptionsPlist "$EXPORT_PLIST" \
+            -allowProvisioningUpdates \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+
           PKG_PATH=$(find "$EXPORT_DIR" -name '*.pkg' | head -1)
           echo "PKG_PATH=$PKG_PATH" >> "$GITHUB_ENV"
 
       - name: Upload to Mac App Store
-        env:
-          API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          API_KEY_BASE64: ${{ secrets.ASC_KEY }}
         run: |
-          set -euo pipefail
-          mkdir -p ~/.private_keys
-          KEY_PATH="$HOME/.private_keys/AuthKey_${API_KEY_ID}.p8"
-          echo -n "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           xcrun altool --upload-app \
             -f "$PKG_PATH" \
             -t macos \
-            --apiKey "$API_KEY_ID" \
-            --apiIssuer "$API_ISSUER_ID"
+            --apiKey "${{ secrets.ASC_KEY_ID }}" \
+            --apiIssuer "${{ secrets.ASC_ISSUER_ID }}"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
