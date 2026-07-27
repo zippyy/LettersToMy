@@ -67,6 +67,8 @@ jobs:
             "$KEYCHAIN_PATH"
 
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "=== identities in keychain ==="
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
 
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILE_PATH"
@@ -166,6 +168,8 @@ jobs:
             "$KEYCHAIN_PATH"
 
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "=== identities in keychain ==="
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
 
           MAC_PROFILE_PATH="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
           mkdir -p "$MAC_PROFILE_PATH"
