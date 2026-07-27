@@ -72,8 +72,8 @@ jobs:
           mkdir -p "$PROFILE_PATH"
           echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH/$PROFILE_UUID.mobileprovision"
 
-          echo "=== verify profile ==="
-          security cms -D -i "$PROFILE_PATH/$PROFILE_UUID.mobileprovision" 2>/dev/null | plutil -p - 2>/dev/null | grep -E 'UUID|Name|Team' | head -5 || true
+          echo "--- verify with xcodebuild ---"
+          xcodebuild -showBuildSettings -project "$PROJECT" -scheme "$SCHEME" 2>&1 | grep -i "PROVISIONING_PROFILE" || true
 
       - name: Archive and export
         run: |
