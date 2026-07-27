@@ -97,9 +97,10 @@ jobs:
             xcrun actool Resources/Assets.xcassets --compile "$RUNNER_TEMP/asset-output" \
               --platform iphoneos --minimum-deployment-target 17.0 \
               --app-icon AppIcon --output-partial-info-plist /tmp/assetcatalog.plist || true
-            cp "$RUNNER_TEMP/asset-output"/*.png Sources/LettersToMy/ 2>/dev/null || true
-            # Merge icon metadata into Info.plist BEFORE archive
-            /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog.plist" Config/Info-iOS.plist 2>/dev/null || true
+            # Copy and rename to match what project.yml expects
+            cp "$RUNNER_TEMP/asset-output/AppIcon60x60@2x.png" Resources/icon-120.png 2>/dev/null || true
+            cp "$RUNNER_TEMP/asset-output/AppIcon76x76@2x~ipad.png" Resources/icon-152.png 2>/dev/null || true
+            cp "$RUNNER_TEMP/asset-output/AppIcon60x60@3x.png" Resources/icon-180.png 2>/dev/null || true
           fi
 
           xcodebuild archive \

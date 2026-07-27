@@ -45,6 +45,13 @@ targets:
         includes:
           - "**/*.xcassets"
           - "**/*.png"
+      - path: Resources/icon-120.png
+      - path: Resources/icon-152.png
+      - path: Resources/icon-76.png
+    preBuildScripts:
+      - name: "Inject CFBundleIconName"
+        script: |
+          /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog.plist" "$INFOPLIST_FILE" 2>/dev/null || true
     dependencies:
       - package: LettersToMyCore
     settings:
@@ -68,6 +75,13 @@ targets:
         includes:
           - "**/*.xcassets"
           - "**/*.png"
+      - path: Resources/icon-120.png
+      - path: Resources/icon-152.png
+      - path: Resources/icon-76.png
+    preBuildScripts:
+      - name: "Inject CFBundleIconName"
+        script: |
+          /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog.plist" "$INFOPLIST_FILE" 2>/dev/null || true
     dependencies:
       - package: LettersToMyCore
     settings:
