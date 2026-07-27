@@ -98,6 +98,8 @@ jobs:
               --platform iphoneos --minimum-deployment-target 17.0 \
               --app-icon AppIcon --output-partial-info-plist /tmp/assetcatalog.plist || true
             cp "$RUNNER_TEMP/asset-output"/*.png Sources/LettersToMy/ 2>/dev/null || true
+            # Merge icon metadata into Info.plist BEFORE archive
+            /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog.plist" Config/Info-iOS.plist 2>/dev/null || true
           fi
 
           xcodebuild archive \
@@ -119,20 +121,6 @@ jobs:
 
           IPA_PATH=$(find "$EXPORT_DIR" -name '*.ipa' | head -1)
           echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
-
-          # Fix Info.plist post-archive — Xcode strips CFBundleIconName when no asset catalog is in the project
-          if [ -n "$IPA_PATH" ] && [ -f /tmp/assetcatalog.plist ]; then
-            TMP_DIR="$RUNNER_TEMP/ipa-fix"
-            mkdir -p "$TMP_DIR"
-            unzip -q "$IPA_PATH" -d "$TMP_DIR"
-            APP_DIR=$(find "$TMP_DIR/Payload" -name "*.app" | head -1)
-            if [ -n "$APP_DIR" ]; then
-              /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog.plist" "$APP_DIR/Info.plist" 2>/dev/null || true
-              /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string AppIcon" "$APP_DIR/Info.plist" 2>/dev/null || true
-              cd "$TMP_DIR" && zip -qr "$RUNNER_TEMP/fixed.ipa" Payload && cd -
-              echo "IPA_PATH=$RUNNER_TEMP/fixed.ipa" >> "$GITHUB_ENV"
-            fi
-          fi
 
       - name: Upload to TestFlight
         run: |
