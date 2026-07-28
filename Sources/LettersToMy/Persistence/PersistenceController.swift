@@ -12,7 +12,9 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let sharedConfigurationName = "Shared"
 
     var container: NSPersistentCloudKitContainer
-    let cloudKitContainer: CKContainer
+    lazy var cloudKitContainer = CKContainer(
+        identifier: Self.cloudKitContainerIdentifier
+    )
 
     private(set) var privateStore: NSPersistentStore!
     private(set) var sharedStore: NSPersistentStore!
@@ -22,10 +24,9 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     @Published var lastSyncError: String?
     @Published var isLoaded = false
 
-    init(inMemory: Bool = true) {
+    init(inMemory: Bool = false) {
         let model = LettersToMyManagedObjectModel.makeModel()
         container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
-        cloudKitContainer = CKContainer(identifier: Self.cloudKitContainerIdentifier)
 
         let privateDescription = Self.makeStoreDescription(
             name: "LettersToMy-private",
@@ -47,11 +48,6 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// subsequent calls return immediately.
     func loadStores() async {
         guard !isLoaded else { return }
-        // DEBUG: Skip all store loading to isolate crash
-        isLoaded = true
-    }
-
-    func _loadStores() async {
 
         await withCheckedContinuation { continuation in
             let group = DispatchGroup()
