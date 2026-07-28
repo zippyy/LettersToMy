@@ -216,6 +216,7 @@ private struct FamilySidesSection: View {
                     branch: branch,
                     folders: branchFolders
                 )
+                .deleteDisabled(branch.kind != .custom)
             }
             .onDelete { offsets in
                 for index in offsets {
