@@ -30,6 +30,7 @@
 		504DD5D6322F54C21287C922 /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
 		5C326084444318C526E7A9D4 /* LetterEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3673FF0949E317F43B93214E /* LetterEditorView.swift */; };
 		5F591907EA2970308BDDF25B /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58B48CE6639E02B94646058 /* PersistenceController.swift */; };
+		60713B058F91D47E852078E0 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		63D8ECE23E2C446008E17202 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
 		8269FF37CDFCE8A9EA776C82 /* CloudKitShareItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */; };
 		829FD5D41D05F927FE0E8C7B /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51466AA6963287351167A822 /* TimelineView.swift */; };
@@ -51,6 +52,7 @@
 		D5148EA307ECFF55CC4EF374 /* BackupServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */; };
 		D53DF35041CF250C50F55430 /* LettersToMyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 27B1580C8991A0F5B20F1359 /* LettersToMyCore */; };
 		D5743C1A1D36DC46CB93865A /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8987CBF80D5609C540FE6AF4 /* LibraryView.swift */; };
+		D5A1429A7C02D858D46881CB /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		D7F522444E42BF6ABF51A3B7 /* DeliveryPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 208DD25B5FAE5F1A8F72FBA2 /* DeliveryPipelineTests.swift */; };
 		D800877850D09EC42F8C93AA /* BackupRecordEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */; };
 		DA9621D9D5D6335AF17C1641 /* Letter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC9ABF0969826C33789B127C /* Letter.swift */; };
@@ -110,6 +112,7 @@
 		D2F6B20A9E077D9E2DE54AFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D58B48CE6639E02B94646058 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
+		D6ABEDA042E9C24396817268 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		E2CC07F3B82784F2223049EF /* LetterAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterAttachment.swift; sourceTree = "<group>"; };
 		EC9ABF0969826C33789B127C /* Letter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Letter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -217,6 +220,7 @@
 				928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */,
 				2ED48EC99484C6FF1EC93FC5 /* RootView.swift */,
 				6C0161C38E7CB50077E00EC5 /* SettingsView.swift */,
+				D6ABEDA042E9C24396817268 /* SplashView.swift */,
 				51466AA6963287351167A822 /* TimelineView.swift */,
 			);
 			path = Views;
@@ -411,6 +415,7 @@
 				F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */,
 				C9064F78F856CAC41A6252A8 /* RootView.swift in Sources */,
 				294EE0A7374F92F1B82A7E6F /* SettingsView.swift in Sources */,
+				60713B058F91D47E852078E0 /* SplashView.swift in Sources */,
 				CF39EC1DAF71D49205F9BDAC /* TimelineView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -442,6 +447,7 @@
 				05CCB6F7D19C834C304ECC73 /* RecoveryContactsView.swift in Sources */,
 				0080F2322653AD7C2691143C /* RootView.swift in Sources */,
 				A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */,
+				D5A1429A7C02D858D46881CB /* SplashView.swift in Sources */,
 				829FD5D41D05F927FE0E8C7B /* TimelineView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

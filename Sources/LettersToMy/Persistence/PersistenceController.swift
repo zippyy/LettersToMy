@@ -20,6 +20,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// Published for SwiftUI views to observe CloudKit account state.
     @Published var cloudKitAccountStatus: CKAccountStatus = .couldNotDetermine
     @Published var lastSyncError: String?
+    @Published var isLoaded = false
 
     init(inMemory: Bool = false) {
         let model = LettersToMyManagedObjectModel.makeModel()
@@ -39,44 +40,51 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             inMemory: inMemory
         )
         container.persistentStoreDescriptions = [privateDescription, sharedDescription]
+    }
 
-        let semaphore = DispatchSemaphore(value: 0)
-        var storeLoadError: Error?
+    /// Load persistent stores asynchronously. Must be called once before
+    /// the managed object context is used. Safe to call multiple times;
+    /// subsequent calls return immediately.
+    func loadStores() async {
+        guard !isLoaded else { return }
 
-        container.loadPersistentStores { [weak self] description, error in
-            defer { semaphore.signal() }
-            guard let self else { return }
-            if let error {
-                storeLoadError = error
-                return
+        await withCheckedContinuation { continuation in
+            let group = DispatchGroup()
+            group.enter()
+            group.enter()
+            container.loadPersistentStores { [weak self] description, error in
+                defer { group.leave() }
+                guard let self else { return }
+                if let error {
+                    self.lastSyncError = error.localizedDescription
+                    return
+                }
+                guard let store = self.container.persistentStoreCoordinator.persistentStores.first(
+                    where: { $0.configurationName == description.configuration }
+                ) else {
+                    self.lastSyncError = PersistenceError.missingLoadedStore(description.url).localizedDescription
+                    return
+                }
+                switch description.configuration {
+                case Self.privateConfigurationName:
+                    self.privateStore = store
+                case Self.sharedConfigurationName:
+                    self.sharedStore = store
+                default:
+                    break
+                }
             }
-            guard let store = self.container.persistentStoreCoordinator.persistentStores.first(
-                where: { $0.configurationName == description.configuration }
-            ) else {
-                storeLoadError = PersistenceError.missingLoadedStore(description.url)
-                return
-            }
-            switch description.configuration {
-            case Self.privateConfigurationName:
-                self.privateStore = store
-            case Self.sharedConfigurationName:
-                self.sharedStore = store
-            default:
-                break
+            group.notify(queue: .global()) {
+                continuation.resume()
             }
         }
 
-        // Wait up to 5 seconds per store. If we time out or get an error,
-        // fall back to in-memory so the app always renders.
-        _ = semaphore.wait(timeout: .now() + 5)
-        _ = semaphore.wait(timeout: .now() + 5)
-
-        if privateStore == nil || storeLoadError != nil {
-            lastSyncError = storeLoadError?.localizedDescription ?? "store load timed out"
-            NSLog("Falling back to in-memory: \(lastSyncError ?? "")")
-            fallbackToInMemory(model: model)
+        // If the private store failed to load, fall back to in-memory
+        // so the app always renders even without iCloud or disk access.
+        if privateStore == nil {
+            NSLog("Private store failed — falling back to in-memory: \(lastSyncError ?? "unknown")")
+            fallbackToInMemory(model: container.managedObjectModel)
         } else if sharedStore == nil {
-            lastSyncError = "Shared store not available"
             NSLog("Shared store not available — operating with private only")
         }
 
@@ -103,6 +111,8 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         // Observe CloudKit account and sync state.
         Task { await refreshCloudKitAccountStatus() }
         observeRemoteChanges()
+
+        isLoaded = true
     }
 
     // MARK: - CloudKit Status

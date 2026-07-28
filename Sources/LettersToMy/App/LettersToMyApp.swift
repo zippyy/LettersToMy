@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct LettersToMyApp: App {
-    private let persistence = PersistenceController.shared
+    @StateObject private var persistence = PersistenceController.shared
 
     #if os(iOS)
     @UIApplicationDelegateAdaptor(LettersToMyApplicationDelegate.self)
@@ -14,9 +14,19 @@ struct LettersToMyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(\.managedObjectContext, persistence.container.viewContext)
+            Group {
+                if persistence.isLoaded {
+                    RootView()
+                        .environment(\.managedObjectContext, persistence.container.viewContext)
+                } else {
+                    SplashView()
+                }
+            }
+            .task {
+                await persistence.loadStores()
+            }
         }
+
 
         #if os(macOS)
         Settings {
