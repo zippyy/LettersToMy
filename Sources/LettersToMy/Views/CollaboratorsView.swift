@@ -216,13 +216,12 @@ private struct FamilySidesSection: View {
                     branch: branch,
                     folders: branchFolders
                 )
-                .deleteDisabled(branch.kind == .parents || branch.kind == .maternal || branch.kind == .paternal || branch.kind == .chosenFamily)
+                .deleteDisabled(false)
+
             }
             .onDelete { offsets in
                 for index in offsets {
-                    let branch = branches[index]
-                    guard branch.kind != .parents && branch.kind != .maternal && branch.kind != .paternal && branch.kind != .chosenFamily else { continue }
-                    context.delete(branch)
+                    context.delete(branches[index])
                 }
                 try? PersistenceController.shared.save(context)
             }
