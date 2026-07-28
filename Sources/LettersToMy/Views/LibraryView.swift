@@ -49,6 +49,16 @@ struct LibraryView: View {
                 }
             }
             .navigationTitle("Letters")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        editingLetter = nil
+                        showingEditor = true
+                    } label: {
+                        Label("New Letter", systemImage: "square.and.pencil")
+                    }
+                }
+            }
         } content: {
             Group {
                 if filteredLetters.isEmpty {
