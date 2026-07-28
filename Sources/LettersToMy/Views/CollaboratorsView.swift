@@ -88,7 +88,12 @@ struct CollaboratorsView: View {
                 )
             }
             .navigationTitle("People & Access")
-            .toolbar { addMenu }
+            .toolbar {
+                #if os(iOS)
+                ToolbarItem(placement: .navigationBarLeading) { EditButton() }
+                #endif
+                addMenu
+            }
             .task {
                 seedPrivateArchive()
                 PersistenceController.shared.linkExistingSharesToInvitations(into: context)
@@ -212,6 +217,14 @@ private struct FamilySidesSection: View {
                     folders: branchFolders
                 )
             }
+            .onDelete { offsets in
+                for index in offsets {
+                    let branch = branches[index]
+                    guard branch.kind == .custom else { continue }
+                    context.delete(branch)
+                }
+                try? PersistenceController.shared.save(context)
+            }
         }
     }
 }
@@ -245,19 +258,7 @@ private struct FamilyBranchRow: View {
                 }
             }
         } label: {
-            HStack {
-                Label(branch.name, systemImage: branch.kind.systemImage)
-                Spacer()
-                if branch.kind == .custom {
-                    Button(role: .destructive) {
-                        context.delete(branch)
-                        try? PersistenceController.shared.save(context)
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            Label(branch.name, systemImage: branch.kind.systemImage)
         }
     }
 }
