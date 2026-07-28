@@ -59,13 +59,17 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             scope: .private,
             inMemory: useInMemory
         )
-        let sharedDescription = Self.makeStoreDescription(
-            name: "LettersToMy-shared",
-            configuration: Self.sharedConfigurationName,
-            scope: .shared,
-            inMemory: useInMemory
-        )
-        container.persistentStoreDescriptions = [privateDescription, sharedDescription]
+        var descriptions: [NSPersistentStoreDescription] = [privateDescription]
+        if Self.cloudKitAvailable {
+            let sharedDescription = Self.makeStoreDescription(
+                name: "LettersToMy-shared",
+                configuration: Self.sharedConfigurationName,
+                scope: .shared,
+                inMemory: useInMemory
+            )
+            descriptions.append(sharedDescription)
+        }
+        container.persistentStoreDescriptions = descriptions
     }
 
     /// Load persistent stores asynchronously. Must be called once before
@@ -128,9 +132,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         // that unlocked while the app was not running.
         processPendingDeliveries(into: context)
 
-        // Observe CloudKit account and sync state.
-        Task { await refreshCloudKitAccountStatus() }
-        observeRemoteChanges()
+        // Observe CloudKit account and sync state (only when available).
+        if Self.cloudKitAvailable {
+            Task { await refreshCloudKitAccountStatus() }
+            observeRemoteChanges()
+        }
 
         await MainActor.run { isLoaded = true }
     }
@@ -138,6 +144,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     // MARK: - CloudKit Status
 
     func refreshCloudKitAccountStatus() async {
+        guard Self.cloudKitAvailable else { return }
         do {
             cloudKitAccountStatus = try await ckContainer.accountStatus()
         } catch {
