@@ -67,34 +67,28 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     func loadStores() async {
         guard !isLoaded else { return }
 
-        await withCheckedContinuation { continuation in
-            let group = DispatchGroup()
-            group.enter()
-            group.enter()
-            container.loadPersistentStores { [weak self] description, error in
-                defer { group.leave() }
-                guard let self else { return }
+        let storeCount = container.persistentStoreDescriptions.count
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            var loaded = 0
+            container.loadPersistentStores { description, error in
                 if let error {
                     self.lastSyncError = error.localizedDescription
-                    return
-                }
-                guard let store = self.container.persistentStoreCoordinator.persistentStores.first(
+                } else if let store = self.container.persistentStoreCoordinator.persistentStores.first(
                     where: { $0.configurationName == description.configuration }
-                ) else {
-                    self.lastSyncError = PersistenceError.missingLoadedStore(description.url).localizedDescription
-                    return
+                ) {
+                    switch description.configuration {
+                    case Self.privateConfigurationName:
+                        self.privateStore = store
+                    case Self.sharedConfigurationName:
+                        self.sharedStore = store
+                    default:
+                        break
+                    }
                 }
-                switch description.configuration {
-                case Self.privateConfigurationName:
-                    self.privateStore = store
-                case Self.sharedConfigurationName:
-                    self.sharedStore = store
-                default:
-                    break
+                loaded += 1
+                if loaded >= storeCount {
+                    continuation.resume()
                 }
-            }
-            group.notify(queue: .global()) {
-                continuation.resume()
             }
         }
 
