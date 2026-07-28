@@ -207,26 +207,32 @@ private struct FamilySidesSection: View {
         Section("Family sides and folders") {
             ForEach(branches) { branch in
                 let branchFolders = folders.filter { $0.branchID == branch.id }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Label(branch.name, systemImage: branch.kind.systemImage)
-                        Spacer()
-                        if branch.kind == .custom {
-                            Button(role: .destructive) {
-                                context.delete(branch)
-                                try? PersistenceController.shared.save(context)
-                            } label: {
-                                Image(systemName: "trash")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    ForEach(branchFolders) { folder in
+                FamilyBranchRow(
+                    branch: branch,
+                    folders: branchFolders
+                )
+            }
+        }
+    }
+}
+
+private struct FamilyBranchRow: View {
+    @Environment(\.managedObjectContext) private var context
+    @ObservedObject var branch: FamilyBranchRecord
+    let folders: [ArchiveFolderRecord]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            DisclosureGroup {
+                if folders.isEmpty {
+                    Text("No folders yet")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(folders) { folder in
                         HStack {
                             Label(folder.name, systemImage: "folder")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                                .padding(.leading, 28)
                             Spacer()
                             Button {
                                 context.delete(folder)
@@ -239,6 +245,17 @@ private struct FamilySidesSection: View {
                         }
                     }
                 }
+            } label: {
+                Label(branch.name, systemImage: branch.kind.systemImage)
+            }
+            if branch.kind == .custom {
+                Button(role: .destructive) {
+                    context.delete(branch)
+                    try? PersistenceController.shared.save(context)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.plain)
             }
         }
     }
