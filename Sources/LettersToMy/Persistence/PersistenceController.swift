@@ -20,6 +20,10 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// entitlement in the provisioning profile).
     static var cloudKitAvailable: Bool {
         #if DEBUG
+        #if os(macOS)
+        // SecTask reads the process's code-signing entitlements.
+        // On macOS, Xcode debug builds may lack entitlements when
+        // CODE_SIGNING_ALLOWED=NO, so we check at runtime.
         guard let task = SecTaskCreateFromSelf(nil) else { return false }
         guard let value = SecTaskCopyValueForEntitlement(
             task,
@@ -29,6 +33,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             return false
         }
         return value.contains("CloudKit") || value.contains("CloudKit-Anonymous")
+        #else
+        // iOS: Xcode always signs debug builds with the dev cert,
+        // so entitlements are always present.
+        return true
+        #endif
         #else
         return true
         #endif
