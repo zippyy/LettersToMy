@@ -9,16 +9,6 @@ struct FamilyView: View {
         animation: .default
     ) private var children: FetchedResults<ChildProfile>
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \FamilyBranchRecord.createdAt, ascending: true)],
-        animation: .default
-    ) private var branches: FetchedResults<FamilyBranchRecord>
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \ArchiveFolderRecord.createdAt, ascending: true)],
-        animation: .default
-    ) private var folders: FetchedResults<ArchiveFolderRecord>
-
     @State private var selectedChildID: UUID?
     @State private var showingAdd = false
 
@@ -45,38 +35,6 @@ struct FamilyView: View {
                             )
                         }
                         .onDelete(perform: deleteChildren)
-                    }
-                }
-
-                Section("Family sides & folders") {
-                    ForEach(branches) { branch in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(branch.name)
-                                .font(.headline)
-                            ForEach(folders.filter { $0.branchID == branch.id }) { folder in
-                                HStack {
-                                    Image(systemName: "folder")
-                                    Text(folder.name)
-                                }
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .padding(.leading, 16)
-                                .swipeActions(edge: .trailing) {
-                                    Button("Delete", role: .destructive) {
-                                        managedObjectContext.delete(folder)
-                                        try? PersistenceController.shared.save(managedObjectContext)
-                                    }
-                                }
-                            }
-                        }
-                        .swipeActions(edge: .trailing) {
-                            if branch.kind == .custom {
-                                Button("Delete", role: .destructive) {
-                                    managedObjectContext.delete(branch)
-                                    try? PersistenceController.shared.save(managedObjectContext)
-                                }
-                            }
-                        }
                     }
                 }
 

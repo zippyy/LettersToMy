@@ -228,23 +228,33 @@ private struct FamilyBranchRow: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(folders) { folder in
-                    Label(folder.name, systemImage: "folder")
-                        .swipeActions(edge: .trailing) {
-                            Button("Delete", role: .destructive) {
-                                context.delete(folder)
-                                try? PersistenceController.shared.save(context)
-                            }
+                    HStack {
+                        Label(folder.name, systemImage: "folder")
+                        Spacer()
+                        Button {
+                            context.delete(folder)
+                            try? PersistenceController.shared.save(context)
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
                         }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
         } label: {
-            Label(branch.name, systemImage: branch.kind.systemImage)
-        }
-        .swipeActions(edge: .trailing) {
-            if canDelete {
-                Button("Delete", role: .destructive) {
-                    context.delete(branch)
-                    try? PersistenceController.shared.save(context)
+            HStack {
+                Label(branch.name, systemImage: branch.kind.systemImage)
+                Spacer()
+                if canDelete {
+                    Button {
+                        context.delete(branch)
+                        try? PersistenceController.shared.save(context)
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
