@@ -23,43 +23,61 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
     init(inMemory: Bool = false) {
         let model = LettersToMyManagedObjectModel.makeModel()
-        let useInMemory = true  // DEBUG: force in-memory to isolate store load issue
         container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
         cloudKitContainer = CKContainer(identifier: Self.cloudKitContainerIdentifier)
 
-        let privateDescription: NSPersistentStoreDescription
-        if useInMemory {
-            privateDescription = NSPersistentStoreDescription()
-            privateDescription.type = NSInMemoryStoreType
-            privateDescription.configuration = Self.privateConfigurationName
-        } else {
-            privateDescription = Self.makeStoreDescription(
-                name: "LettersToMy-private",
-                configuration: Self.privateConfigurationName,
-                scope: .private,
-                inMemory: inMemory
-            )
-        }
-        container.persistentStoreDescriptions = [privateDescription]
+        let privateDescription = Self.makeStoreDescription(
+            name: "LettersToMy-private",
+            configuration: Self.privateConfigurationName,
+            scope: .private,
+            inMemory: inMemory
+        )
+        let sharedDescription = Self.makeStoreDescription(
+            name: "LettersToMy-shared",
+            configuration: Self.sharedConfigurationName,
+            scope: .shared,
+            inMemory: inMemory
+        )
+        container.persistentStoreDescriptions = [privateDescription, sharedDescription]
 
         let semaphore = DispatchSemaphore(value: 0)
-        var loadError: Error?
+        var storeLoadError: Error?
 
-        container.loadPersistentStores { [weak self] desc, error in
+        container.loadPersistentStores { [weak self] description, error in
             defer { semaphore.signal() }
             guard let self else { return }
-            if let error { loadError = error; return }
-            if let store = self.container.persistentStoreCoordinator.persistentStores.first(where: { $0.configurationName == desc.configuration }) {
+            if let error {
+                storeLoadError = error
+                return
+            }
+            guard let store = self.container.persistentStoreCoordinator.persistentStores.first(
+                where: { $0.configurationName == description.configuration }
+            ) else {
+                storeLoadError = PersistenceError.missingLoadedStore(description.url)
+                return
+            }
+            switch description.configuration {
+            case Self.privateConfigurationName:
                 self.privateStore = store
-            } else {
-                loadError = PersistenceError.missingLoadedStore(desc.url)
+            case Self.sharedConfigurationName:
+                self.sharedStore = store
+            default:
+                break
             }
         }
 
-        _ = semaphore.wait(timeout: .now() + 10)
+        // Wait up to 5 seconds per store. If we time out or get an error,
+        // fall back to in-memory so the app always renders.
+        _ = semaphore.wait(timeout: .now() + 5)
+        _ = semaphore.wait(timeout: .now() + 5)
 
-        if privateStore == nil {
-            fatalError("Cannot even load in-memory store: \(loadError?.localizedDescription ?? "unknown")")
+        if privateStore == nil || storeLoadError != nil {
+            lastSyncError = storeLoadError?.localizedDescription ?? "store load timed out"
+            NSLog("Falling back to in-memory: \(lastSyncError ?? "")")
+            fallbackToInMemory(model: model)
+        } else if sharedStore == nil {
+            lastSyncError = "Shared store not available"
+            NSLog("Shared store not available — operating with private only")
         }
 
         let context = container.viewContext
@@ -209,6 +227,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             return owner
         }
 
+        guard let sharedStore else { return nil }
         fetch.affectedStores = [sharedStore]
         return try? context.fetch(fetch).first
     }
@@ -421,6 +440,9 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             entityName: "SharePartitionRecord"
         )
         fetchRequest.predicate = NSPredicate(format: "memberActivationData != nil")
+        // If the shared store isn't loaded (e.g. first launch without iCloud),
+        // there's nothing to activate — return early instead of crashing.
+        guard let sharedStore else { return }
         fetchRequest.affectedStores = [sharedStore]
 
         guard let partitions = try? context.fetch(fetchRequest) else { return }
