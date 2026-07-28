@@ -72,10 +72,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
         loadingGroup.wait()
         if let loadingError {
-            fatalError("Unable to load LettersToMy Core Data stores: \(loadingError)")
+            // The shared store may fail on first launch or without iCloud.
+            // Log the error instead of crashing — the app degrades with
+            // private-only storage and retries shared later.
+            lastSyncError = loadingError.localizedDescription
+            NSLog("Core Data store load error: \(loadingError)")
         }
-        guard privateStore != nil, sharedStore != nil else {
-            fatalError("LettersToMy did not load both the private and shared stores.")
+        guard privateStore != nil else {
+            fatalError("LettersToMy private store failed to load: \(lastSyncError ?? "unknown")")
         }
 
         let context = container.viewContext
