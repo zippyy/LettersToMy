@@ -52,11 +52,20 @@ struct LibraryView: View {
         } content: {
             Group {
                 if filteredLetters.isEmpty {
-                    ContentUnavailableView(
-                        searchText.isEmpty ? "No Letters Yet" : "No Results",
-                        systemImage: searchText.isEmpty ? "envelope.badge" : "magnifyingglass",
-                        description: Text(searchText.isEmpty ? "Write the first letter for a future moment." : "Try a different search or filter.")
-                    )
+                    VStack(spacing: 16) {
+                        ContentUnavailableView(
+                            searchText.isEmpty ? "No Letters Yet" : "No Results",
+                            systemImage: searchText.isEmpty ? "envelope.badge" : "magnifyingglass",
+                            description: Text(searchText.isEmpty ? "Write the first letter for a future moment." : "Try a different search or filter.")
+                        )
+                        Button {
+                            editingLetter = nil
+                            showingEditor = true
+                        } label: {
+                            Label("New Letter", systemImage: "square.and.pencil")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 } else {
                     List(filteredLetters, selection: $selection) { letter in
                         LetterRow(letter: letter, child: selectedChild)
