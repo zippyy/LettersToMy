@@ -223,6 +223,14 @@ private struct FamilyBranchRow: View {
 
     var body: some View {
         DisclosureGroup {
+            if canDelete {
+                Button(role: .destructive) {
+                    context.delete(branch)
+                    try? PersistenceController.shared.save(context)
+                } label: {
+                    Label("Delete \"\(branch.name)\"", systemImage: "trash")
+                }
+            }
             if folders.isEmpty {
                 Text("No folders yet")
                     .foregroundStyle(.secondary)
@@ -243,20 +251,7 @@ private struct FamilyBranchRow: View {
                 }
             }
         } label: {
-            HStack {
-                Label(branch.name, systemImage: branch.kind.systemImage)
-                Spacer()
-                if canDelete {
-                    Button {
-                        context.delete(branch)
-                        try? PersistenceController.shared.save(context)
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            Label(branch.name, systemImage: branch.kind.systemImage)
         }
     }
 }
