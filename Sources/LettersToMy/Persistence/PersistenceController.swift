@@ -3,6 +3,7 @@ import Combine
 import CoreData
 import Foundation
 import LettersToMyCore
+import Security
 
 final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let shared = PersistenceController()
@@ -11,18 +12,23 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let privateConfigurationName = "Private"
     static let sharedConfigurationName = "Shared"
 
-    /// Returns false when running unsigned without CloudKit entitlements
-    /// (typically Xcode debug builds on macOS). In that case we default
-    /// to in-memory stores to avoid CKContainer entitlement crashes and
-    /// indefinite store-load hangs.
+    /// Reads the process's actual code-signing entitlements via
+    /// SecTaskCopyValueForEntitlement. Bundle.main.object(forInfoDictionaryKey:)
+    /// does NOT work for entitlements — they're embedded by code signing,
+    /// not in Info.plist. Returns false when running unsigned or without
+    /// the CloudKit entitlement (e.g. Xcode debug builds without the
+    /// entitlement in the provisioning profile).
     static var cloudKitAvailable: Bool {
         #if DEBUG
-        guard let entitlements = Bundle.main.object(
-            forInfoDictionaryKey: "com.apple.developer.icloud-services"
+        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+        guard let value = SecTaskCopyValueForEntitlement(
+            task,
+            "com.apple.developer.icloud-services" as CFString,
+            nil
         ) as? [String] else {
             return false
         }
-        return entitlements.contains("CloudKit") || entitlements.contains("CloudKit-Anonymous")
+        return value.contains("CloudKit") || value.contains("CloudKit-Anonymous")
         #else
         return true
         #endif
