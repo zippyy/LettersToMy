@@ -1,5 +1,6 @@
 import CoreData
 import LettersToMyCore
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -32,6 +33,9 @@ struct LetterEditorView: View {
     @State private var unlockAgeYears: Int
     @State private var lifeEventName: String
     @State private var showingFileImporter = false
+    @State private var showingCamera = false
+    @State private var showingPhotoPicker = false
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var pendingAttachments: [PendingAttachment] = []
     @State private var importError: String?
     @State private var selectedMilestone: MilestoneTemplate?
@@ -148,8 +152,24 @@ struct LetterEditorView: View {
             }
 
             Section("Photos, video, and audio") {
-                Button {
-                    showingFileImporter = true
+                Menu {
+                    #if os(iOS)
+                    Button {
+                        showingCamera = true
+                    } label: {
+                        Label("Camera", systemImage: "camera")
+                    }
+                    #endif
+                    Button {
+                        showingPhotoPicker = true
+                    } label: {
+                        Label("Photo Library", systemImage: "photo.on.rectangle")
+                    }
+                    Button {
+                        showingFileImporter = true
+                    } label: {
+                        Label("Files", systemImage: "folder")
+                    }
                 } label: {
                     Label("Add Attachments", systemImage: "paperclip")
                 }
@@ -182,6 +202,29 @@ struct LetterEditorView: View {
             allowsMultipleSelection: true,
             onCompletion: importFiles
         )
+        .photosPicker(
+            isPresented: $showingPhotoPicker,
+            selection: $selectedPhotoItems,
+            matching: .images
+        )
+        .onChange(of: selectedPhotoItems) { _, items in
+            Task { await importPhotoItems(items) }
+        }
+        #if os(iOS)
+        .sheet(isPresented: $showingCamera) {
+            CameraPicker { data in
+                if let data {
+                    let attachment = PendingAttachment(
+                        fileName: "Camera Photo.jpg",
+                        contentTypeIdentifier: "public.jpeg",
+                        kind: .photo,
+                        data: data
+                    )
+                    pendingAttachments.append(attachment)
+                }
+            }
+        }
+        #endif
         .alert("Could Not Add Attachment", isPresented: Binding(
             get: { importError != nil },
             set: { if !$0 { importError = nil } }
@@ -317,7 +360,65 @@ struct LetterEditorView: View {
         }
         selectedMilestone = nil
     }
+
+    private func importPhotoItems(_ items: [PhotosPickerItem]) async {
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let contentType = item.supportedContentTypes.first ?? .jpeg
+            pendingAttachments.append(PendingAttachment(
+                fileName: "Photo",
+                contentTypeIdentifier: contentType.identifier,
+                kind: AttachmentKind(contentType: contentType),
+                data: data
+            ))
+        }
+    }
 }
+
+#if os(iOS)
+private struct CameraPicker: UIViewControllerRepresentable {
+    let onCapture: (Data?) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCapture: onCapture, dismiss: dismiss)
+    }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onCapture: (Data?) -> Void
+        let dismiss: DismissAction
+
+        init(onCapture: @escaping (Data?) -> Void, dismiss: DismissAction) {
+            self.onCapture = onCapture
+            self.dismiss = dismiss
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            let data = (info[.originalImage] as? UIImage)?
+                .jpegData(compressionQuality: 0.9)
+            onCapture(data)
+            dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            onCapture(nil)
+            dismiss()
+        }
+    }
+}
+#endif
 
 private struct PendingAttachment: Identifiable {
     let id = UUID()
