@@ -23,64 +23,43 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
     init(inMemory: Bool = false) {
         let model = LettersToMyManagedObjectModel.makeModel()
+        let useInMemory = true  // DEBUG: force in-memory to isolate store load issue
         container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
         cloudKitContainer = CKContainer(identifier: Self.cloudKitContainerIdentifier)
 
-        let privateDescription = Self.makeStoreDescription(
-            name: "LettersToMy-private",
-            configuration: Self.privateConfigurationName,
-            scope: .private,
-            inMemory: inMemory
-        )
-        let sharedDescription = Self.makeStoreDescription(
-            name: "LettersToMy-shared",
-            configuration: Self.sharedConfigurationName,
-            scope: .shared,
-            inMemory: inMemory
-        )
-        container.persistentStoreDescriptions = [privateDescription, sharedDescription]
+        let privateDescription: NSPersistentStoreDescription
+        if useInMemory {
+            privateDescription = NSPersistentStoreDescription()
+            privateDescription.type = NSInMemoryStoreType
+            privateDescription.configuration = Self.privateConfigurationName
+        } else {
+            privateDescription = Self.makeStoreDescription(
+                name: "LettersToMy-private",
+                configuration: Self.privateConfigurationName,
+                scope: .private,
+                inMemory: inMemory
+            )
+        }
+        container.persistentStoreDescriptions = [privateDescription]
 
-        // Load stores synchronously with a timeout, then fall back to
-        // in-memory if the shared store fails (common on first launch
-        // without an established iCloud account).
         let semaphore = DispatchSemaphore(value: 0)
-        var storeLoadError: Error?
+        var loadError: Error?
 
-        container.loadPersistentStores { [weak self] description, error in
+        container.loadPersistentStores { [weak self] desc, error in
             defer { semaphore.signal() }
             guard let self else { return }
-            if let error {
-                storeLoadError = error
-                return
-            }
-            guard let store = self.container.persistentStoreCoordinator.persistentStores.first(
-                where: { $0.configurationName == description.configuration }
-            ) else {
-                storeLoadError = PersistenceError.missingLoadedStore(description.url)
-                return
-            }
-            switch description.configuration {
-            case Self.privateConfigurationName:
+            if let error { loadError = error; return }
+            if let store = self.container.persistentStoreCoordinator.persistentStores.first(where: { $0.configurationName == desc.configuration }) {
                 self.privateStore = store
-            case Self.sharedConfigurationName:
-                self.sharedStore = store
-            default:
-                break
+            } else {
+                loadError = PersistenceError.missingLoadedStore(desc.url)
             }
         }
 
-        // Wait up to 5 seconds per store. If we time out or get an error,
-        // fall back to in-memory.
-        _ = semaphore.wait(timeout: .now() + 5)
-        _ = semaphore.wait(timeout: .now() + 5)
+        _ = semaphore.wait(timeout: .now() + 10)
 
-        if privateStore == nil || storeLoadError != nil {
-            lastSyncError = storeLoadError?.localizedDescription ?? "store load timed out"
-            NSLog("Falling back to in-memory: \(lastSyncError ?? "")")
-            fallbackToInMemory(model: model)
-        } else if sharedStore == nil {
-            lastSyncError = "Shared store not available"
-            NSLog("Shared store not available — operating with private only")
+        if privateStore == nil {
+            fatalError("Cannot even load in-memory store: \(loadError?.localizedDescription ?? "unknown")")
         }
 
         let context = container.viewContext
