@@ -46,7 +46,7 @@ private struct WelcomeView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: "envelope.open.heart.fill")
+            Image(systemName: "envelope.fill")
                 .font(.system(size: 72))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.tint)
