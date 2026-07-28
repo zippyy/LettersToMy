@@ -199,59 +199,47 @@ private enum EditorSheet: String, Identifiable {
 }
 
 private struct FamilySidesSection: View {
+    @Environment(\.managedObjectContext) private var context
     let branches: [FamilyBranchRecord]
     let folders: [ArchiveFolderRecord]
 
     var body: some View {
         Section("Family sides and folders") {
             ForEach(branches) { branch in
-                FamilyBranchRow(
-                    branch: branch,
-                    folders: folders.filter { $0.branchID == branch.id }
-                )
-            }
-        }
-    }
-}
-
-private struct FamilyBranchRow: View {
-    @Environment(\.managedObjectContext) private var context
-    @ObservedObject var branch: FamilyBranchRecord
-    let folders: [ArchiveFolderRecord]
-
-    private var canDelete: Bool { branch.kind == .custom }
-
-    var body: some View {
-        DisclosureGroup {
-            if canDelete {
-                Button(role: .destructive) {
-                    context.delete(branch)
-                    try? PersistenceController.shared.save(context)
-                } label: {
-                    Label("Delete \"\(branch.name)\"", systemImage: "trash")
-                }
-            }
-            if folders.isEmpty {
-                Text("No folders yet")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(folders) { folder in
+                let branchFolders = folders.filter { $0.branchID == branch.id }
+                VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Label(folder.name, systemImage: "folder")
+                        Label(branch.name, systemImage: branch.kind.systemImage)
                         Spacer()
-                        Button {
-                            context.delete(folder)
-                            try? PersistenceController.shared.save(context)
-                        } label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
+                        if branch.kind == .custom {
+                            Button(role: .destructive) {
+                                context.delete(branch)
+                                try? PersistenceController.shared.save(context)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                    }
+                    ForEach(branchFolders) { folder in
+                        HStack {
+                            Label(folder.name, systemImage: "folder")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .padding(.leading, 28)
+                            Spacer()
+                            Button {
+                                context.delete(folder)
+                                try? PersistenceController.shared.save(context)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             }
-        } label: {
-            Label(branch.name, systemImage: branch.kind.systemImage)
         }
     }
 }
