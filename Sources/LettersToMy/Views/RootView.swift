@@ -2,26 +2,16 @@ import SwiftUI
 
 struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @State private var storeReady = false
 
     var body: some View {
         Group {
-            if storeReady {
-                if hasCompletedOnboarding {
-                    MainTabView()
-                } else {
-                    WelcomeView {
-                        hasCompletedOnboarding = true
-                    }
-                }
+            if hasCompletedOnboarding {
+                MainTabView()
             } else {
-                ProgressView("Preparing your archive…")
+                WelcomeView {
+                    hasCompletedOnboarding = true
+                }
             }
-        }
-        .task {
-            // Delay just enough for Core Data to finish loading
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            storeReady = true
         }
     }
 }

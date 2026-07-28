@@ -11,7 +11,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let privateConfigurationName = "Private"
     static let sharedConfigurationName = "Shared"
 
-    let container: NSPersistentCloudKitContainer
+    var container: NSPersistentCloudKitContainer
     let cloudKitContainer: CKContainer
 
     private(set) var privateStore: NSPersistentStore!
@@ -40,26 +40,25 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         )
         container.persistentStoreDescriptions = [privateDescription, sharedDescription]
 
-        var loadingError: Error?
-        let loadingGroup = DispatchGroup()
-        loadingGroup.enter()
-        loadingGroup.enter()
+        // Load stores synchronously with a timeout, then fall back to
+        // in-memory if the shared store fails (common on first launch
+        // without an established iCloud account).
+        let semaphore = DispatchSemaphore(value: 0)
+        var storeLoadError: Error?
 
         container.loadPersistentStores { [weak self] description, error in
-            defer { loadingGroup.leave() }
+            defer { semaphore.signal() }
             guard let self else { return }
             if let error {
-                loadingError = error
+                storeLoadError = error
                 return
             }
-
             guard let store = self.container.persistentStoreCoordinator.persistentStores.first(
                 where: { $0.configurationName == description.configuration }
             ) else {
-                loadingError = PersistenceError.missingLoadedStore(description.url)
+                storeLoadError = PersistenceError.missingLoadedStore(description.url)
                 return
             }
-
             switch description.configuration {
             case Self.privateConfigurationName:
                 self.privateStore = store
@@ -70,16 +69,18 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             }
         }
 
-        loadingGroup.wait()
-        if let loadingError {
-            // The shared store may fail on first launch or without iCloud.
-            // Log the error instead of crashing — the app degrades with
-            // private-only storage and retries shared later.
-            lastSyncError = loadingError.localizedDescription
-            NSLog("Core Data store load error: \(loadingError)")
-        }
-        guard privateStore != nil else {
-            fatalError("LettersToMy private store failed to load: \(lastSyncError ?? "unknown")")
+        // Wait up to 5 seconds per store. If we time out or get an error,
+        // fall back to in-memory.
+        _ = semaphore.wait(timeout: .now() + 5)
+        _ = semaphore.wait(timeout: .now() + 5)
+
+        if privateStore == nil || storeLoadError != nil {
+            lastSyncError = storeLoadError?.localizedDescription ?? "store load timed out"
+            NSLog("Falling back to in-memory: \(lastSyncError ?? "")")
+            fallbackToInMemory(model: model)
+        } else if sharedStore == nil {
+            lastSyncError = "Shared store not available"
+            NSLog("Shared store not available — operating with private only")
         }
 
         let context = container.viewContext
@@ -579,6 +580,30 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
 
         try? save(context)
+    }
+
+    private func fallbackToInMemory(model: NSManagedObjectModel) {
+        let inMemoryContainer = NSPersistentCloudKitContainer(
+            name: "LettersToMy",
+            managedObjectModel: model
+        )
+        let description = NSPersistentStoreDescription()
+        description.type = NSInMemoryStoreType
+        inMemoryContainer.persistentStoreDescriptions = [description]
+
+        let semaphore = DispatchSemaphore(value: 0)
+        inMemoryContainer.loadPersistentStores { [weak self] _, error in
+            defer { semaphore.signal() }
+            guard let self else { return }
+            if error == nil {
+                self.privateStore = inMemoryContainer.persistentStoreCoordinator.persistentStores.first
+                self.container = inMemoryContainer
+            }
+        }
+        _ = semaphore.wait(timeout: .now() + 5)
+        if privateStore == nil {
+            fatalError("Unable to load even an in-memory Core Data store.")
+        }
     }
 
     private static func makeStoreDescription(
