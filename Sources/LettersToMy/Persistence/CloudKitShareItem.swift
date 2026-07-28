@@ -10,10 +10,10 @@ struct CloudKitShareItem: Transferable, Sendable {
         CKShareTransferRepresentation { item in
             let persistence = PersistenceController.shared
             if let existing = try persistence.existingShare(for: item.partitionURI) {
-                return .existing(existing, container: persistence.cloudKitContainer)
+                return .existing(existing, container: persistence.ckContainer)
             }
 
-            return .prepareShare(container: persistence.cloudKitContainer) {
+            return .prepareShare(container: persistence.ckContainer) {
                 try await persistence.prepareShare(
                     for: item.partitionURI,
                     title: item.title

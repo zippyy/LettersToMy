@@ -28,8 +28,10 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         #endif
     }
 
-    var container: NSPersistentCloudKitContainer
-    lazy var cloudKitContainer = CKContainer(
+    var container: NSPersistentContainer
+    /// Non-nil only when CloudKit is available (signed builds with entitlements).
+    var cloudKitContainer: NSPersistentCloudKitContainer? { container as? NSPersistentCloudKitContainer }
+    lazy var ckContainer = CKContainer(
         identifier: Self.cloudKitContainerIdentifier
     )
 
@@ -44,7 +46,12 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     init(inMemory: Bool = false) {
         let useInMemory = inMemory || !Self.cloudKitAvailable
         let model = LettersToMyManagedObjectModel.makeModel()
-        container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
+
+        if Self.cloudKitAvailable {
+            container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
+        } else {
+            container = NSPersistentContainer(name: "LettersToMy", managedObjectModel: model)
+        }
 
         let privateDescription = Self.makeStoreDescription(
             name: "LettersToMy-private",
@@ -132,7 +139,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
     func refreshCloudKitAccountStatus() async {
         do {
-            cloudKitAccountStatus = try await cloudKitContainer.accountStatus()
+            cloudKitAccountStatus = try await ckContainer.accountStatus()
         } catch {
             cloudKitAccountStatus = .couldNotDetermine
             lastSyncError = error.localizedDescription
@@ -229,11 +236,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     }
 
     func canUpdate(_ object: NSManagedObject) -> Bool {
-        container.canUpdateRecord(forManagedObjectWith: object.objectID)
+        cloudKitContainer?.canUpdateRecord(forManagedObjectWith: object.objectID) ?? false
     }
 
     func canDelete(_ object: NSManagedObject) -> Bool {
-        container.canDeleteRecord(forManagedObjectWith: object.objectID)
+        cloudKitContainer?.canDeleteRecord(forManagedObjectWith: object.objectID) ?? false
     }
 
     /// The local archive member record for the signed-in user, if one
@@ -439,7 +446,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         _ metadata: CKShare.Metadata,
         completion: @escaping @Sendable (Result<Void, Error>) -> Void = { _ in }
     ) {
-        container.acceptShareInvitations(from: [metadata], into: sharedStore) { _, error in
+        guard let ckContainer = cloudKitContainer else {
+            completion(.failure(PersistenceError.cloudKitUnavailable))
+            return
+        }
+        ckContainer.acceptShareInvitations(from: [metadata], into: sharedStore) { _, error in
             DispatchQueue.main.async {
                 if let error {
                     completion(.failure(error))
@@ -506,16 +517,22 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     }
 
     func existingShare(for objectURI: URL) throws -> CKShare? {
+        guard let ckContainer = cloudKitContainer else {
+            throw PersistenceError.cloudKitUnavailable
+        }
         guard let objectID = container.persistentStoreCoordinator.managedObjectID(
             forURIRepresentation: objectURI
         ) else {
             throw PersistenceError.invalidManagedObjectURI(objectURI)
         }
-        return try container.fetchShares(matching: [objectID])[objectID]
+        return try ckContainer.fetchShares(matching: [objectID])[objectID]
     }
 
     @MainActor
     func prepareShare(for objectURI: URL, title: String) async throws -> CKShare {
+        guard let ckContainer = cloudKitContainer else {
+            throw PersistenceError.cloudKitUnavailable
+        }
         guard let objectID = container.persistentStoreCoordinator.managedObjectID(
             forURIRepresentation: objectURI
         ) else {
@@ -529,13 +546,13 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
         try save(context)
 
-        if let existing = try container.fetchShares(matching: [object.objectID])[object.objectID] {
+        if let existing = try ckContainer.fetchShares(matching: [object.objectID])[object.objectID] {
             return existing
         }
 
         let share = try await withCheckedThrowingContinuation {
             (continuation: CheckedContinuation<CKShare, Error>) in
-            container.share([object], to: nil) { _, share, _, error in
+            ckContainer.share([object], to: nil) { _, share, _, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else if let share {
@@ -551,7 +568,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
         try await withCheckedThrowingContinuation {
             (continuation: CheckedContinuation<Void, Error>) in
-            container.persistUpdatedShare(share, in: privateStore) { _, error in
+            ckContainer.persistUpdatedShare(share, in: privateStore) { _, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
@@ -579,7 +596,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             guard let objectID = container.persistentStoreCoordinator.managedObjectID(
                 forURIRepresentation: partitionURI
             ),
-                  let share = try? container.fetchShares(matching: [objectID])[objectID],
+                  let share = (try? cloudKitContainer?.fetchShares(matching: [objectID])[objectID]) ?? nil,
                   let activation = partition.memberActivation else {
                 continue
             }
@@ -609,10 +626,18 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     private func fallbackToInMemory(model: NSManagedObjectModel) async {
         let description = NSPersistentStoreDescription()
         description.type = NSInMemoryStoreType
-        let inMemoryContainer = NSPersistentCloudKitContainer(
-            name: "LettersToMy",
-            managedObjectModel: model
-        )
+        let inMemoryContainer: NSPersistentContainer
+        if Self.cloudKitAvailable {
+            inMemoryContainer = NSPersistentCloudKitContainer(
+                name: "LettersToMy",
+                managedObjectModel: model
+            )
+        } else {
+            inMemoryContainer = NSPersistentContainer(
+                name: "LettersToMy",
+                managedObjectModel: model
+            )
+        }
         inMemoryContainer.persistentStoreDescriptions = [description]
 
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -681,6 +706,7 @@ enum PersistenceError: LocalizedError {
     case missingLoadedStore(URL?)
     case invalidManagedObjectURI(URL)
     case shareCreationReturnedNoShare
+    case cloudKitUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -690,6 +716,8 @@ enum PersistenceError: LocalizedError {
             return "The Core Data object identifier is invalid: \(url.absoluteString)"
         case .shareCreationReturnedNoShare:
             return "CloudKit completed share creation without returning a share."
+        case .cloudKitUnavailable:
+            return "CloudKit is not available — the process lacks the required iCloud entitlement."
         }
     }
 }
