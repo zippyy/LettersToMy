@@ -5,7 +5,8 @@ struct SettingsView: View {
     @ObservedObject private var persistence = PersistenceController.shared
 
     private var iCloudStatus: String {
-        switch persistence.cloudKitAccountStatus {
+        if !PersistenceController.cloudKitAvailable { return "Unavailable" }
+        return switch persistence.cloudKitAccountStatus {
         case .available: "Available"
         case .noAccount: "Not signed in"
         case .restricted: "Restricted"
