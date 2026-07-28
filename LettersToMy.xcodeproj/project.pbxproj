@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -94,11 +94,11 @@
 		73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareItem.swift; sourceTree = "<group>"; };
 		758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceManager.swift; sourceTree = "<group>"; };
 		765697ED9D4425F9C9629CE8 /* LettersToMyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LettersToMyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		77BB45C5B09A2E90D67376A3 /* LettersToMyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LettersToMyMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77BB45C5B09A2E90D67376A3 /* LettersToMyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = LettersToMyMac.app; path = "Letters to My.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8987CBF80D5609C540FE6AF4 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		8B80EEDAED106B0AECD1B552 /* LetterDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterDetailView.swift; sourceTree = "<group>"; };
 		928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryContactsView.swift; sourceTree = "<group>"; };
-		92B071285075BC1D4965EC8E /* LettersToMy.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LettersToMy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		92B071285075BC1D4965EC8E /* Letters to My.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Letters to My.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		941EC696F83630F717EE5393 /* LettersToMyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LettersToMyApp.swift; sourceTree = "<group>"; };
 		98B539C785B8F91B74871B0F /* ChildProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfile.swift; sourceTree = "<group>"; };
 		AB35F01553CCEE09C5C52D6B /* FamilyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyView.swift; sourceTree = "<group>"; };
@@ -145,7 +145,7 @@
 		0BBE9ADAC6C2B6B4B9C16749 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				92B071285075BC1D4965EC8E /* LettersToMy.app */,
+				92B071285075BC1D4965EC8E /* Letters to My.app */,
 				77BB45C5B09A2E90D67376A3 /* LettersToMyMac.app */,
 				765697ED9D4425F9C9629CE8 /* LettersToMyTests.xctest */,
 			);
@@ -276,7 +276,7 @@
 				27B1580C8991A0F5B20F1359 /* LettersToMyCore */,
 			);
 			productName = LettersToMy;
-			productReference = 92B071285075BC1D4965EC8E /* LettersToMy.app */;
+			productReference = 92B071285075BC1D4965EC8E /* Letters to My.app */;
 			productType = "com.apple.product-type.application";
 		};
 		87FCA2A070A9E70584C32571 /* LettersToMyMac */ = {
@@ -341,7 +341,6 @@
 			packageReferences = (
 				A7BB022950A3D47EF9BCBF2B /* XCLocalSwiftPackageReference "." */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -596,6 +595,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Config/LettersToMy-iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = B6LWQPCDFR;
 				INFOPLIST_FILE = "Config/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -614,6 +614,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Config/LettersToMy-iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = B6LWQPCDFR;
 				INFOPLIST_FILE = "Config/Info-iOS.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
