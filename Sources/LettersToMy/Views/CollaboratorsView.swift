@@ -215,8 +215,11 @@ private struct FamilySidesSection: View {
 }
 
 private struct FamilyBranchRow: View {
+    @Environment(\.managedObjectContext) private var context
     @ObservedObject var branch: FamilyBranchRecord
     let folders: [ArchiveFolderRecord]
+
+    private var canDelete: Bool { branch.kind == .custom }
 
     var body: some View {
         DisclosureGroup {
@@ -226,10 +229,24 @@ private struct FamilyBranchRow: View {
             } else {
                 ForEach(folders) { folder in
                     Label(folder.name, systemImage: "folder")
+                        .swipeActions(edge: .trailing) {
+                            Button("Delete", role: .destructive) {
+                                context.delete(folder)
+                                try? PersistenceController.shared.save(context)
+                            }
+                        }
                 }
             }
         } label: {
             Label(branch.name, systemImage: branch.kind.systemImage)
+        }
+        .swipeActions(edge: .trailing) {
+            if canDelete {
+                Button("Delete", role: .destructive) {
+                    context.delete(branch)
+                    try? PersistenceController.shared.save(context)
+                }
+            }
         }
     }
 }
