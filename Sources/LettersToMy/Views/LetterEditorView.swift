@@ -212,14 +212,8 @@ struct LetterEditorView: View {
         }
         #if os(iOS)
         .sheet(isPresented: $showingCamera) {
-            CameraPicker { data in
-                if let data {
-                    let attachment = PendingAttachment(
-                        fileName: "Camera Photo.jpg",
-                        contentTypeIdentifier: "public.jpeg",
-                        kind: .photo,
-                        data: data
-                    )
+            CameraPicker { attachment in
+                if let attachment {
                     pendingAttachments.append(attachment)
                 }
             }
@@ -377,12 +371,13 @@ struct LetterEditorView: View {
 
 #if os(iOS)
 private struct CameraPicker: UIViewControllerRepresentable {
-    let onCapture: (Data?) -> Void
+    let onCapture: (PendingAttachment?) -> Void
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
+        picker.mediaTypes = [UTType.image.identifier, UTType.movie.identifier]
         picker.delegate = context.coordinator
         return picker
     }
@@ -394,10 +389,10 @@ private struct CameraPicker: UIViewControllerRepresentable {
     }
 
     final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onCapture: (Data?) -> Void
+        let onCapture: (PendingAttachment?) -> Void
         let dismiss: DismissAction
 
-        init(onCapture: @escaping (Data?) -> Void, dismiss: DismissAction) {
+        init(onCapture: @escaping (PendingAttachment?) -> Void, dismiss: DismissAction) {
             self.onCapture = onCapture
             self.dismiss = dismiss
         }
@@ -406,9 +401,25 @@ private struct CameraPicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            let data = (info[.originalImage] as? UIImage)?
-                .jpegData(compressionQuality: 0.9)
-            onCapture(data)
+            if let videoURL = info[.mediaURL] as? URL,
+               let data = try? Data(contentsOf: videoURL) {
+                onCapture(PendingAttachment(
+                    fileName: "Video \(Date.now.formatted(date: .omitted, time: .shortened)).mov",
+                    contentTypeIdentifier: "public.mpeg-4",
+                    kind: .video,
+                    data: data
+                ))
+            } else if let image = info[.originalImage] as? UIImage,
+                      let data = image.jpegData(compressionQuality: 0.9) {
+                onCapture(PendingAttachment(
+                    fileName: "Photo \(Date.now.formatted(date: .omitted, time: .shortened)).jpg",
+                    contentTypeIdentifier: "public.jpeg",
+                    kind: .photo,
+                    data: data
+                ))
+            } else {
+                onCapture(nil)
+            }
             dismiss()
         }
 
