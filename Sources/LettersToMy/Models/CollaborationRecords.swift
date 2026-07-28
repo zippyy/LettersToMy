@@ -11,12 +11,14 @@ final class FamilyBranchRecord: NSManagedObject, Identifiable {
     @NSManaged var createdAt: Date
     @NSManaged var updatedAt: Date
     @NSManaged var partition: SharePartitionRecord?
+    @NSManaged var isSeeded: Bool
 
     override func awakeFromInsert() {
         super.awakeFromInsert()
         id = UUID()
         name = ""
         kindRawValue = FamilyBranchKind.custom.rawValue
+        isSeeded = false
         createdAt = .now
         updatedAt = .now
     }

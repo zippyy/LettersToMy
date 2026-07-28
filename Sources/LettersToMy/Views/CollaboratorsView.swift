@@ -187,6 +187,7 @@ struct CollaboratorsView: View {
             )
             branch.name = name
             branch.kind = kind
+            branch.isSeeded = true
             branch.partition = partition
             partition.scopeID = branch.id
         }
@@ -216,11 +217,12 @@ private struct FamilySidesSection: View {
                     branch: branch,
                     folders: branchFolders
                 )
-                .deleteDisabled(false)
+                .deleteDisabled(branch.isSeeded)
 
             }
             .onDelete { offsets in
                 for index in offsets {
+                    guard !branches[index].isSeeded else { continue }
                     context.delete(branches[index])
                 }
                 try? PersistenceController.shared.save(context)

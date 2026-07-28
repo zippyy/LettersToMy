@@ -79,6 +79,7 @@ enum LettersToMyManagedObjectModel {
             attribute("name", .stringAttributeType, defaultValue: ""),
             attribute("kindRawValue", .stringAttributeType, defaultValue: "custom"),
             attribute("parentBranchID", .UUIDAttributeType, optional: true),
+            attribute("isSeeded", .booleanAttributeType, defaultValue: false),
             attribute("createdAt", .dateAttributeType, defaultValue: epoch),
             attribute("updatedAt", .dateAttributeType, defaultValue: epoch)
         ]
