@@ -250,16 +250,10 @@ enum LettersToMyManagedObjectModel {
         model.setEntities(entities, forConfigurationName: PersistenceController.privateConfigurationName)
         model.setEntities(entities, forConfigurationName: PersistenceController.sharedConfigurationName)
 
-        // Add fetch indexes on stable UUID attributes for the most common
-        // query patterns: lookups by child ID, letter ID, branch ID, member ID,
-        // and invitation ID.
-        // NOTE: Do NOT index entity "id" attributes — NSPersistentCloudKitContainer
-        // auto-creates these during store load, and duplicate indexes crash.
-        addUUIDIndex(to: letter, attribute: "childID")
-        addUUIDIndex(to: attachment, attribute: "letterID")
-        addUUIDIndex(to: folder, attribute: "branchID")
-        addUUIDIndex(to: delivery, attribute: "recipientID")
-        addUUIDIndex(to: delivery, attribute: "originalLetterID")
+        // NSPersistentCloudKitContainer auto-creates indexes for id and
+        // reference attributes (childID, recipientID, letterID, etc.).
+        // Manual indexes duplicate these and crash at store load.
+        // Do not add manual fetch indexes here — CloudKit handles them.
 
         // Runtime hardening: verify critical delete rules before deployment.
         validatePartitionDeleteRules(
