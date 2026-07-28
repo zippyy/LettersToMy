@@ -621,14 +621,13 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         )
         inMemoryContainer.persistentStoreDescriptions = [description]
 
-        await withCheckedContinuation { continuation in
-            inMemoryContainer.loadPersistentStores { [weak self] _, error in
-                defer { continuation.resume() }
-                guard let self else { return }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            inMemoryContainer.loadPersistentStores { _, error in
                 if error == nil {
                     self.privateStore = inMemoryContainer.persistentStoreCoordinator.persistentStores.first
                     self.container = inMemoryContainer
                 }
+                continuation.resume()
             }
         }
         if privateStore == nil {
