@@ -222,40 +222,41 @@ private struct FamilyBranchRow: View {
     let folders: [ArchiveFolderRecord]
 
     var body: some View {
-        HStack(spacing: 8) {
-            DisclosureGroup {
-                if folders.isEmpty {
-                    Text("No folders yet")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(folders) { folder in
-                        HStack {
-                            Label(folder.name, systemImage: "folder")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Button {
-                                context.delete(folder)
-                                try? PersistenceController.shared.save(context)
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(.plain)
+        DisclosureGroup {
+            if folders.isEmpty {
+                Text("No folders yet")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(folders) { folder in
+                    HStack {
+                        Label(folder.name, systemImage: "folder")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button {
+                            context.delete(folder)
+                            try? PersistenceController.shared.save(context)
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-            } label: {
-                Label(branch.name, systemImage: branch.kind.systemImage)
             }
-            if branch.kind == .custom {
-                Button(role: .destructive) {
-                    context.delete(branch)
-                    try? PersistenceController.shared.save(context)
-                } label: {
-                    Image(systemName: "trash")
+        } label: {
+            HStack {
+                Label(branch.name, systemImage: branch.kind.systemImage)
+                Spacer()
+                if branch.kind == .custom {
+                    Button(role: .destructive) {
+                        context.delete(branch)
+                        try? PersistenceController.shared.save(context)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
