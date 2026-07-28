@@ -22,7 +22,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     @Published var lastSyncError: String?
     @Published var isLoaded = false
 
-    init(inMemory: Bool = false) {
+    init(inMemory: Bool = true) {
         let model = LettersToMyManagedObjectModel.makeModel()
         container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
         cloudKitContainer = CKContainer(identifier: Self.cloudKitContainerIdentifier)
@@ -47,6 +47,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// subsequent calls return immediately.
     func loadStores() async {
         guard !isLoaded else { return }
+        // DEBUG: Skip all store loading to isolate crash
+        isLoaded = true
+    }
+
+    func _loadStores() async {
 
         await withCheckedContinuation { continuation in
             let group = DispatchGroup()
