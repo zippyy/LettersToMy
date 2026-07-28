@@ -46,6 +46,8 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos to attach to a private letter.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record a private voice message for a future letter.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
