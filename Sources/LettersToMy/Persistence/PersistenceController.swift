@@ -11,6 +11,23 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let privateConfigurationName = "Private"
     static let sharedConfigurationName = "Shared"
 
+    /// Returns false when running unsigned without CloudKit entitlements
+    /// (typically Xcode debug builds on macOS). In that case we default
+    /// to in-memory stores to avoid CKContainer entitlement crashes and
+    /// indefinite store-load hangs.
+    static var cloudKitAvailable: Bool {
+        #if DEBUG
+        guard let entitlements = Bundle.main.object(
+            forInfoDictionaryKey: "com.apple.developer.icloud-services"
+        ) as? [String] else {
+            return false
+        }
+        return entitlements.contains("CloudKit") || entitlements.contains("CloudKit-Anonymous")
+        #else
+        return true
+        #endif
+    }
+
     var container: NSPersistentCloudKitContainer
     lazy var cloudKitContainer = CKContainer(
         identifier: Self.cloudKitContainerIdentifier
@@ -25,6 +42,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     @Published var isLoaded = false
 
     init(inMemory: Bool = false) {
+        let useInMemory = inMemory || !Self.cloudKitAvailable
         let model = LettersToMyManagedObjectModel.makeModel()
         container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
 
@@ -32,13 +50,13 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             name: "LettersToMy-private",
             configuration: Self.privateConfigurationName,
             scope: .private,
-            inMemory: inMemory
+            inMemory: useInMemory
         )
         let sharedDescription = Self.makeStoreDescription(
             name: "LettersToMy-shared",
             configuration: Self.sharedConfigurationName,
             scope: .shared,
-            inMemory: inMemory
+            inMemory: useInMemory
         )
         container.persistentStoreDescriptions = [privateDescription, sharedDescription]
     }
@@ -84,7 +102,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         // so the app always renders even without iCloud or disk access.
         if privateStore == nil {
             NSLog("Private store failed — falling back to in-memory: \(lastSyncError ?? "unknown")")
-            fallbackToInMemory(model: container.managedObjectModel)
+            await fallbackToInMemory(model: container.managedObjectModel)
         } else if sharedStore == nil {
             NSLog("Shared store not available — operating with private only")
         }
@@ -113,7 +131,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         Task { await refreshCloudKitAccountStatus() }
         observeRemoteChanges()
 
-        isLoaded = true
+        await MainActor.run { isLoaded = true }
     }
 
     // MARK: - CloudKit Status
@@ -594,25 +612,25 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         try? save(context)
     }
 
-    private func fallbackToInMemory(model: NSManagedObjectModel) {
+    private func fallbackToInMemory(model: NSManagedObjectModel) async {
+        let description = NSPersistentStoreDescription()
+        description.type = NSInMemoryStoreType
         let inMemoryContainer = NSPersistentCloudKitContainer(
             name: "LettersToMy",
             managedObjectModel: model
         )
-        let description = NSPersistentStoreDescription()
-        description.type = NSInMemoryStoreType
         inMemoryContainer.persistentStoreDescriptions = [description]
 
-        let semaphore = DispatchSemaphore(value: 0)
-        inMemoryContainer.loadPersistentStores { [weak self] _, error in
-            defer { semaphore.signal() }
-            guard let self else { return }
-            if error == nil {
-                self.privateStore = inMemoryContainer.persistentStoreCoordinator.persistentStores.first
-                self.container = inMemoryContainer
+        await withCheckedContinuation { continuation in
+            inMemoryContainer.loadPersistentStores { [weak self] _, error in
+                defer { continuation.resume() }
+                guard let self else { return }
+                if error == nil {
+                    self.privateStore = inMemoryContainer.persistentStoreCoordinator.persistentStores.first
+                    self.container = inMemoryContainer
+                }
             }
         }
-        _ = semaphore.wait(timeout: .now() + 5)
         if privateStore == nil {
             fatalError("Unable to load even an in-memory Core Data store.")
         }
