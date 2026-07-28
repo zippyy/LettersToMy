@@ -54,6 +54,11 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
     entitlements:
       path: Config/LettersToMy-iOS.entitlements
+      properties:
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.bayoumountainholdings.LettersToMy
+        com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
 
   LettersToMyMac:
     type: application
@@ -74,6 +79,10 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
     entitlements:
       path: Config/LettersToMy-macOS.entitlements
+      properties:
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.bayoumountainholdings.LettersToMy
 
   LettersToMyTests:
     type: bundle.unit-test
