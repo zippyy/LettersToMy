@@ -490,6 +490,7 @@ private struct InvitationRow: View {
 /// A compact row for invitations whose lifecycle is complete:
 /// accepted, declined, expired, revoked, or failed.
 private struct SettledInvitationRow: View {
+    @Environment(\.managedObjectContext) private var context
     @ObservedObject var invitation: CollaborationInvitationRecord
 
     var body: some View {
@@ -507,6 +508,15 @@ private struct SettledInvitationRow: View {
             Text(invitation.role.title)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+            Button {
+                context.delete(invitation)
+                try? PersistenceController.shared.save(context)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.caption2)
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.borderless)
         }
         .padding(.vertical, 2)
         .opacity(0.6)
