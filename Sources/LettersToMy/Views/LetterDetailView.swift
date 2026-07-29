@@ -1,3 +1,4 @@
+import AVKit
 import CoreData
 import SwiftUI
 
@@ -117,19 +118,50 @@ struct LetterDetailView: View {
                 .font(.title2.bold())
 
             ForEach(attachments) { attachment in
-                HStack {
-                    Label(attachment.fileName, systemImage: attachment.kind.systemImage)
-                        .padding(12)
-                    Spacer()
-                    if canUpdate {
-                        Button(role: .destructive) {
-                            deleteAttachment(attachment)
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.caption)
+                VStack(alignment: .leading, spacing: 0) {
+                    if attachment.kind == .photo,
+                       let data = attachment.data,
+                       let image = PlatformImage(data: data) {
+                        #if os(iOS)
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 300)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        #else
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 300)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        #endif
+                    } else if attachment.kind == .video,
+                              let data = attachment.data {
+                        #if os(iOS)
+                        let player = videoPlayer(for: data)
+                        if let url = (player.currentItem?.asset as? AVURLAsset)?.url {
+                            VideoPlayer(player: player)
+                                .frame(minHeight: 200)
+                        } else {
+                            Label(attachment.fileName, systemImage: "play.rectangle")
+                                .padding()
                         }
-                        .buttonStyle(.borderless)
-                        .padding(.trailing, 8)
+                        #endif
+                    }
+                    HStack {
+                        Label(attachment.fileName, systemImage: attachment.kind.systemImage)
+                            .padding(12)
+                        Spacer()
+                        if canUpdate {
+                            Button(role: .destructive) {
+                                deleteAttachment(attachment)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.borderless)
+                            .padding(.trailing, 8)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -143,4 +175,17 @@ struct LetterDetailView: View {
         managedObjectContext.delete(attachment)
         try? PersistenceController.shared.save(managedObjectContext)
     }
+
+    private func videoPlayer(for data: Data) -> AVPlayer {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).mov")
+        try? data.write(to: url)
+        return AVPlayer(url: url)
+    }
 }
+
+#if os(iOS)
+private typealias PlatformImage = UIImage
+#else
+private typealias PlatformImage = NSImage
+#endif

@@ -28,6 +28,11 @@ struct SettingsView: View {
 
                 Section("iCloud") {
                     LabeledContent("Account", value: iCloudStatus)
+                    if let error = persistence.lastSyncError {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
                     Text("Owned content synchronizes through the private CloudKit store. Invitations accepted from another family archive synchronize through the shared CloudKit store.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
