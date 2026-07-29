@@ -59,6 +59,8 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     @Published var lastSyncError: String?
     @Published var isLoaded = false
 
+    private var cancellables = Set<AnyCancellable>()
+
     init(inMemory: Bool = false) {
         let useInMemory = inMemory || !Self.cloudKitAvailable
         let model = LettersToMyManagedObjectModel.makeModel()
@@ -136,6 +138,8 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         context.transactionAuthor = "LettersToMy.app"
         context.name = "LettersToMy.viewContext"
 
+        observeCloudKitEvents()
+
         // Catch up on any shared partition activation data that arrived
         // while the app was not running or during a previous acceptance.
         activateAcceptedMembers(into: context)
@@ -155,6 +159,23 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
 
         await MainActor.run { isLoaded = true }
+    }
+
+    private func observeCloudKitEvents() {
+        guard let ckContainer = cloudKitContainer else { return }
+        NotificationCenter.default.publisher(
+            for: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: ckContainer
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] note in
+            guard let event = note.userInfo?[
+                NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+            ] as? NSPersistentCloudKitContainer.Event,
+                  let error = event.error else { return }
+            self?.lastSyncError = error.localizedDescription
+        }
+        .store(in: &cancellables)
     }
 
     // MARK: - CloudKit Status

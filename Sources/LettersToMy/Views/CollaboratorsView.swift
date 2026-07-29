@@ -122,6 +122,7 @@ struct CollaboratorsView: View {
                 .disabled(privateBranches.isEmpty)
             } label: {
                 Label("Add", systemImage: "plus")
+                    .accessibilityLabel("Add people, family side, or folder")
             }
         }
     }
