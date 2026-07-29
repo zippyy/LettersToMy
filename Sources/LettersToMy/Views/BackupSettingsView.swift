@@ -88,12 +88,13 @@ struct BackupSettingsView: View {
             } else {
                 Button {
                     pendingDestination = destination
-                    showingPassphrasePrompt = true
+                    Task { await backupNow(to: destination) }
                 } label: {
                     Label("Back Up Now", systemImage: "arrow.up.doc")
                         .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
+                .disabled(passphrase.isEmpty || isBackingUp)
             }
         }
         .padding(.vertical, 2)
