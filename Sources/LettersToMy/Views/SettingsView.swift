@@ -21,21 +21,38 @@ struct SettingsView: View {
             Form {
                 Section("Preview") {
                     Toggle("Recipient preview", isOn: $recipientPreview)
-                    Text("When enabled, sealed letters remain hidden until their unlock rules are satisfied. Parents can turn this off to manage the complete archive.")
+                    Text("When enabled, sealed letters remain hidden until their unlock rules are satisfied.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
+                #if os(iOS)
+                Section("App Icon") {
+                    Picker("Icon", selection: $selectedIcon) {
+                        ForEach(AppIcon.allCases, id: \.self) { icon in
+                            HStack {
+                                icon.preview
+                                    .resizable()
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                Text(icon.label)
+                            }
+                            .tag(icon)
+                        }
+                    }
+                    .onChange(of: selectedIcon) { _, icon in
+                        UIApplication.shared.setAlternateIconName(icon.name)
+                    }
+                }
+                #endif
+
                 Section("iCloud") {
                     LabeledContent("Account", value: iCloudStatus)
                     if let error = persistence.lastSyncError {
-                        Text(error)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
+                        Text(error).font(.footnote).foregroundStyle(.red)
                     }
-                    Text("Owned content synchronizes through the private CloudKit store. Invitations accepted from another family archive synchronize through the shared CloudKit store.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Text("Owned content synchronizes through the private CloudKit store.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
 
                 Section("Collaboration") {
@@ -45,25 +62,15 @@ struct SettingsView: View {
                 }
 
                 Section("Backups") {
-                    NavigationLink {
-                        BackupSettingsView()
-                    } label: {
+                    NavigationLink { BackupSettingsView() } label: {
                         Label("Manage Backups", systemImage: "arrow.up.doc")
                     }
-                    Text("Encrypted archives can be stored locally, in iCloud Drive, or on external storage. Use a strong passphrase and keep it somewhere safe.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
 
                 Section("Recovery") {
-                    NavigationLink {
-                        RecoveryContactsView()
-                    } label: {
+                    NavigationLink { RecoveryContactsView() } label: {
                         Label("Recovery Contacts", systemImage: "person.badge.key")
                     }
-                    Text("Designate people who can help recover your archive through a defined process. They do not gain access until you initiate recovery.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
 
                 Section("Release requirements") {
@@ -75,4 +82,34 @@ struct SettingsView: View {
             .navigationTitle("Settings")
         }
     }
+
+    #if os(iOS)
+    @State private var selectedIcon = AppIcon.default
+
+    private enum AppIcon: String, CaseIterable {
+        case `default`
+        case Daughter
+        case Granddaughter
+        case Grandson
+        case Son
+
+        var label: String {
+            switch self {
+            case .default: return "Default"
+            case .Daughter: return "Daughter"
+            case .Granddaughter: return "Granddaughter"
+            case .Grandson: return "Grandson"
+            case .Son: return "Son"
+            }
+        }
+
+        var name: String? { self == .default ? nil : rawValue }
+
+        var preview: Image {
+            let n = self == .default ? "AppIcon" : rawValue
+            if let img = UIImage(named: n) { return Image(uiImage: img) }
+            return Image(systemName: "app.fill")
+        }
+    }
+    #endif
 }
