@@ -530,6 +530,25 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 member.cloudKitParticipantRecordName = identity.userRecordName
             }
 
+            // In single-account development, the sender's invitation
+            // lives in the private store. Mark it as accepted so the
+            // sender sees the status update.
+            if let privateStore {
+                let invitationFetch = NSFetchRequest<CollaborationInvitationRecord>(
+                    entityName: "CollaborationInvitationRecord"
+                )
+                invitationFetch.predicate = NSPredicate(
+                    format: "id == %@",
+                    activation.invitationID as CVarArg
+                )
+                invitationFetch.affectedStores = [privateStore]
+                if let invitation = try? context.fetch(invitationFetch).first {
+                    invitation.markAccepted()
+                    // Link the new member to the invitation.
+                    invitation.intendedMemberID = member.id
+                }
+            }
+
             // Clear the activation data after consumption to avoid
             // re-creating the member on subsequent launches.
             partition.memberActivationData = nil

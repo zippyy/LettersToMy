@@ -420,6 +420,13 @@ private struct InvitationRow: View {
 
             HStack {
                 Spacer()
+                if invitation.status == .declined || invitation.status == .expired || invitation.status == .failed {
+                    Button("Resend Invitation") {
+                        invitation.status = .pending
+                        try? PersistenceController.shared.save()
+                    }
+                    .font(.caption)
+                }
                 Button("Revoke Invitation", role: .destructive) {
                     revoke()
                 }
