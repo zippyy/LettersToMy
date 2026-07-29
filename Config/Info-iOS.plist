@@ -2,37 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleAlternateIcons</key>
-	<dict>
-		<key>Daughter</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>Daughter</string>
-			</array>
-		</dict>
-		<key>Granddaughter</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>Granddaughter</string>
-			</array>
-		</dict>
-		<key>Grandson</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>Grandson</string>
-			</array>
-		</dict>
-		<key>Son</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>Son</string>
-			</array>
-		</dict>
-	</dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -61,6 +30,37 @@
 	</array>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>Daughter</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>Daughter</string>
+			</dict>
+			<key>Granddaughter</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>Granddaughter</string>
+			</dict>
+			<key>Grandson</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>Grandson</string>
+			</dict>
+			<key>Son</key>
+			<dict>
+				<key>CFBundleIconName</key>
+				<string>Son</string>
+			</dict>
+		</dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+	</dict>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
