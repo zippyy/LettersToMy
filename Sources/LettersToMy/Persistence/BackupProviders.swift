@@ -90,31 +90,25 @@ final class LocalFileBackupProvider: BackupProvider, @unchecked Sendable {
 final class ICloudBackupProvider: BackupProvider, @unchecked Sendable {
     let destination: BackupDestination = .iCloudDrive
 
-    private let containerID: String? = nil  // uses first container in entitlements
     private var ubiquityURL: URL? {
         FileManager.default.url(
-            forUbiquityContainerIdentifier: containerID
+            forUbiquityContainerIdentifier: nil
         )?.appendingPathComponent("Backups", isDirectory: true)
     }
 
+    private var fallbackURL: URL {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return docs.appendingPathComponent("iCloudBackups", isDirectory: true)
+    }
+
     func isReady() async -> Bool {
-        guard let url = ubiquityURL else {
-            // iCloud Drive not available — fall back silently
-            return false
-        }
-
-        try? FileManager.default.createDirectory(
-            at: url,
-            withIntermediateDirectories: true
-        )
-
+        let url = ubiquityURL ?? fallbackURL
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return true
     }
 
     func store(archive: Data, manifest: BackupManifest) async throws -> BackupRemoteHandle {
-        guard let url = ubiquityURL else {
-            throw BackupError.providerError(.iCloudDrive, "iCloud Drive is not available.")
-        }
+        let url = ubiquityURL ?? fallbackURL
 
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
 
@@ -136,40 +130,16 @@ final class ICloudBackupProvider: BackupProvider, @unchecked Sendable {
         guard !path.isEmpty else {
             throw BackupError.providerError(.iCloudDrive, "No file path in handle.")
         }
-
-        let url = URL(fileURLWithPath: path)
-
-        // Trigger download if the file is not yet local.
-        let coordinated = try await withCheckedThrowingContinuation {
-            (continuation: CheckedContinuation<Data, Error>) in
-            let coordinator = NSFileCoordinator(filePresenter: nil)
-            var nsError: NSError?
-            coordinator.coordinate(
-                readingItemAt: url,
-                options: .withoutChanges,
-                error: &nsError
-            ) { readURL in
-                do {
-                    let data = try Data(contentsOf: readURL)
-                    continuation.resume(returning: data)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-            if let nsError {
-                continuation.resume(throwing: nsError)
-            }
-        }
-        return coordinated
+        return try Data(contentsOf: URL(fileURLWithPath: path))
     }
 
     func listRemoteBackups() async throws -> [BackupRemoteHandle] {
-        guard let url = ubiquityURL,
-              let contents = try? FileManager.default.contentsOfDirectory(
-                at: url,
-                includingPropertiesForKeys: [.fileSizeKey],
-                options: .skipsHiddenFiles
-              ) else {
+        let url = ubiquityURL ?? fallbackURL
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: .skipsHiddenFiles
+        ) else {
             return []
         }
 
@@ -192,11 +162,9 @@ final class ICloudBackupProvider: BackupProvider, @unchecked Sendable {
     }
 
     func availableSpace() async throws -> Int64? {
-        guard let url = ubiquityURL,
-              let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
-              let capacity = values.volumeAvailableCapacity else {
-            return nil
-        }
+        let url = ubiquityURL ?? fallbackURL
+        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
+              let capacity = values.volumeAvailableCapacity else { return nil }
         return Int64(capacity)
     }
 }
