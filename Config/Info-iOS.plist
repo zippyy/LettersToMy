@@ -10,8 +10,6 @@
 			<array>
 				<string>Daughter</string>
 			</array>
-			<key>UIPrerenderedIcon</key>
-			<false/>
 		</dict>
 		<key>Granddaughter</key>
 		<dict>
@@ -19,8 +17,6 @@
 			<array>
 				<string>Granddaughter</string>
 			</array>
-			<key>UIPrerenderedIcon</key>
-			<false/>
 		</dict>
 		<key>Grandson</key>
 		<dict>
@@ -28,8 +24,6 @@
 			<array>
 				<string>Grandson</string>
 			</array>
-			<key>UIPrerenderedIcon</key>
-			<false/>
 		</dict>
 		<key>Son</key>
 		<dict>
@@ -37,8 +31,6 @@
 			<array>
 				<string>Son</string>
 			</array>
-			<key>UIPrerenderedIcon</key>
-			<false/>
 		</dict>
 	</dict>
 	<key>CFBundleDevelopmentRegion</key>
