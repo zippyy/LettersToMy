@@ -9,6 +9,8 @@ final class BackupServiceManager {
 
     let service = BackupService(appVersion: "0.1.0")
 
+    @Published private(set) var isReady = false
+
     private init() {
         Task { await registerProviders() }
     }
@@ -28,38 +30,37 @@ final class BackupServiceManager {
         // iCloud Drive
         await service.register(ICloudBackupProvider())
 
-        // Google Drive — requires OAuth credentials to actually work;
-        // registered here so the destination appears as available.
+        // Other providers registered with placeholder configs.
+        // Google Drive
         await service.register(GoogleDriveBackupProvider())
 
-        // Synology NAS — requires a mounted/directory URL to work;
-        // registered with the app's Documents directory as a placeholder.
-        // The user should configure this via settings.
+        // Synology
         if let docs = FileManager.default.urls(
             for: .documentDirectory, in: .userDomainMask
         ).first {
             await service.register(SynologyBackupProvider(directoryURL: docs))
         }
 
-        // Nextcloud — requires base URL and credentials.
-        // Registered with a placeholder URL; user configures via settings.
-        if let placeholder = URL(string: "https://nextcloud.example.com/remote.php/dav/files/") {
-            await service.register(NextcloudBackupProvider(baseURL: placeholder))
+        // Nextcloud
+        if let url = URL(string: "https://nextcloud.example.com/remote.php/dav/files/") {
+            await service.register(NextcloudBackupProvider(baseURL: url))
         }
 
-        // WebDAV — requires base URL and optional credentials.
-        if let placeholder = URL(string: "https://webdav.example.com/") {
-            await service.register(WebDAVBackupProvider(baseURL: placeholder))
+        // WebDAV
+        if let url = URL(string: "https://webdav.example.com/") {
+            await service.register(WebDAVBackupProvider(baseURL: url))
         }
 
-        // S3 Compatible — requires endpoint, bucket, and credentials.
-        if let placeholder = URL(string: "https://s3.amazonaws.com") {
+        // S3
+        if let url = URL(string: "https://s3.amazonaws.com") {
             await service.register(S3BackupProvider(
-                endpointURL: placeholder,
+                endpointURL: url,
                 bucket: "letters-to-my-backups",
                 accessKey: "",
                 secretKey: ""
             ))
         }
+
+        isReady = true
     }
 }
