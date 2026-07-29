@@ -343,28 +343,30 @@ private struct InvitationRow: View {
     private var grants: [SharePartitionRecord] {
         let scope = invitation.scope
 
+        let matches: [SharePartitionRecord]
         if scope.archiveWide && invitation.role == .parentAdmin {
-            return partitions
-        }
-        if scope.archiveWide {
-            return partitions.filter { $0.kind == .archiveAdministration }
-        }
-        if !scope.folderIDs.isEmpty {
-            return partitions.filter {
+            matches = partitions
+        } else if scope.archiveWide {
+            matches = partitions.filter { $0.kind == .archiveAdministration }
+        } else if !scope.folderIDs.isEmpty {
+            matches = partitions.filter {
                 $0.kind == .folder && $0.scopeID.map(scope.folderIDs.contains) == true
             }
-        }
-        if !scope.branchIDs.isEmpty {
-            return partitions.filter {
+        } else if !scope.branchIDs.isEmpty {
+            matches = partitions.filter {
                 $0.kind == .branch && $0.scopeID.map(scope.branchIDs.contains) == true
             }
-        }
-        if !scope.recipientIDs.isEmpty {
-            return partitions.filter {
+        } else if !scope.recipientIDs.isEmpty {
+            matches = partitions.filter {
                 $0.kind == .recipientInbox && $0.scopeID.map(scope.recipientIDs.contains) == true
             }
+        } else {
+            matches = invitation.partition.map { [$0] } ?? []
         }
-        return invitation.partition.map { [$0] } ?? []
+        // Deduplicate by ID to prevent duplicate buttons if a
+        // partition appears more than once in the matches array.
+        var seen = Set<UUID>()
+        return matches.filter { seen.insert($0.id).inserted }
     }
 
     var body: some View {
