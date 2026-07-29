@@ -100,23 +100,12 @@ final class ICloudBackupProvider: BackupProvider, @unchecked Sendable {
     func isReady() async -> Bool {
         guard let url = ubiquityURL else { return false }
 
-        // Ensure the Backups directory exists.
         try? FileManager.default.createDirectory(
             at: url,
             withIntermediateDirectories: true
         )
 
-        // iCloud Drive may take a moment to become available after
-        // the user signs in. The ubiquitous item download status key
-        // gives us a signal.
-        guard let values = try? url.resourceValues(forKeys: [
-            .ubiquitousItemDownloadingStatusKey
-        ]) else {
-            return false
-        }
-
-        return values.ubiquitousItemDownloadingStatus != .notDownloaded
-            || FileManager.default.fileExists(atPath: url.path)
+        return true
     }
 
     func store(archive: Data, manifest: BackupManifest) async throws -> BackupRemoteHandle {
