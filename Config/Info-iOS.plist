@@ -6,29 +6,37 @@
 	<dict>
 		<key>Daughter</key>
 		<dict>
-			<key>CFBundleIconName</key>
-			<string>Daughter</string>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Daughter</string>
+			</array>
 			<key>UIPrerenderedIcon</key>
 			<false/>
 		</dict>
 		<key>Granddaughter</key>
 		<dict>
-			<key>CFBundleIconName</key>
-			<string>Granddaughter</string>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Granddaughter</string>
+			</array>
 			<key>UIPrerenderedIcon</key>
 			<false/>
 		</dict>
 		<key>Grandson</key>
 		<dict>
-			<key>CFBundleIconName</key>
-			<string>Grandson</string>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Grandson</string>
+			</array>
 			<key>UIPrerenderedIcon</key>
 			<false/>
 		</dict>
 		<key>Son</key>
 		<dict>
-			<key>CFBundleIconName</key>
-			<string>Son</string>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Son</string>
+			</array>
 			<key>UIPrerenderedIcon</key>
 			<false/>
 		</dict>
