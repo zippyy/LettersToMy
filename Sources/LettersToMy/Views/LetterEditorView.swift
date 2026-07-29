@@ -1,3 +1,4 @@
+import AVFoundation
 import CoreData
 import LettersToMyCore
 import PhotosUI
@@ -34,6 +35,7 @@ struct LetterEditorView: View {
     @State private var lifeEventName: String
     @State private var showingFileImporter = false
     @State private var showingCamera = false
+    @State private var showingVoiceRecorder = false
     @State private var showingPhotoPicker = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var pendingAttachments: [PendingAttachment] = []
@@ -160,6 +162,11 @@ struct LetterEditorView: View {
                     } label: {
                         Label("Camera", systemImage: "camera")
                     }
+                    Button {
+                        showingVoiceRecorder = true
+                    } label: {
+                        Label("Record Voice", systemImage: "mic")
+                    }
                     #endif
                     Button {
                         showingPhotoPicker = true
@@ -240,6 +247,18 @@ struct LetterEditorView: View {
             CameraPicker { attachment in
                 if let attachment {
                     pendingAttachments.append(attachment)
+                }
+            }
+        }
+        .sheet(isPresented: $showingVoiceRecorder) {
+            VoiceRecorderView { url in
+                if let url, let data = try? Data(contentsOf: url) {
+                    pendingAttachments.append(PendingAttachment(
+                        fileName: "Voice Memo.m4a",
+                        contentTypeIdentifier: "public.mpeg-4-audio",
+                        kind: .audio,
+                        data: data
+                    ))
                 }
             }
         }
@@ -459,6 +478,95 @@ private struct CameraPicker: UIViewControllerRepresentable {
             onCapture(nil)
             dismiss()
         }
+    }
+}
+#endif
+
+// MARK: - Voice Recorder (iOS only)
+
+#if os(iOS)
+private struct VoiceRecorderView: View {
+    @Environment(\.dismiss) private var dismiss
+    let onFinish: (URL?) -> Void
+
+    @State private var recorder: AVAudioRecorder?
+    @State private var isRecording = false
+    @State private var recordingURL: URL?
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            if isRecording {
+                Text("Recording…")
+                    .font(.title2)
+                    .foregroundStyle(.red)
+                Button {
+                    stopRecording()
+                } label: {
+                    Label("Stop", systemImage: "stop.circle.fill")
+                        .font(.system(size: 64))
+                        .foregroundStyle(.red)
+                }
+                .labelStyle(.iconOnly)
+            } else if recordingURL != nil {
+                Text("Recording saved")
+                    .font(.title2)
+                Button {
+                    onFinish(recordingURL)
+                    dismiss()
+                } label: {
+                    Label("Attach Recording", systemImage: "checkmark.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button {
+                    startRecording()
+                } label: {
+                    Label("Record", systemImage: "mic.circle.fill")
+                        .font(.system(size: 64))
+                        .foregroundStyle(.blue)
+                }
+                .labelStyle(.iconOnly)
+            }
+
+            Spacer()
+
+            Button("Cancel") {
+                recorder?.stop()
+                dismiss()
+            }
+        }
+        .padding()
+        .onDisappear {
+            recorder?.stop()
+        }
+    }
+
+    private func startRecording() {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("voice-\(UUID().uuidString).m4a")
+        recordingURL = url
+
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 44100,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .default)
+        try? session.setActive(true)
+
+        recorder = try? AVAudioRecorder(url: url, settings: settings)
+        recorder?.record()
+        isRecording = true
+    }
+
+    private func stopRecording() {
+        recorder?.stop()
+        isRecording = false
     }
 }
 #endif
