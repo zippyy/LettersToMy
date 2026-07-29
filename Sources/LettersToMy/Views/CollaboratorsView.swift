@@ -1,3 +1,4 @@
+import CloudKit
 import CoreData
 import LettersToMyCore
 import SwiftUI
@@ -337,6 +338,8 @@ private struct InvitationRow: View {
     let children: [ChildProfile]
     let partitions: [SharePartitionRecord]
 
+    @State private var sharingPartition: SharePartitionRecord?
+
     private var grants: [SharePartitionRecord] {
         let scope = invitation.scope
 
@@ -401,10 +404,9 @@ private struct InvitationRow: View {
                 .foregroundStyle(.orange)
             } else {
                 ForEach(grants) { partition in
-                    ShareLink(
-                        item: partition.cloudShareItem,
-                        preview: SharePreview(partition.displayName)
-                    ) {
+                    Button {
+                        sharingPartition = partition
+                    } label: {
                         Label(
                             "Send \(partition.displayName)",
                             systemImage: "icloud.and.arrow.up"
@@ -423,6 +425,17 @@ private struct InvitationRow: View {
             }
         }
         .padding(.vertical, 5)
+        #if os(iOS)
+        .sheet(item: $sharingPartition) { partition in
+            CloudSharingView(partition: partition) { share in
+                if let share {
+                    invitation.markSent(ckShareRecordName: share.recordID.recordName)
+                    try? PersistenceController.shared.save()
+                }
+                sharingPartition = nil
+            }
+        }
+        #endif
     }
 
     private var scopeSummary: String {
@@ -863,3 +876,63 @@ private extension InvitationStatus {
         }
     }
 }
+
+// MARK: - Cloud Sharing View
+
+#if os(iOS)
+private struct CloudSharingView: UIViewControllerRepresentable {
+    let partition: SharePartitionRecord
+    let onCompletion: (CKShare?) -> Void
+
+    func makeUIViewController(context: Context) -> UICloudSharingController {
+        let persistence = PersistenceController.shared
+        let container = persistence.ckContainer
+
+        let controller = UICloudSharingController { controller, completion in
+            Task {
+                do {
+                    let share = try await persistence.prepareShare(
+                        for: partition.objectID.uriRepresentation(),
+                        title: partition.displayName
+                    )
+                    completion(share, container, nil)
+                } catch {
+                    completion(nil, container, error)
+                }
+            }
+        }
+        controller.delegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UICloudSharingController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCompletion: onCompletion)
+    }
+
+    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
+        let onCompletion: (CKShare?) -> Void
+
+        init(onCompletion: @escaping (CKShare?) -> Void) {
+            self.onCompletion = onCompletion
+        }
+
+        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+            onCompletion(csc.share)
+        }
+
+        func cloudSharingController(_ csc: UICloudSharingController, failedToSaveShareWithError error: Error) {
+            onCompletion(nil)
+        }
+
+        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+            onCompletion(nil)
+        }
+
+        func itemTitle(for csc: UICloudSharingController) -> String? {
+            csc.share?.title
+        }
+    }
+}
+#endif
