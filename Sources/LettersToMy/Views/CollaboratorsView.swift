@@ -880,27 +880,61 @@ private extension InvitationStatus {
 // MARK: - Cloud Sharing View
 
 #if os(iOS)
-private struct CloudSharingView: UIViewControllerRepresentable {
+private struct CloudSharingView: View {
     let partition: SharePartitionRecord
     let onCompletion: (CKShare?) -> Void
 
-    func makeUIViewController(context: Context) -> UICloudSharingController {
-        let persistence = PersistenceController.shared
-        let container = persistence.ckContainer
+    @State private var preparedShare: CKShare?
+    @State private var errorMessage: String?
 
-        let controller = UICloudSharingController { controller, completion in
-            Task {
-                do {
-                    let share = try await persistence.prepareShare(
-                        for: partition.objectID.uriRepresentation(),
-                        title: partition.displayName
-                    )
-                    completion(share, container, nil)
-                } catch {
-                    completion(nil, container, error)
+    var body: some View {
+        Group {
+            if let share = preparedShare {
+                CloudSharingController(
+                    share: share,
+                    container: PersistenceController.shared.ckContainer,
+                    onCompletion: onCompletion
+                )
+            } else if let errorMessage {
+                VStack(spacing: 16) {
+                    Text("Could Not Create Share")
+                        .font(.headline)
+                    Text(errorMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button("Dismiss") { onCompletion(nil) }
+                        .buttonStyle(.bordered)
+                }
+                .padding()
+            } else {
+                VStack(spacing: 16) {
+                    ProgressView()
+                    Text("Preparing share…")
+                        .foregroundStyle(.secondary)
                 }
             }
         }
+        .task {
+            do {
+                let persistence = PersistenceController.shared
+                preparedShare = try await persistence.prepareShare(
+                    for: partition.objectID.uriRepresentation(),
+                    title: partition.displayName
+                )
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct CloudSharingController: UIViewControllerRepresentable {
+    let share: CKShare
+    let container: CKContainer
+    let onCompletion: (CKShare?) -> Void
+
+    func makeUIViewController(context: Context) -> UICloudSharingController {
+        let controller = UICloudSharingController(share: share, container: container)
         controller.delegate = context.coordinator
         return controller
     }
