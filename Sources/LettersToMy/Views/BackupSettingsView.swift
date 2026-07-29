@@ -105,6 +105,11 @@ struct BackupSettingsView: View {
     private var passphraseSection: some View {
         Section("Encryption Passphrase") {
             SecureField("Passphrase", text: $passphrase)
+            if passphrase.isEmpty {
+                Text("Enter a passphrase above to enable backup.")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
             Text("This passphrase encrypts every backup. Store it somewhere safe — if you lose it you cannot restore the archive.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -485,6 +490,13 @@ private struct HistoryRow: View {
             Text("\(record.letterCount) letters")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Image(systemName: "trash")
+                    .font(.caption2)
+            }
+            .buttonStyle(.borderless)
         }
         .contextMenu {
             Button("Delete Record", role: .destructive, action: onDelete)
