@@ -635,7 +635,7 @@
 		DAA5F1742F3297FEBA423097 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Daughter Granddaughter Grandson Son";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon-Daughter AppIcon-Granddaughter AppIcon-Grandson AppIcon-Son";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Config/LettersToMy-iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -654,7 +654,7 @@
 		DB8B7941566FB2744F1E5866 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Daughter Granddaughter Grandson Son";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon-Daughter AppIcon-Granddaughter AppIcon-Grandson AppIcon-Son";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Config/LettersToMy-iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";

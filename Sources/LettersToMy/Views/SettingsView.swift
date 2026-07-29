@@ -89,10 +89,10 @@ struct SettingsView: View {
 
     private enum AppIcon: String, CaseIterable {
         case `default`
-        case Daughter
-        case Granddaughter
-        case Grandson
-        case Son
+        case Daughter = "AppIcon-Daughter"
+        case Granddaughter = "AppIcon-Granddaughter"
+        case Grandson = "AppIcon-Grandson"
+        case Son = "AppIcon-Son"
 
         var label: String {
             switch self {
@@ -107,7 +107,8 @@ struct SettingsView: View {
         var name: String? { self == .default ? nil : rawValue }
 
         var previewImageName: String {
-            self == .default ? "icon-preview-default" : "icon-preview-\(rawValue)"
+            guard self != .default else { return "icon-preview-default" }
+            return "icon-preview-\(label)"
         }
 
         var preview: Image {
