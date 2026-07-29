@@ -84,6 +84,7 @@ struct SettingsView: View {
     }
 
     #if os(iOS)
+    @AppStorage("selectedAppIcon") private var selectedIconName: String = ""
     @State private var selectedIcon = AppIcon.default
 
     private enum AppIcon: String, CaseIterable {
@@ -105,9 +106,14 @@ struct SettingsView: View {
 
         var name: String? { self == .default ? nil : rawValue }
 
+        var previewImageName: String {
+            self == .default ? "icon-preview-default" : "icon-preview-\(rawValue)"
+        }
+
         var preview: Image {
-            let n = self == .default ? "AppIcon" : rawValue
-            if let img = UIImage(named: n) { return Image(uiImage: img) }
+            if let img = UIImage(named: previewImageName) {
+                return Image(uiImage: img)
+            }
             return Image(systemName: "app.fill")
         }
     }
