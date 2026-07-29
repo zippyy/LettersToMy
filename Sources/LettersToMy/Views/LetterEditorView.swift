@@ -37,6 +37,7 @@ struct LetterEditorView: View {
     @State private var showingPhotoPicker = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var pendingAttachments: [PendingAttachment] = []
+    @State private var attachmentsToDelete = Set<NSManagedObjectID>()
     @State private var importError: String?
     @State private var selectedMilestone: MilestoneTemplate?
 
@@ -177,6 +178,30 @@ struct LetterEditorView: View {
                 ForEach(pendingAttachments) { attachment in
                     Label(attachment.fileName, systemImage: attachment.kind.systemImage)
                 }
+
+                if let existing = letter?.attachments as? Set<LetterAttachment>, !existing.isEmpty {
+                    ForEach(Array(existing)) { attachment in
+                        HStack {
+                            Label(
+                                attachment.fileName.isEmpty ? "Attachment" : attachment.fileName,
+                                systemImage: attachment.kind.systemImage
+                            )
+                            .foregroundStyle(attachmentsToDelete.contains(attachment.objectID) ? .secondary : .primary)
+                            Spacer()
+                            Button {
+                                if attachmentsToDelete.contains(attachment.objectID) {
+                                    attachmentsToDelete.remove(attachment.objectID)
+                                } else {
+                                    attachmentsToDelete.insert(attachment.objectID)
+                                }
+                            } label: {
+                                Image(systemName: attachmentsToDelete.contains(attachment.objectID) ? "arrow.uturn.backward" : "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
         }
         .navigationTitle(letter == nil ? "New Letter" : "Edit Letter")
@@ -277,6 +302,13 @@ struct LetterEditorView: View {
         target.updatedAt = .now
         target.sealedAt = sealed ? (target.sealedAt ?? .now) : nil
         target.partition = selectedPartition(using: persistence)
+
+        // Delete attachments marked for removal.
+        for objectID in attachmentsToDelete {
+            if let existing = try? managedObjectContext.existingObject(with: objectID) {
+                managedObjectContext.delete(existing)
+            }
+        }
 
         for pending in pendingAttachments {
             let attachment = persistence.insert(
