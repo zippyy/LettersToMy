@@ -4,6 +4,7 @@ import CoreData
 import Foundation
 import LettersToMyCore
 import Security
+import UserNotifications
 
 final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let shared = PersistenceController()
@@ -440,6 +441,8 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
 
         try? save(context)
+
+        scheduleUnlockNotification()
     }
 
     private func letterPayload(from letter: Letter) -> LetterPayload {
@@ -462,6 +465,23 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             lifeEventName: letter.lifeEventName,
             manuallyReleasedAt: letter.manuallyReleasedAt
         )
+    }
+
+    private func scheduleUnlockNotification() {
+        #if os(iOS)
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = "A Letter Has Unlocked"
+        content.body = "A sealed letter is now available. Open Letters to My to read it."
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "unlock-\(UUID().uuidString)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+        center.add(request)
+        #endif
     }
 
     func acceptShare(

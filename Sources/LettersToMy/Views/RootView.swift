@@ -2,17 +2,33 @@ import SwiftUI
 
 struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @ObservedObject private var persistence = PersistenceController.shared
 
     var body: some View {
         Group {
             if hasCompletedOnboarding {
-                MainTabView()
+                VStack(spacing: 0) {
+                    if persistence.cloudKitAccountStatus != .available,
+                       PersistenceController.cloudKitAvailable {
+                        offlineBanner
+                    }
+                    MainTabView()
+                }
             } else {
                 WelcomeView {
                     hasCompletedOnboarding = true
                 }
             }
         }
+    }
+
+    private var offlineBanner: some View {
+        Text("iCloud is not available — changes will sync when connected.")
+            .font(.caption)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .background(Color.yellow.opacity(0.3))
+            .foregroundStyle(.primary)
     }
 }
 
@@ -31,10 +47,8 @@ private struct MainTabView: View {
             CollaboratorsView()
                 .tabItem { Label("People", systemImage: "person.3.fill") }
 
-            #if os(iOS)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
-            #endif
         }
     }
 }
