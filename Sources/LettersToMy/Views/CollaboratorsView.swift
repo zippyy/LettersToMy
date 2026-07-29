@@ -340,6 +340,7 @@ private struct InvitationRow: View {
     let partitions: [SharePartitionRecord]
 
     @State private var sharingPartition: SharePartitionRecord?
+    @State private var showingRevokeConfirmation = false
 
     private var grants: [SharePartitionRecord] {
         let scope = invitation.scope
@@ -429,12 +430,21 @@ private struct InvitationRow: View {
                     .font(.caption)
                 }
                 Button("Revoke Invitation", role: .destructive) {
-                    revoke()
+                    showingRevokeConfirmation = true
                 }
                 .font(.caption)
+                .buttonStyle(.borderless)
             }
         }
         .padding(.vertical, 5)
+        .confirmationDialog(
+            "Revoke this invitation? \(invitation.inviteeDisplayName) will lose access to the shared content.",
+            isPresented: $showingRevokeConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Revoke", role: .destructive) { revoke() }
+            Button("Cancel", role: .cancel) {}
+        }
         #if os(iOS)
         .sheet(item: $sharingPartition) { partition in
             CloudSharingView(partition: partition) { share in
