@@ -38,7 +38,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Daughter</string>
+					<string>daughter</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -47,7 +47,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Granddaughter</string>
+					<string>granddaughter</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -56,7 +56,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Grandson</string>
+					<string>grandson</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -65,7 +65,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Son</string>
+					<string>son</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -87,7 +87,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Daughter</string>
+					<string>daughter</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -96,7 +96,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Granddaughter</string>
+					<string>granddaughter</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -105,7 +105,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Grandson</string>
+					<string>grandson</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -114,7 +114,7 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>Son</string>
+					<string>son</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>

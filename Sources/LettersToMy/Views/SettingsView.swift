@@ -107,7 +107,7 @@ struct SettingsView: View {
         var name: String? { self == .default ? nil : rawValue }
 
         var previewImageName: String {
-            self == .default ? "icon-preview-default" : "icon-preview-\(rawValue)"
+            self == .default ? "icon-preview-default" : "icon-preview-\(rawValue.lowercased())"
         }
 
         var preview: Image {
