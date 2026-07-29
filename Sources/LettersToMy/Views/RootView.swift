@@ -50,6 +50,9 @@ private struct MainTabView: View {
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
+        #if os(iOS)
+        .tabViewStyle(.sidebarAdaptable)
+        #endif
     }
 }
 
