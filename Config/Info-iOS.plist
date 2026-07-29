@@ -2,6 +2,37 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleAlternateIcons</key>
+	<dict>
+		<key>Daughter</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Daughter</string>
+			</array>
+		</dict>
+		<key>Granddaughter</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Granddaughter</string>
+			</array>
+		</dict>
+		<key>Grandson</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Grandson</string>
+			</array>
+		</dict>
+		<key>Son</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>Son</string>
+			</array>
+		</dict>
+	</dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -44,22 +75,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CKSharingSupported</key>
 	<true/>
-t<key>CFBundleAlternateIcons</key>
-t<dict>
-tt<key>Daughter</key><dict><key>CFBundleIconFiles</key><array><string>Daughter</string></array></dict>
-tt<key>Granddaughter</key><dict><key>CFBundleIconFiles</key><array><string>Granddaughter</string></array></dict>
-tt<key>Grandson</key><dict><key>CFBundleIconFiles</key><array><string>Grandson</string></array></dict>
-tt<key>Son</key><dict><key>CFBundleIconFiles</key><array><string>Son</string></array></dict>
-t</dict>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
-t<key>CFBundleAlternateIcons</key>
-t<dict>
-tt<key>Daughter</key><dict><key>CFBundleIconFiles</key><array><string>Daughter</string></array></dict>
-tt<key>Granddaughter</key><dict><key>CFBundleIconFiles</key><array><string>Granddaughter</string></array></dict>
-tt<key>Grandson</key><dict><key>CFBundleIconFiles</key><array><string>Grandson</string></array></dict>
-tt<key>Son</key><dict><key>CFBundleIconFiles</key><array><string>Son</string></array></dict>
-t</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos to attach to a private letter.</string>
 	<key>NSMicrophoneUsageDescription</key>

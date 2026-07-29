@@ -15,6 +15,12 @@
     {
       "idiom" : "ipad",
       "scale" : "2x",
+      "size" : "83.5x83.5",
+      "filename" : "icon-167.png"
+    },
+    {
+      "idiom" : "ipad",
+      "scale" : "2x",
       "size" : "76x76",
       "filename" : "icon-152.png"
     },
