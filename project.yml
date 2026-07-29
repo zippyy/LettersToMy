@@ -51,6 +51,7 @@ targets:
         INFOPLIST_FILE: Config/Info-iOS.plist
         CODE_SIGN_ENTITLEMENTS: Config/LettersToMy-iOS.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "Daughter Granddaughter Grandson Son"
         TARGETED_DEVICE_FAMILY: "1,2"
     entitlements:
       path: Config/LettersToMy-iOS.entitlements
