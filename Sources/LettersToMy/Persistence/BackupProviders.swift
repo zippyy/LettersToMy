@@ -90,7 +90,7 @@ final class LocalFileBackupProvider: BackupProvider, @unchecked Sendable {
 final class ICloudBackupProvider: BackupProvider, @unchecked Sendable {
     let destination: BackupDestination = .iCloudDrive
 
-    private let containerID = "iCloud.com.bayoumountainholdings.LettersToMy"
+    private let containerID: String? = nil  // uses first container in entitlements
     private var ubiquityURL: URL? {
         FileManager.default.url(
             forUbiquityContainerIdentifier: containerID
@@ -98,7 +98,10 @@ final class ICloudBackupProvider: BackupProvider, @unchecked Sendable {
     }
 
     func isReady() async -> Bool {
-        guard let url = ubiquityURL else { return false }
+        guard let url = ubiquityURL else {
+            // iCloud Drive not available — fall back silently
+            return false
+        }
 
         try? FileManager.default.createDirectory(
             at: url,
