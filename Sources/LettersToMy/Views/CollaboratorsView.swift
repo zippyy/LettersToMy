@@ -931,7 +931,7 @@ private struct CloudSharingView: UIViewControllerRepresentable {
         }
 
         func itemTitle(for csc: UICloudSharingController) -> String? {
-            csc.share?.title
+            csc.share?[CKShare.SystemFieldKey.title] as? String
         }
     }
 }
