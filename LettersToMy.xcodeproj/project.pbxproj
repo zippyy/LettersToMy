@@ -41,6 +41,7 @@
 		5F591907EA2970308BDDF25B /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58B48CE6639E02B94646058 /* PersistenceController.swift */; };
 		60713B058F91D47E852078E0 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		63D8ECE23E2C446008E17202 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
+		6A7A54CFB1D995088F8018B5 /* SelfHostedSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */; };
 		744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C946E20EAA508545CF374D /* S3BackupProvider.swift */; };
 		7967F8AA435180CB69238B3F /* icon-preview-Son.png in Resources */ = {isa = PBXBuildFile; fileRef = 40F6881991B0D35575994FBF /* icon-preview-Son.png */; };
 		7C47924C895A0A8FDC4EF9AA /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
@@ -55,6 +56,7 @@
 		8FFDE5B95A6ADBDCF7D1BE95 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
 		931584472E40FB99E788589D /* icon-preview-Daughter.png in Resources */ = {isa = PBXBuildFile; fileRef = 5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */; };
 		97B8704924261BAB12AE2A2E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */; };
+		A43BAB1B87DCBB1AA5442E26 /* SelfHostedCollaborationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */; };
 		A77FC1E4EA5838D17D2728F2 /* LettersToMyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941EC696F83630F717EE5393 /* LettersToMyApp.swift */; };
 		A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0161C38E7CB50077E00EC5 /* SettingsView.swift */; };
 		A90299D7E4AB91D05A274323 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
@@ -63,6 +65,7 @@
 		AB7EE99C7FF7C36675ADD621 /* Letter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC9ABF0969826C33789B127C /* Letter.swift */; };
 		B3694A925CA24DA84FF66C1B /* SynologyBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */; };
 		BFDF0F615ABBAB7B13CC619D /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
+		C4F72209C180D7322C9D7352 /* SelfHostedSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */; };
 		C7FF085F9B162D56F33FC227 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0E39D832D41AD11A73DFB4D9 /* FirebaseAnalytics */; };
 		C9064F78F856CAC41A6252A8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED48EC99484C6FF1EC93FC5 /* RootView.swift */; };
 		C9B78403710B7286A0D8CF63 /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
@@ -85,6 +88,7 @@
 		EBB8737775A0150F7FBF0D5C /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		ED99E1902963B03880D827C5 /* BackupRecordEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */; };
 		EDD9BB3A37E7E6C7518B9B50 /* WebDAVBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D96485F4087EBD2C1682893 /* WebDAVBackupProvider.swift */; };
+		EEAD82A7B388E28D24F09FBE /* SelfHostedCollaborationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */; };
 		EFDBCF192246249A50C4524E /* LettersToMyManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */; };
 		F3C61167E07BF36C348D51FE /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */; };
@@ -115,6 +119,7 @@
 		2ED48EC99484C6FF1EC93FC5 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		3673FF0949E317F43B93214E /* LetterEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterEditorView.swift; sourceTree = "<group>"; };
 		40F6881991B0D35575994FBF /* icon-preview-Son.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Son.png"; sourceTree = "<group>"; };
+		4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedSyncService.swift; sourceTree = "<group>"; };
 		4BB311684BD87C308E2B1D04 /* CloudKitShareDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareDelegates.swift; sourceTree = "<group>"; };
 		51466AA6963287351167A822 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRecordEntity.swift; sourceTree = "<group>"; };
@@ -149,6 +154,7 @@
 		D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
 		D6ABEDA042E9C24396817268 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		E2CC07F3B82784F2223049EF /* LetterAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterAttachment.swift; sourceTree = "<group>"; };
+		EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedCollaborationClient.swift; sourceTree = "<group>"; };
 		EC9ABF0969826C33789B127C /* Letter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Letter.swift; sourceTree = "<group>"; };
 		F52638E7AC452447C783EAFB /* app-icon-preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "app-icon-preview.png"; sourceTree = "<group>"; };
 		FF7B2464470751CCD2F80A03 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
@@ -290,6 +296,8 @@
 				9F4B0658559699E2169EE57E /* NextcloudBackupProvider.swift */,
 				D58B48CE6639E02B94646058 /* PersistenceController.swift */,
 				A1C946E20EAA508545CF374D /* S3BackupProvider.swift */,
+				EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */,
+				4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */,
 				21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */,
 				9D96485F4087EBD2C1682893 /* WebDAVBackupProvider.swift */,
 			);
@@ -482,6 +490,8 @@
 				F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */,
 				C9064F78F856CAC41A6252A8 /* RootView.swift in Sources */,
 				8747A437873FF2B5230B5EAD /* S3BackupProvider.swift in Sources */,
+				A43BAB1B87DCBB1AA5442E26 /* SelfHostedCollaborationClient.swift in Sources */,
+				6A7A54CFB1D995088F8018B5 /* SelfHostedSyncService.swift in Sources */,
 				294EE0A7374F92F1B82A7E6F /* SettingsView.swift in Sources */,
 				60713B058F91D47E852078E0 /* SplashView.swift in Sources */,
 				7E618316706A27194C7C3EAE /* SynologyBackupProvider.swift in Sources */,
@@ -520,6 +530,8 @@
 				05CCB6F7D19C834C304ECC73 /* RecoveryContactsView.swift in Sources */,
 				0080F2322653AD7C2691143C /* RootView.swift in Sources */,
 				744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */,
+				EEAD82A7B388E28D24F09FBE /* SelfHostedCollaborationClient.swift in Sources */,
+				C4F72209C180D7322C9D7352 /* SelfHostedSyncService.swift in Sources */,
 				A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */,
 				D5A1429A7C02D858D46881CB /* SplashView.swift in Sources */,
 				B3694A925CA24DA84FF66C1B /* SynologyBackupProvider.swift in Sources */,

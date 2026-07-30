@@ -13,6 +13,17 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let privateConfigurationName = "Private"
     static let sharedConfigurationName = "Shared"
 
+    /// URL of the SQLite database file, used for self-hosted sync push.
+    var dbURL: URL {
+        let applicationSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first!
+        return applicationSupport
+            .appendingPathComponent("LettersToMy", isDirectory: true)
+            .appendingPathComponent("\(PersistenceController.sharedConfigurationName).sqlite")
+    }
+
     /// Reads the process's actual code-signing entitlements via
     /// SecTaskCopyValueForEntitlement. Bundle.main.object(forInfoDictionaryKey:)
     /// does NOT work for entitlements — they're embedded by code signing,
