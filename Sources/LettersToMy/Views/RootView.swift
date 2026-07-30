@@ -18,6 +18,7 @@ struct RootView: View {
             } else {
                 WelcomeView {
                     hasCompletedOnboarding = true
+                    Analytics.onboardingCompleted()
                 }
             }
         }

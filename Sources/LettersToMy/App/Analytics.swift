@@ -13,6 +13,16 @@ enum Analytics {
         logEvent("app_opened", params: nil)
     }
 
+    static func onboardingCompleted() {
+        logEvent("onboarding_completed", params: nil)
+    }
+
+    // MARK: - Screen Views
+
+    static func screenView(_ screen: String) {
+        logEvent("screen_view", params: ["screen_name": screen])
+    }
+
     // MARK: - Content
 
     static func letterCreated(sealed: Bool, hasAttachments: Bool) {
@@ -26,12 +36,30 @@ enum Analytics {
         logEvent("letter_edited", params: nil)
     }
 
+    static func letterSealed() {
+        logEvent("letter_sealed", params: nil)
+    }
+
     static func letterUnlocked() {
         logEvent("letter_unlocked", params: nil)
     }
 
     static func attachmentAdded(kind: String) {
         logEvent("attachment_added", params: ["kind": kind])
+    }
+
+    // MARK: - Family Structure
+
+    static func childAdded() {
+        logEvent("child_added", params: nil)
+    }
+
+    static func familySideAdded() {
+        logEvent("family_side_added", params: nil)
+    }
+
+    static func folderAdded() {
+        logEvent("folder_added", params: nil)
     }
 
     // MARK: - Collaboration
@@ -64,6 +92,25 @@ enum Analytics {
     static func backupRestored(letterCount: Int) {
         logEvent("backup_restored", params: [
             "letter_count": "\(letterCount)"
+        ])
+    }
+
+    // MARK: - Settings
+
+    static func iconChanged(_ iconName: String) {
+        logEvent("icon_changed", params: ["icon": iconName])
+    }
+
+    static func recipientPreviewToggled(_ enabled: Bool) {
+        logEvent("recipient_preview_toggled", params: ["enabled": enabled ? "true" : "false"])
+    }
+
+    // MARK: - Errors
+
+    static func error(_ domain: String, message: String) {
+        logEvent("app_error", params: [
+            "domain": domain,
+            "message": message
         ])
     }
 
