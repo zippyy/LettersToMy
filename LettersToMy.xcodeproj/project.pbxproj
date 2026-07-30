@@ -52,15 +52,18 @@
 		8C8BD4D4F81FBCBC80A82997 /* UnlockRuleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096F30AC16AC5AAF72F47A63 /* UnlockRuleTests.swift */; };
 		8E8E72C351F776DF905D0A73 /* BackupProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85C3FC066655BA92BC30361 /* BackupProviders.swift */; };
 		8F165E8CDB87E3BE22BCFAB4 /* GoogleDriveBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9ACDF836BFA8F60D8B84D2 /* GoogleDriveBackupProvider.swift */; };
+		8FFDE5B95A6ADBDCF7D1BE95 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
 		931584472E40FB99E788589D /* icon-preview-Daughter.png in Resources */ = {isa = PBXBuildFile; fileRef = 5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */; };
 		97B8704924261BAB12AE2A2E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */; };
 		A77FC1E4EA5838D17D2728F2 /* LettersToMyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941EC696F83630F717EE5393 /* LettersToMyApp.swift */; };
 		A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0161C38E7CB50077E00EC5 /* SettingsView.swift */; };
+		A90299D7E4AB91D05A274323 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
 		A905A132828CAB3629BE72A0 /* ChildProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B539C785B8F91B74871B0F /* ChildProfile.swift */; };
 		AA0992A23854035832400DF3 /* BackupServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */; };
 		AB7EE99C7FF7C36675ADD621 /* Letter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC9ABF0969826C33789B127C /* Letter.swift */; };
 		B3694A925CA24DA84FF66C1B /* SynologyBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */; };
 		BFDF0F615ABBAB7B13CC619D /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
+		C7FF085F9B162D56F33FC227 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0E39D832D41AD11A73DFB4D9 /* FirebaseAnalytics */; };
 		C9064F78F856CAC41A6252A8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED48EC99484C6FF1EC93FC5 /* RootView.swift */; };
 		C9B78403710B7286A0D8CF63 /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
 		CA1B5CF9C9091044B0AF3944 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
@@ -148,6 +151,7 @@
 		E2CC07F3B82784F2223049EF /* LetterAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterAttachment.swift; sourceTree = "<group>"; };
 		EC9ABF0969826C33789B127C /* Letter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Letter.swift; sourceTree = "<group>"; };
 		F52638E7AC452447C783EAFB /* app-icon-preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "app-icon-preview.png"; sourceTree = "<group>"; };
+		FF7B2464470751CCD2F80A03 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +160,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D53DF35041CF250C50F55430 /* LettersToMyCore in Frameworks */,
+				C7FF085F9B162D56F33FC227 /* FirebaseAnalytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,6 +217,7 @@
 		63CFB24C7793EF0419D446AC /* App */ = {
 			isa = PBXGroup;
 			children = (
+				FF7B2464470751CCD2F80A03 /* Analytics.swift */,
 				4BB311684BD87C308E2B1D04 /* CloudKitShareDelegates.swift */,
 				941EC696F83630F717EE5393 /* LettersToMyApp.swift */,
 			);
@@ -322,6 +328,7 @@
 			name = LettersToMy;
 			packageProductDependencies = (
 				27B1580C8991A0F5B20F1359 /* LettersToMyCore */,
+				0E39D832D41AD11A73DFB4D9 /* FirebaseAnalytics */,
 			);
 			productName = LettersToMy;
 			productReference = 92B071285075BC1D4965EC8E /* LettersToMy.app */;
@@ -387,6 +394,7 @@
 			mainGroup = 95CBFE3327E164DA97C0B7E5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				F70A57AE3A6D2777950CECB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				A7BB022950A3D47EF9BCBF2B /* XCLocalSwiftPackageReference "." */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -448,6 +456,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8FFDE5B95A6ADBDCF7D1BE95 /* Analytics.swift in Sources */,
 				2578BA1BDE9430F4C096A99D /* BackupProviders.swift in Sources */,
 				ED99E1902963B03880D827C5 /* BackupRecordEntity.swift in Sources */,
 				AA0992A23854035832400DF3 /* BackupServiceManager.swift in Sources */,
@@ -485,6 +494,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A90299D7E4AB91D05A274323 /* Analytics.swift in Sources */,
 				8E8E72C351F776DF905D0A73 /* BackupProviders.swift in Sources */,
 				D800877850D09EC42F8C93AA /* BackupRecordEntity.swift in Sources */,
 				D5148EA307ECFF55CC4EF374 /* BackupServiceManager.swift in Sources */,
@@ -806,10 +816,26 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		F70A57AE3A6D2777950CECB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		08C64F2FE497D3092A0C2EB3 /* LettersToMyCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LettersToMyCore;
+		};
+		0E39D832D41AD11A73DFB4D9 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F70A57AE3A6D2777950CECB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
 		};
 		27B1580C8991A0F5B20F1359 /* LettersToMyCore */ = {
 			isa = XCSwiftPackageProductDependency;

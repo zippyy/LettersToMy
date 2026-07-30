@@ -344,6 +344,14 @@ struct LetterEditorView: View {
         }
 
         try? persistence.save(managedObjectContext)
+
+        if isNew {
+            let hasAttachments = !pendingAttachments.isEmpty || (letter?.attachments?.count ?? 0) > 0
+            Analytics.letterCreated(sealed: sealed, hasAttachments: hasAttachments)
+        } else {
+            Analytics.letterEdited()
+        }
+
         dismiss()
     }
 

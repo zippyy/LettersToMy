@@ -9,6 +9,9 @@ options:
 packages:
   LettersToMyCore:
     path: .
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    majorVersion: 11.0.0
 
 settings:
   base:
@@ -44,6 +47,8 @@ targets:
         buildPhase: resources
     dependencies:
       - package: LettersToMyCore
+      - package: Firebase
+        product: FirebaseAnalytics
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bayoumountainholdings.LettersToMy

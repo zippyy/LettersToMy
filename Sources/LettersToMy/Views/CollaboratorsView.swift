@@ -451,6 +451,7 @@ private struct InvitationRow: View {
                 if let share {
                     invitation.markSent(ckShareRecordName: share.recordID.recordName)
                     try? PersistenceController.shared.save()
+                    Analytics.invitationSent()
                 }
                 sharingPartition = nil
             }
@@ -484,6 +485,7 @@ private struct InvitationRow: View {
         invitation.markRevoked()
         invitation.partition?.memberActivationData = nil
         try? PersistenceController.shared.save()
+        Analytics.invitationRevoked()
     }
 }
 

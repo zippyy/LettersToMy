@@ -14,6 +14,7 @@ struct RootView: View {
                     }
                     MainTabView()
                 }
+                .onAppear { Analytics.appOpened() }
             } else {
                 WelcomeView {
                     hasCompletedOnboarding = true

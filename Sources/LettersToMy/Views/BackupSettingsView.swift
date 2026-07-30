@@ -208,6 +208,7 @@ struct BackupSettingsView: View {
 
         statusMessage = "\(destination.title) backup complete — \(record.letterCount) letters, \(formatBytes(record.sizeBytes))."
         statusIsError = false
+        Analytics.backupCompleted(destination: destination.title, sizeBytes: record.sizeBytes)
     }
 
     private func deleteRecord(_ entity: BackupRecordEntity) {
