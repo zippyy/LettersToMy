@@ -206,7 +206,7 @@ struct BackupSettingsView: View {
         entity.apply(record)
         try? PersistenceController.shared.save(context)
 
-        statusMessage = "\(destination.title) backup complete — \(record.letterCount) letters, \(formatBytes(record.sizeBytes))."
+        statusMessage = "\(destination.title) backup complete — \(record.letterCount) letters, \(record.sizeBytes.formattedBytes())."
         statusIsError = false
         Analytics.backupCompleted(destination: destination.title, sizeBytes: record.sizeBytes)
     }
@@ -311,12 +311,6 @@ struct BackupSettingsView: View {
 
     private func latestRecord(for destination: BackupDestination) -> BackupRecordEntity? {
         backupRecords.first { $0.destination == destination }
-    }
-
-    private func formatBytes(_ bytes: Int64) -> String {
-        if bytes < 1024 { return "\(bytes) B" }
-        if bytes < 1_048_576 { return String(format: "%.1f KB", Double(bytes) / 1024) }
-        return String(format: "%.1f MB", Double(bytes) / 1_048_576)
     }
 
     // MARK: - Restore
@@ -599,7 +593,7 @@ private struct HistoryRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(record.destination.title)
                     .font(.subheadline)
-                Text("\(record.createdAt.formatted(date: .numeric, time: .shortened)) · \(formatBytes(record.sizeBytes))")
+                Text("\(record.createdAt.formatted(date: .numeric, time: .shortened)) · \(record.sizeBytes.formattedBytes())")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -619,10 +613,12 @@ private struct HistoryRow: View {
             Button("Delete Record", role: .destructive, action: onDelete)
         }
     }
+}
 
-    private func formatBytes(_ bytes: Int64) -> String {
-        if bytes < 1024 { return "\(bytes) B" }
-        if bytes < 1_048_576 { return String(format: "%.1f KB", Double(bytes) / 1024) }
-        return String(format: "%.1f MB", Double(bytes) / 1_048_576)
+private extension Int64 {
+    func formattedBytes() -> String {
+        if self < 1024 { return "\(self) B" }
+        if self < 1_048_576 { return String(format: "%.1f KB", Double(self) / 1024) }
+        return String(format: "%.1f MB", Double(self) / 1_048_576)
     }
 }
