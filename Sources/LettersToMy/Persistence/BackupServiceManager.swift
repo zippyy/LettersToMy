@@ -7,7 +7,9 @@ import LettersToMyCore
 final class BackupServiceManager {
     static let shared = BackupServiceManager()
 
-    let service = BackupService(appVersion: "0.1.0")
+    let service = BackupService(
+        appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
+    )
 
     @Published private(set) var isReady = false
 
