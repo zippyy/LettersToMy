@@ -456,6 +456,18 @@ private struct InvitationRow: View {
                 sharingPartition = nil
             }
         }
+        #else
+        .alert(
+            "Sharing requires an iPhone or iPad",
+            isPresented: Binding(
+                get: { sharingPartition != nil },
+                set: { if !$0 { sharingPartition = nil } }
+            )
+        ) {
+            Button("OK") { sharingPartition = nil }
+        } message: {
+            Text("CloudKit share invitations can only be sent from the iOS app. This invitation stays pending and can be sent later from an iPhone or iPad.")
+        }
         #endif
     }
 
