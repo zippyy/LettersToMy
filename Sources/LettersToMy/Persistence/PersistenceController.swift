@@ -110,17 +110,21 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         let storeCount = container.persistentStoreDescriptions.count
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             var loaded = 0
-            container.loadPersistentStores { description, error in
+            container.loadPersistentStores { [weak self] description, error in
                 if let error {
+                    guard let self else {
+                        continuation.resume()
+                        return
+                    }
                     self.lastSyncError = error.localizedDescription
-                } else if let store = self.container.persistentStoreCoordinator.persistentStores.first(
+                } else if let store = self?.container.persistentStoreCoordinator.persistentStores.first(
                     where: { $0.configurationName == description.configuration }
                 ) {
                     switch description.configuration {
                     case Self.privateConfigurationName:
-                        self.privateStore = store
+                        self?.privateStore = store
                     case Self.sharedConfigurationName:
-                        self.sharedStore = store
+                        self?.sharedStore = store
                     default:
                         break
                     }
