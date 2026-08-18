@@ -489,6 +489,96 @@ struct BackupSettingsView: View {
             imported += 1
         }
 
+        // Restore branches (skip duplicates by ID) with matching partitions.
+        let existingBranches = (try? context.fetch(
+            NSFetchRequest<FamilyBranchRecord>(entityName: "FamilyBranchRecord")
+        )) ?? []
+        let existingBranchIDs = Set(existingBranches.map(\.id))
+
+        for branch in payload.branches {
+            guard !existingBranchIDs.contains(branch.id) else { skipped += 1; continue }
+            let partition = persistence.insertPrivate(SharePartitionRecord.self, into: context)
+            partition.kind = .branch
+            partition.displayName = branch.name
+            partition.scopeID = branch.id
+
+            let entity = persistence.insertPrivate(FamilyBranchRecord.self, into: context)
+            entity.id = branch.id
+            entity.name = branch.name
+            entity.kindRawValue = branch.kindRawValue
+            entity.parentBranchID = branch.parentBranchID
+            entity.partition = partition
+            imported += 1
+        }
+
+        // Restore folders (skip duplicates by ID) with matching partitions.
+        let existingFolders = (try? context.fetch(
+            NSFetchRequest<ArchiveFolderRecord>(entityName: "ArchiveFolderRecord")
+        )) ?? []
+        let existingFolderIDs = Set(existingFolders.map(\.id))
+
+        for folder in payload.folders {
+            guard !existingFolderIDs.contains(folder.id) else { skipped += 1; continue }
+            let partition = persistence.insertPrivate(SharePartitionRecord.self, into: context)
+            partition.kind = .folder
+            partition.displayName = folder.name
+            partition.scopeID = folder.id
+
+            let entity = persistence.insertPrivate(ArchiveFolderRecord.self, into: context)
+            entity.id = folder.id
+            entity.branchID = folder.branchID
+            entity.parentFolderID = folder.parentFolderID
+            entity.name = folder.name
+            entity.partition = partition
+            imported += 1
+        }
+
+        // Restore members (skip duplicates by ID) with archive partitions.
+        let existingMembers = (try? context.fetch(
+            NSFetchRequest<ArchiveMemberRecord>(entityName: "ArchiveMemberRecord")
+        )) ?? []
+        let existingMemberIDs = Set(existingMembers.map(\.id))
+
+        for member in payload.members {
+            guard !existingMemberIDs.contains(member.id) else { skipped += 1; continue }
+            let partition = persistence.insertPrivate(SharePartitionRecord.self, into: context)
+            partition.kind = .archiveAdministration
+            partition.displayName = member.displayName
+
+            let entity = persistence.insertPrivate(ArchiveMemberRecord.self, into: context)
+            entity.id = member.id
+            entity.displayName = member.displayName
+            entity.relationship = member.relationship
+            entity.roleRawValue = member.roleRawValue
+            entity.statusRawValue = member.statusRawValue
+            entity.canInviteOthers = member.canInviteOthers
+            entity.partition = partition
+            imported += 1
+        }
+
+        // Restore invitations (skip duplicates by ID) with partitions.
+        let existingInvitations = (try? context.fetch(
+            NSFetchRequest<CollaborationInvitationRecord>(entityName: "CollaborationInvitationRecord")
+        )) ?? []
+        let existingInvitationIDs = Set(existingInvitations.map(\.id))
+
+        for invitation in payload.invitations {
+            guard !existingInvitationIDs.contains(invitation.id) else { skipped += 1; continue }
+            let partition = persistence.insertPrivate(SharePartitionRecord.self, into: context)
+            partition.kind = .archiveAdministration
+            partition.displayName = invitation.inviteeDisplayName
+
+            let entity = persistence.insertPrivate(CollaborationInvitationRecord.self, into: context)
+            entity.id = invitation.id
+            entity.inviteeDisplayName = invitation.inviteeDisplayName
+            entity.inviteeAddress = invitation.inviteeAddress
+            entity.relationship = invitation.relationship
+            entity.roleRawValue = invitation.roleRawValue
+            entity.statusRawValue = invitation.statusRawValue
+            entity.partition = partition
+            imported += 1
+        }
+
         try? persistence.save(context)
         restorePayload = nil
         showingRestorePreview = false
