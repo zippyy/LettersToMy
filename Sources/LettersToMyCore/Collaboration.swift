@@ -316,7 +316,7 @@ public struct CollaborationInvitation: Codable, Equatable, Identifiable, Sendabl
     }
 }
 
-public enum CollaborationAction: Sendable {
+public enum CollaborationAction: CaseIterable, Sendable {
     case viewContent
     case viewSealedContent
     case createContent

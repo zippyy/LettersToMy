@@ -216,4 +216,86 @@ struct BackupServiceTests {
         #expect(restored.letters.isEmpty)
         #expect(restored.children.isEmpty)
     }
+
+    @Test func attachmentRoundTripSurvivesBackupAndRestore() async throws {
+        let service = BackupService()
+        let provider = MockBackupProvider()
+        await service.register(provider)
+
+        let attachmentID = UUID()
+        let attachmentData = Data("photo-bytes-for-emma".utf8)
+        var payload = samplePayload()
+        payload.attachments = [
+            AttachmentPayload(
+                id: attachmentID,
+                letterID: payload.letters[0].id,
+                fileName: "trip.jpg",
+                contentTypeIdentifier: "public.jpeg",
+                kindRawValue: "photo",
+                createdAt: .now,
+                data: attachmentData
+            )
+        ]
+
+        let record = try await service.backup(payload: payload, to: .localFile, passphrase: passphrase)
+        #expect(record.attachmentCount == 1)
+
+        let handle = BackupRemoteHandle(identifier: record.remoteIdentifier!)
+        let restored = try await service.restore(from: .localFile, handle: handle, passphrase: passphrase)
+
+        #expect(restored.attachments.count == 1)
+        let restoredAttachment = restored.attachments.first
+        #expect(restoredAttachment?.id == attachmentID)
+        #expect(restoredAttachment?.letterID == payload.letters[0].id)
+        #expect(restoredAttachment?.fileName == "trip.jpg")
+        #expect(restoredAttachment?.contentTypeIdentifier == "public.jpeg")
+        #expect(restoredAttachment?.kindRawValue == "photo")
+        #expect(restoredAttachment?.data == attachmentData)
+    }
+
+    @Test func restoredIdentifiersMatchOriginalForDuplicateDetection() async throws {
+        let service = BackupService()
+        let provider = MockBackupProvider()
+        await service.register(provider)
+
+        let childID = UUID()
+        let letterID = UUID()
+        let attachmentID = UUID()
+        let payload = BackupPayload(
+            children: [ChildPayload(id: childID, name: "Emma")],
+            letters: [
+                LetterPayload(
+                    id: letterID,
+                    childID: childID,
+                    title: "Hello",
+                    body: "Body",
+                    authorName: "Mom",
+                    createdAt: .now,
+                    updatedAt: .now
+                )
+            ],
+            attachments: [
+                AttachmentPayload(
+                    id: attachmentID,
+                    letterID: letterID,
+                    fileName: "a.jpg",
+                    contentTypeIdentifier: "public.jpeg",
+                    kindRawValue: "photo",
+                    createdAt: .now,
+                    data: Data("x".utf8)
+                )
+            ]
+        )
+
+        let record = try await service.backup(payload: payload, to: .localFile, passphrase: passphrase)
+        let handle = BackupRemoteHandle(identifier: record.remoteIdentifier!)
+        let restored = try await service.restore(from: .localFile, handle: handle, passphrase: passphrase)
+
+        // The app's duplicate-skip logic matches on these IDs: a second
+        // restore of the same archive must present the same identifiers
+        // so already-imported records are detected and skipped.
+        #expect(restored.children.first?.id == childID)
+        #expect(restored.letters.first?.id == letterID)
+        #expect(restored.attachments.first?.id == attachmentID)
+    }
 }

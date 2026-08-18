@@ -123,4 +123,64 @@ struct CollaborationPolicyTests {
         #expect(!CollaborationPolicy.allows(organizer, action: .deleteContent, context: context))
         #expect(CollaborationPolicy.allows(organizer, action: .manageFolders, context: context))
     }
+
+    @Test func suspendedMemberCannotPerformAnyAction() {
+        let member = ArchiveMember(
+            displayName: "Suspended Member",
+            relationship: "Family member",
+            role: .contributor,
+            status: .suspended,
+            scope: .archive
+        )
+        let context = CollaborationContext(isSealed: false, isUnlocked: true)
+
+        for action in CollaborationAction.allCases {
+            #expect(!CollaborationPolicy.allows(member, action: action, context: context))
+        }
+    }
+
+    @Test func removedMemberCannotPerformAnyAction() {
+        let member = ArchiveMember(
+            displayName: "Removed Member",
+            relationship: "Former collaborator",
+            role: .parentAdmin,
+            status: .removed,
+            scope: .archive
+        )
+        let context = CollaborationContext(isSealed: false, isUnlocked: true)
+
+        for action in CollaborationAction.allCases {
+            #expect(!CollaborationPolicy.allows(member, action: action, context: context))
+        }
+    }
+
+    @Test func invitedMemberCannotPerformAnyActionBeforeAcceptance() {
+        let member = ArchiveMember(
+            displayName: "Pending Member",
+            relationship: "Invitee",
+            role: .parentAdmin,
+            status: .invited,
+            scope: .archive
+        )
+        let context = CollaborationContext(isSealed: false, isUnlocked: true)
+
+        for action in CollaborationAction.allCases {
+            #expect(!CollaborationPolicy.allows(member, action: action, context: context))
+        }
+    }
+
+    @Test func sealedContentVisibleOnlyToRolesWithThePermission() {
+        let context = CollaborationContext(isSealed: true, isUnlocked: false)
+        let owner = ArchiveMember(displayName: "Owner", relationship: "Owner", role: .owner, scope: .archive)
+        let admin = ArchiveMember(displayName: "Parent", relationship: "Parent", role: .parentAdmin, scope: .archive)
+        let organizer = ArchiveMember(displayName: "Uncle", relationship: "Uncle", role: .organizer, scope: .archive)
+        let contributor = ArchiveMember(displayName: "Cousin", relationship: "Cousin", role: .contributor, scope: .archive)
+        let viewer = ArchiveMember(displayName: "Aunt", relationship: "Aunt", role: .viewer, scope: .archive)
+
+        #expect(CollaborationPolicy.allows(owner, action: .viewSealedContent, context: context))
+        #expect(CollaborationPolicy.allows(admin, action: .viewSealedContent, context: context))
+        #expect(CollaborationPolicy.allows(organizer, action: .viewSealedContent, context: context))
+        #expect(!CollaborationPolicy.allows(contributor, action: .viewSealedContent, context: context))
+        #expect(!CollaborationPolicy.allows(viewer, action: .viewSealedContent, context: context))
+    }
 }
