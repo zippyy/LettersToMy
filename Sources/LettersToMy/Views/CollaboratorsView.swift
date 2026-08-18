@@ -184,10 +184,7 @@ struct CollaboratorsView: View {
             owner.partition = adminPartition
         }
 
-        guard privateBranches.isEmpty else {
-            try? persistence.save(context)
-            return
-        }
+        guard privateBranches.isEmpty else { return }
 
         let defaults: [(String, FamilyBranchKind)] = [
             ("Parents", .parents),
