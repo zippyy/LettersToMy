@@ -6,6 +6,20 @@ import LettersToMyCore
 import Security
 import UserNotifications
 
+/// The application's Core Data + CloudKit coordinator.
+///
+/// `@unchecked Sendable` is safe here because:
+/// - Core Data confines every managed object and context to its creation
+///   queue; all mutation goes through `NSManagedObjectContext`, which is
+///   itself queue-confined and not shared unsafely.
+/// - `@Published` properties (`isLoaded`, `cloudKitAccountStatus`,
+///   `lastSyncError`) are only read and written on the `@MainActor` via
+///   the SwiftUI observation pipeline.
+/// - `container`, `privateStore`, and `sharedStore` are set once during
+///   init/load and only reassigned inside the async store-loading path
+///   that completes before any other access; `static let shared` is a
+///   process-lifetime singleton, so weak captures in callbacks never
+///   deallocate it.
 final class PersistenceController: ObservableObject, @unchecked Sendable {
     static let shared = PersistenceController()
 
