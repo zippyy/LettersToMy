@@ -777,10 +777,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             description = NSPersistentStoreDescription()
             description.type = NSInMemoryStoreType
         } else {
-            let applicationSupport = FileManager.default.urls(
+            guard let applicationSupport = FileManager.default.urls(
                 for: .applicationSupportDirectory,
                 in: .userDomainMask
-            ).first!
+            ).first else {
+                // Fail fast — the app cannot function without a
+                // persistent store location.
+                fatalError("Application Support directory is unavailable.")
+            }
             let directory = applicationSupport.appendingPathComponent(
                 "LettersToMy",
                 isDirectory: true
