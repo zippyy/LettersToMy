@@ -463,6 +463,32 @@ struct BackupSettingsView: View {
             imported += 1
         }
 
+        // Restore attachments (skip duplicates by ID).
+        let existingAttachments = (try? context.fetch(
+            NSFetchRequest<LetterAttachment>(entityName: "LetterAttachment")
+        )) ?? []
+        let existingAttachmentIDs = Set(existingAttachments.map(\.id))
+
+        // Letters available for linking (existing or just imported).
+        let restoredLetters = (try? context.fetch(
+            NSFetchRequest<Letter>(entityName: "Letter")
+        )) ?? []
+        let letterByID = Dictionary(uniqueKeysWithValues: restoredLetters.map { ($0.id, $0) })
+
+        for attachment in payload.attachments {
+            guard !existingAttachmentIDs.contains(attachment.id) else { skipped += 1; continue }
+            let entity = persistence.insertPrivate(LetterAttachment.self, into: context)
+            entity.id = attachment.id
+            entity.letterID = attachment.letterID
+            entity.fileName = attachment.fileName
+            entity.contentTypeIdentifier = attachment.contentTypeIdentifier
+            entity.kindRawValue = attachment.kindRawValue
+            entity.createdAt = attachment.createdAt
+            entity.data = attachment.data
+            entity.letter = letterByID[attachment.letterID]
+            imported += 1
+        }
+
         try? persistence.save(context)
         restorePayload = nil
         showingRestorePreview = false
