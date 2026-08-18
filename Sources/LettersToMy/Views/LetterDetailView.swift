@@ -16,7 +16,17 @@ struct LetterDetailView: View {
     }
 
     private var isVisible: Bool {
-        !recipientPreview || letter.isUnlocked(for: child)
+        if recipientPreview {
+            return letter.isUnlocked(for: child)
+        }
+        // Preview disabled — seeing sealed bodies is a privilege, not a
+        // side effect of the global toggle. Non-owners still see locked
+        // content even when the toggle is off.
+        return PersistenceController.shared.canPerform(
+            .viewSealedContent,
+            context: letter.collaborationContext(for: child),
+            target: letter
+        )
     }
 
     private var canUpdate: Bool {

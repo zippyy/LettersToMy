@@ -1,3 +1,4 @@
+import LettersToMyCore
 import SwiftUI
 
 struct SettingsView: View {
@@ -16,12 +17,22 @@ struct SettingsView: View {
         }
     }
 
+    private var canManagePreview: Bool {
+        PersistenceController.shared.canPerform(
+            .viewSealedContent,
+            context: CollaborationContext(isSealed: true)
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Preview") {
                     Toggle("Recipient preview", isOn: $recipientPreview)
-                    Text("When enabled, sealed letters remain hidden until their unlock rules are satisfied.")
+                        .disabled(!canManagePreview)
+                    Text(canManagePreview
+                        ? "When enabled, sealed letters remain hidden until their unlock rules are satisfied. Parents can turn this off to manage the complete archive."
+                        : "Only owners and administrators can disable recipient preview. Sealed letters stay hidden from collaborators.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

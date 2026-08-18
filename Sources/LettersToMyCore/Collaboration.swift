@@ -318,6 +318,7 @@ public struct CollaborationInvitation: Codable, Equatable, Identifiable, Sendabl
 
 public enum CollaborationAction: Sendable {
     case viewContent
+    case viewSealedContent
     case createContent
     case editContent
     case deleteContent
@@ -386,6 +387,8 @@ public enum CollaborationPolicy {
         case .viewContent:
             guard permissions.contains(.viewContent) else { return false }
             return !context.isSealed || permissions.contains(.viewSealedContent)
+        case .viewSealedContent:
+            return permissions.contains(.viewSealedContent)
         case .createContent:
             return permissions.contains(.createContent)
         case .editContent:

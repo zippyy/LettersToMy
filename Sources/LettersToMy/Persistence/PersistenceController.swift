@@ -360,6 +360,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     private func permission(for action: CollaborationAction) -> CollaborationPermission {
         switch action {
         case .viewContent: .viewContent
+        case .viewSealedContent: .viewSealedContent
         case .createContent: .createContent
         case .editContent: .editOwnContent
         case .deleteContent: .deleteOwnContent
