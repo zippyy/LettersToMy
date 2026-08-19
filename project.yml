@@ -45,6 +45,8 @@ targets:
       - path: Sources/LettersToMy
       - path: Resources
         buildPhase: resources
+      - path: Config/GoogleService-Info.plist
+        buildPhase: resources
     dependencies:
       - package: LettersToMyCore
       - package: Firebase
