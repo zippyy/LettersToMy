@@ -49,6 +49,8 @@ targets:
       - package: LettersToMyCore
       - package: Firebase
         product: FirebaseAnalytics
+      - package: Firebase
+        product: FirebaseCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bayoumountainholdings.LettersToMy

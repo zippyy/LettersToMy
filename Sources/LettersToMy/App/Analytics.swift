@@ -118,11 +118,7 @@ enum Analytics {
 
     private static func logEvent(_ name: String, params: [String: String]?) {
         #if os(iOS)
-        if let params {
-            Analytics.logEvent(name, parameters: params)
-        } else {
-            Analytics.logEvent(name, parameters: nil)
-        }
+        Analytics.logEvent(name, params: params)
         #endif
     }
 }

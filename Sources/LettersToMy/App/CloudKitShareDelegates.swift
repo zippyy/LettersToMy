@@ -3,6 +3,7 @@ import Foundation
 import LettersToMyCore
 
 #if os(iOS)
+import FirebaseCore
 import FirebaseAnalytics
 import UIKit
 

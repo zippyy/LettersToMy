@@ -55,6 +55,7 @@
 		8F165E8CDB87E3BE22BCFAB4 /* GoogleDriveBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9ACDF836BFA8F60D8B84D2 /* GoogleDriveBackupProvider.swift */; };
 		8FFDE5B95A6ADBDCF7D1BE95 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
 		931584472E40FB99E788589D /* icon-preview-Daughter.png in Resources */ = {isa = PBXBuildFile; fileRef = 5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */; };
+		94FB791206D6C75028428609 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A2457F52453D695C58812872 /* FirebaseCore */; };
 		97B8704924261BAB12AE2A2E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */; };
 		A43BAB1B87DCBB1AA5442E26 /* SelfHostedCollaborationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */; };
 		A77FC1E4EA5838D17D2728F2 /* LettersToMyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941EC696F83630F717EE5393 /* LettersToMyApp.swift */; };
@@ -167,6 +168,7 @@
 			files = (
 				D53DF35041CF250C50F55430 /* LettersToMyCore in Frameworks */,
 				C7FF085F9B162D56F33FC227 /* FirebaseAnalytics in Frameworks */,
+				94FB791206D6C75028428609 /* FirebaseCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -337,6 +339,7 @@
 			packageProductDependencies = (
 				27B1580C8991A0F5B20F1359 /* LettersToMyCore */,
 				0E39D832D41AD11A73DFB4D9 /* FirebaseAnalytics */,
+				A2457F52453D695C58812872 /* FirebaseCore */,
 			);
 			productName = LettersToMy;
 			productReference = 92B071285075BC1D4965EC8E /* LettersToMy.app */;
@@ -852,6 +855,11 @@
 		27B1580C8991A0F5B20F1359 /* LettersToMyCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LettersToMyCore;
+		};
+		A2457F52453D695C58812872 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F70A57AE3A6D2777950CECB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
 		};
 		C4353EC3A214FA369BFCBA6A /* LettersToMyCore */ = {
 			isa = XCSwiftPackageProductDependency;
