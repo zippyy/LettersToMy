@@ -49,8 +49,13 @@ final class LettersToMySceneDelegate: NSObject, UIWindowSceneDelegate {
 
 #elseif os(macOS)
 import AppKit
+import FirebaseCore
 
 final class LettersToMyApplicationDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        FirebaseApp.configure()
+    }
+
     func application(
         _ application: NSApplication,
         userDidAcceptCloudKitShareWith metadata: CKShare.Metadata

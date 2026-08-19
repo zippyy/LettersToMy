@@ -75,8 +75,14 @@ targets:
       - path: Sources/LettersToMy
       - path: Resources
         buildPhase: resources
+      - path: Config/Firebase/macOS/GoogleService-Info.plist
+        buildPhase: resources
     dependencies:
       - package: LettersToMyCore
+      - package: Firebase
+        product: FirebaseCore
+      - package: Firebase
+        product: FirebaseAnalytics
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bayoumountainholdings.LettersToMy.mac
@@ -85,12 +91,15 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Config/LettersToMy-macOS.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
+        OTHER_LDFLAGS: ["$(inherited)", "-ObjC"]
     entitlements:
       path: Config/LettersToMy-macOS.entitlements
       properties:
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.bayoumountainholdings.LettersToMy
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)$(CFBundleIdentifier)
 
   LettersToMyTests:
     type: bundle.unit-test

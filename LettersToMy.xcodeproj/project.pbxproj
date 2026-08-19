@@ -45,6 +45,7 @@
 		744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C946E20EAA508545CF374D /* S3BackupProvider.swift */; };
 		7967F8AA435180CB69238B3F /* icon-preview-Son.png in Resources */ = {isa = PBXBuildFile; fileRef = 40F6881991B0D35575994FBF /* icon-preview-Son.png */; };
 		7C47924C895A0A8FDC4EF9AA /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
+		7CB7564BB6A9F781C54F9230 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8804665E2ADF820017447DDC /* FirebaseCore */; };
 		7E618316706A27194C7C3EAE /* SynologyBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */; };
 		8269FF37CDFCE8A9EA776C82 /* CloudKitShareItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */; };
 		829FD5D41D05F927FE0E8C7B /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51466AA6963287351167A822 /* TimelineView.swift */; };
@@ -57,6 +58,7 @@
 		931584472E40FB99E788589D /* icon-preview-Daughter.png in Resources */ = {isa = PBXBuildFile; fileRef = 5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */; };
 		94FB791206D6C75028428609 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A2457F52453D695C58812872 /* FirebaseCore */; };
 		97B8704924261BAB12AE2A2E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */; };
+		9B830B1DB071D9AE84F36CE8 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = D42992E62F2D0C8EC4F15E24 /* FirebaseAnalytics */; };
 		A43BAB1B87DCBB1AA5442E26 /* SelfHostedCollaborationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */; };
 		A77FC1E4EA5838D17D2728F2 /* LettersToMyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941EC696F83630F717EE5393 /* LettersToMyApp.swift */; };
 		A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0161C38E7CB50077E00EC5 /* SettingsView.swift */; };
@@ -85,6 +87,7 @@
 		DBF4898055583B5ED4457FF2 /* BackupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0120C9E862F3AA3971829BBE /* BackupSettingsView.swift */; };
 		DFA9E3E1AD51A8C4319DD277 /* icon-preview-Grandson.png in Resources */ = {isa = PBXBuildFile; fileRef = 251CD83F2C0F54C1697A1C0C /* icon-preview-Grandson.png */; };
 		E7CEB5DEF4E7772ED9DC892F /* CollaborationRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D9C945F79689EA4DFAD98AF /* CollaborationRecords.swift */; };
+		EB35673F642814F0A0F3A8D1 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 12A9BE528CB994A79CB21448 /* GoogleService-Info.plist */; };
 		EBB6622A016ADF6719B5EF72 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58B48CE6639E02B94646058 /* PersistenceController.swift */; };
 		EBB8737775A0150F7FBF0D5C /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		ED99E1902963B03880D827C5 /* BackupRecordEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */; };
@@ -112,6 +115,7 @@
 /* Begin PBXFileReference section */
 		0120C9E862F3AA3971829BBE /* BackupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSettingsView.swift; sourceTree = "<group>"; };
 		096F30AC16AC5AAF72F47A63 /* UnlockRuleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockRuleTests.swift; sourceTree = "<group>"; };
+		12A9BE528CB994A79CB21448 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		1D9C945F79689EA4DFAD98AF /* CollaborationRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationRecords.swift; sourceTree = "<group>"; };
 		208DD25B5FAE5F1A8F72FBA2 /* DeliveryPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryPipelineTests.swift; sourceTree = "<group>"; };
 		21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynologyBackupProvider.swift; sourceTree = "<group>"; };
@@ -177,6 +181,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				FD83B6BED8968F05F5A4E40E /* LettersToMyCore in Frameworks */,
+				7CB7564BB6A9F781C54F9230 /* FirebaseCore in Frameworks */,
+				9B830B1DB071D9AE84F36CE8 /* FirebaseAnalytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -207,6 +213,15 @@
 				CA8A5E39997BB3AC2C28E2B1 /* LettersToMy */,
 			);
 			name = Packages;
+			sourceTree = "<group>";
+		};
+		27689FA45D17DB79ED3B2D01 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				12A9BE528CB994A79CB21448 /* GoogleService-Info.plist */,
+			);
+			name = macOS;
+			path = Config/Firebase/macOS;
 			sourceTree = "<group>";
 		};
 		57471201624C69697E8A10BE /* LettersToMyCoreTests */ = {
@@ -249,6 +264,7 @@
 			children = (
 				933C6D65D4D309681372BF4C /* LettersToMy */,
 				57471201624C69697E8A10BE /* LettersToMyCoreTests */,
+				27689FA45D17DB79ED3B2D01 /* macOS */,
 				19B0657594B6483E2C11D00A /* Packages */,
 				DB1B3F2C13E1B7D84C407FE1 /* Resources */,
 				0BBE9ADAC6C2B6B4B9C16749 /* Products */,
@@ -360,6 +376,8 @@
 			name = LettersToMyMac;
 			packageProductDependencies = (
 				08C64F2FE497D3092A0C2EB3 /* LettersToMyCore */,
+				8804665E2ADF820017447DDC /* FirebaseCore */,
+				D42992E62F2D0C8EC4F15E24 /* FirebaseAnalytics */,
 			);
 			productName = LettersToMyMac;
 			productReference = 77BB45C5B09A2E90D67376A3 /* LettersToMyMac.app */;
@@ -439,6 +457,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC377294E356E4B1A6C8AC37 /* Assets.xcassets in Resources */,
+				EB35673F642814F0A0F3A8D1 /* GoogleService-Info.plist in Resources */,
 				FC76372D468241E8C59492DD /* app-icon-preview.png in Resources */,
 				30D8D824EAD607B6C0F8667D /* icon-preview-Daughter.png in Resources */,
 				3F4031FD1417A61EBFB68A39 /* icon-preview-Granddaughter.png in Resources */,
@@ -566,6 +585,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMy.mac;
 				PRODUCT_NAME = "Letters to My";
 				SDKROOT = macosx;
@@ -664,6 +687,10 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMy.mac;
 				PRODUCT_NAME = "Letters to My";
@@ -856,6 +883,11 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = LettersToMyCore;
 		};
+		8804665E2ADF820017447DDC /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F70A57AE3A6D2777950CECB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
 		A2457F52453D695C58812872 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F70A57AE3A6D2777950CECB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -864,6 +896,11 @@
 		C4353EC3A214FA369BFCBA6A /* LettersToMyCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LettersToMyCore;
+		};
+		D42992E62F2D0C8EC4F15E24 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F70A57AE3A6D2777950CECB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

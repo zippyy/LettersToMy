@@ -20,6 +20,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Letters to My</string>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 	<key>CKSharingSupported</key>
 	<true/>
 	<key>CFBundleDocumentTypes</key>
