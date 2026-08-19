@@ -152,67 +152,9 @@ struct CollaboratorsView: View {
     }
 
     private func seedPrivateArchive() {
-        let persistence = PersistenceController.shared
-
-        var adminPartition = privatePartitions.first { $0.kind == .archiveAdministration }
-        if adminPartition == nil {
-            let partition = persistence.insertPrivate(
-                SharePartitionRecord.self,
-                into: context
-            )
-            partition.kind = .archiveAdministration
-            partition.displayName = "Family Archive Administration"
-            adminPartition = partition
-        }
-
-        // Create an explicit owner member record so ownership is never
-        // only inferred by fallback. Guard against duplicates — archives
-        // restored from backup may already carry an owner record.
-        let ownerFetch = NSFetchRequest<ArchiveMemberRecord>(entityName: "ArchiveMemberRecord")
-        ownerFetch.predicate = NSPredicate(
-            format: "roleRawValue == %@ AND statusRawValue == %@",
-            CollaborationRole.owner.rawValue,
-            MembershipStatus.active.rawValue
-        )
-        let ownerExists = ((try? context.fetch(ownerFetch)) ?? []).isEmpty == false
-        if !ownerExists {
-            let owner = persistence.insertPrivate(ArchiveMemberRecord.self, into: context)
-            owner.role = .owner
-            owner.status = .active
-            owner.displayName = "Owner"
-            owner.scope = .archive
-            owner.partition = adminPartition
-        }
-
-        guard privateBranches.isEmpty else { return }
-
-        let defaults: [(String, FamilyBranchKind)] = [
-            ("Parents", .parents),
-            ("Maternal Family", .maternal),
-            ("Paternal Family", .paternal),
-            ("Chosen Family", .chosenFamily)
-        ]
-
-        for (name, kind) in defaults {
-            let partition = persistence.insertPrivate(
-                SharePartitionRecord.self,
-                into: context
-            )
-            partition.kind = .branch
-            partition.displayName = name
-
-            let branch = persistence.insertPrivate(
-                FamilyBranchRecord.self,
-                into: context
-            )
-            branch.name = name
-            branch.kind = kind
-            branch.isSeeded = true
-            branch.partition = partition
-            partition.scopeID = branch.id
-        }
-
-        try? persistence.save(context)
+        // Single source of truth: PersistenceController.seedDefaultArchive.
+        // Creates the admin partition, owner member, and default branches.
+        PersistenceController.shared.seedDefaultArchive(into: context)
     }
 }
 

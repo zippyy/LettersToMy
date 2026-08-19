@@ -395,6 +395,72 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
     }
 
+    /// Create the initial private archive: the administration partition, an
+    /// explicit owner member, and the four default family branches. Called
+    /// once when the user taps "Create Our Family Archive" at onboarding and
+    /// again defensively when the People tab loads. Idempotent — each piece
+    /// is guarded so a re-run never duplicates records.
+    func seedDefaultArchive(into context: NSManagedObjectContext? = nil) {
+        let context = context ?? container.viewContext
+
+        // Admin partition.
+        let partitionFetch = NSFetchRequest<SharePartitionRecord>(entityName: "SharePartitionRecord")
+        partitionFetch.predicate = NSPredicate(format: "kindRawValue == %@", SharePartitionKind.archiveAdministration.rawValue)
+        var adminPartition = (try? context.fetch(partitionFetch))?.first
+        if adminPartition == nil {
+            let partition = insertPrivate(SharePartitionRecord.self, into: context)
+            partition.kind = .archiveAdministration
+            partition.displayName = "Family Archive Administration"
+            adminPartition = partition
+        }
+
+        // Explicit owner member (guarded against archives restored from backup).
+        let ownerFetch = NSFetchRequest<ArchiveMemberRecord>(entityName: "ArchiveMemberRecord")
+        ownerFetch.predicate = NSPredicate(
+            format: "roleRawValue == %@ AND statusRawValue == %@",
+            CollaborationRole.owner.rawValue,
+            MembershipStatus.active.rawValue
+        )
+        let ownerExists = ((try? context.fetch(ownerFetch)) ?? []).isEmpty == false
+        if !ownerExists, let adminPartition {
+            let owner = insertPrivate(ArchiveMemberRecord.self, into: context)
+            owner.role = .owner
+            owner.status = .active
+            owner.displayName = "Owner"
+            owner.scope = .archive
+            owner.partition = adminPartition
+        }
+
+        // Default branches — only when there are no private branches yet.
+        let branchFetch = NSFetchRequest<FamilyBranchRecord>(entityName: "FamilyBranchRecord")
+        let hasBranches = ((try? context.fetch(branchFetch)) ?? []).isEmpty == false
+        guard !hasBranches else {
+            try? save(context)
+            return
+        }
+
+        let defaults: [(String, FamilyBranchKind)] = [
+            ("Parents", .parents),
+            ("Maternal Family", .maternal),
+            ("Paternal Family", .paternal),
+            ("Chosen Family", .chosenFamily)
+        ]
+        for (name, kind) in defaults {
+            let partition = insertPrivate(SharePartitionRecord.self, into: context)
+            partition.kind = .branch
+            partition.displayName = name
+
+            let branch = insertPrivate(FamilyBranchRecord.self, into: context)
+            branch.name = name
+            branch.kind = kind
+            branch.isSeeded = true
+            branch.partition = partition
+            partition.scopeID = branch.id
+        }
+
+        try? save(context)
+    }
+
     /// Evaluate all sealed letters against their unlock rules and create
     /// recipient delivery records for any that have newly unlocked.
     /// Idempotent — letters that already have a delivery are skipped.

@@ -17,6 +17,10 @@ struct RootView: View {
                 .onAppear { Analytics.appOpened() }
             } else {
                 WelcomeView {
+                    // Create the archive before revealing the main UI so
+                    // "Create Our Family Archive" actually provisions the
+                    // admin partition, owner member, and default branches.
+                    persistence.seedDefaultArchive(into: persistence.container.viewContext)
                     hasCompletedOnboarding = true
                     Analytics.onboardingCompleted()
                 }
