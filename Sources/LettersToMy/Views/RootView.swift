@@ -21,8 +21,14 @@ struct RootView: View {
                     // "Create Our Family Archive" actually provisions the
                     // admin partition, owner member, and default branches.
                     persistence.seedDefaultArchive(into: persistence.container.viewContext)
+                    // Flip onboarding LAST so the UI transition is never
+                    // delayed by work in this closure.
                     hasCompletedOnboarding = true
-                    Analytics.onboardingCompleted()
+                    // Analytics must not block the transition: the very first
+                    // Firebase logEvent initializes the Analytics SDK
+                    // synchronously on the calling (main) thread, which can
+                    // freeze the UI with the button stuck greyed.
+                    Task.detached { Analytics.onboardingCompleted() }
                 }
             }
         }
