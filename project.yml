@@ -60,6 +60,11 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-Daughter AppIcon-Granddaughter AppIcon-Grandson AppIcon-Son"
         TARGETED_DEVICE_FAMILY: "1,2"
+        # Filled in by the TestFlight CI workflow (sed) so the manual
+        # provisioning profile applies ONLY to the app target, never to
+        # SwiftPM package targets (Firebase et al.), which require
+        # CODE_SIGN_STYLE Automatic.
+        PROVISIONING_PROFILE_SPECIFIER: CI_IOS_PROFILE_UUID_PLACEHOLDER
     entitlements:
       path: Config/LettersToMy-iOS.entitlements
       properties:
@@ -92,6 +97,11 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
         OTHER_LDFLAGS: ["$(inherited)", "-ObjC"]
+        # Filled in by the TestFlight CI workflow (sed) so the manual
+        # provisioning profile applies ONLY to the app target, never to
+        # SwiftPM package targets (Firebase et al.), which require
+        # CODE_SIGN_STYLE Automatic.
+        PROVISIONING_PROFILE_SPECIFIER: CI_MACOS_PROFILE_UUID_PLACEHOLDER
     entitlements:
       path: Config/LettersToMy-macOS.entitlements
       properties:

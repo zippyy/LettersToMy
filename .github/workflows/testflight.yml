@@ -32,6 +32,12 @@ jobs:
       - name: Generate Xcode project
         run: |
           sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
+          # Scope the manual provisioning profile to the app target only.
+          # Passing it as a global xcodebuild flag applies it to SwiftPM
+          # package targets (Firebase, GoogleUtilities, ...), which fail with
+          # "does not support provisioning profiles". Replacing the marker in
+          # project.yml lets xcodegen attach it to the app target alone.
+          sed -i '' "s/CI_IOS_PROFILE_UUID_PLACEHOLDER/b45ab7db-22b5-4323-aa81-b881079901b5/" project.yml
           xcodegen generate
 
       - name: Import signing certificate
@@ -100,8 +106,7 @@ jobs:
             -archivePath "$ARCHIVE_PATH" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="b45ab7db-22b5-4323-aa81-b881079901b5"
+            CODE_SIGN_IDENTITY="Apple Distribution"
 
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
@@ -140,6 +145,9 @@ jobs:
       - name: Generate Xcode project
         run: |
           sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: ${{ inputs.build_number }}/" project.yml
+          # Scope the manual provisioning profile to the app target only
+          # (see iOS job comment for why global flags break SwiftPM packages).
+          sed -i '' "s/CI_MACOS_PROFILE_UUID_PLACEHOLDER/91405fb4-afd9-4825-96a1-893de956e073/" project.yml
           xcodegen generate
 
       - name: Import signing certificates
@@ -213,8 +221,7 @@ jobs:
             -archivePath "$ARCHIVE_PATH" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="91405fb4-afd9-4825-96a1-893de956e073"
+            CODE_SIGN_IDENTITY="Apple Distribution"
 
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \

@@ -591,6 +591,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMy.mac;
 				PRODUCT_NAME = "Letters to My";
+				PROVISIONING_PROFILE_SPECIFIER = CI_MACOS_PROFILE_UUID_PLACEHOLDER;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -694,6 +695,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMy.mac;
 				PRODUCT_NAME = "Letters to My";
+				PROVISIONING_PROFILE_SPECIFIER = CI_MACOS_PROFILE_UUID_PLACEHOLDER;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -728,6 +730,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMy;
 				PRODUCT_NAME = "Letters to My";
+				PROVISIONING_PROFILE_SPECIFIER = CI_IOS_PROFILE_UUID_PLACEHOLDER;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -747,6 +750,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMy;
 				PRODUCT_NAME = "Letters to My";
+				PROVISIONING_PROFILE_SPECIFIER = CI_IOS_PROFILE_UUID_PLACEHOLDER;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
