@@ -8,12 +8,17 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
-        .library(name: "LettersToMyCore", targets: ["LettersToMyCore"])
+        .library(name: "LettersToMyCore", targets: ["LettersToMyCore"]),
+        .executable(name: "selfhosted-check", targets: ["SelfHostedCheck"])
     ],
     targets: [
         .target(name: "LettersToMyCore"),
         .testTarget(
             name: "LettersToMyCoreTests",
+            dependencies: ["LettersToMyCore"]
+        ),
+        .executableTarget(
+            name: "SelfHostedCheck",
             dependencies: ["LettersToMyCore"]
         )
     ]
