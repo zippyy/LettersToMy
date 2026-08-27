@@ -144,9 +144,10 @@ public struct BackupRecord: Codable, Equatable, Identifiable, Sendable {
 
 // MARK: - Backup Manifest
 
-/// Unencrypted header written at the top of every archive so the
-/// user (or a recovery tool) can identify the backup without the
-/// decryption key.
+/// The manifest describes the archive contents. It is NOT stored in
+/// plaintext: the manifest is the first struct inside the encrypted
+/// JSON payload, so the whole file (including the manifest) requires
+/// the passphrase to read. See docs/LETTERSTOMY_FORMAT.md.
 public struct BackupManifest: Codable, Equatable, Sendable {
     public var formatVersion: Int
     public var archiveID: UUID
@@ -516,7 +517,7 @@ public actor BackupService {
         guard let provider = providers[destination] else {
             throw BackupError.notConfigured(destination)
         }
-        guard try await provider.isReady() else {
+        guard await provider.isReady() else {
             throw BackupError.providerError(destination, "Provider is not ready.")
         }
 
@@ -581,7 +582,7 @@ public actor BackupService {
         guard let provider = providers[destination] else {
             throw BackupError.notConfigured(destination)
         }
-        guard try await provider.isReady() else {
+        guard await provider.isReady() else {
             throw BackupError.providerError(destination, "Provider is not ready.")
         }
 

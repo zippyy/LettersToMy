@@ -112,6 +112,12 @@ targets:
           - iCloud.com.bayoumountainholdings.LettersToMy
         keychain-access-groups:
           - $(AppIdentifierPrefix)$(CFBundleIdentifier)
+        # App Sandbox is mandatory for Mac App Store / TestFlight
+        # distribution; network.client and user-selected file access are
+        # required for CloudKit sync and backup import/export.
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected.read-write: true
 
   LettersToMyTests:
     type: bundle.unit-test

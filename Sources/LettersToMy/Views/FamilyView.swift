@@ -11,6 +11,7 @@ struct FamilyView: View {
 
     @State private var selectedChildID: UUID?
     @State private var showingAdd = false
+    @State private var childPendingDeletion: ChildProfile?
 
     private var selectedChild: ChildProfile? {
         children.first { $0.id == selectedChildID } ?? children.first
@@ -60,6 +61,35 @@ struct FamilyView: View {
                 }
                 .frame(minWidth: 420, minHeight: 340)
             }
+            .confirmationDialog(
+                "Delete \\(childPendingDeletionName)?",
+                isPresented: Binding(
+                    get: { childPendingDeletion != nil },
+                    set: { if !$0 { childPendingDeletion = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete Letters and Deliveries", role: .destructive) {
+                    if let child = childPendingDeletion {
+                        confirmDelete(child)
+                    }
+                    childPendingDeletion = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    childPendingDeletion = nil
+                }
+            }
+            .alert(
+                "Recipient Deleted",
+                isPresented: Binding(
+                    get: { deletionSummary != nil },
+                    set: { if !$0 { deletionSummary = nil } }
+                )
+            ) {
+                Button("OK") { deletionSummary = nil }
+            } message: {
+                Text(deletionSummary ?? "")
+            }
             .onAppear {
                 if selectedChildID == nil {
                     selectedChildID = children.first?.id
@@ -70,10 +100,31 @@ struct FamilyView: View {
 
     private func deleteChildren(at offsets: IndexSet) {
         for index in offsets {
-            managedObjectContext.delete(children[index])
+            childPendingDeletion = children[index]
         }
-        try? PersistenceController.shared.save(managedObjectContext)
     }
+
+    private var childPendingDeletionName: String {
+        guard let name = childPendingDeletion?.name, !name.isEmpty else { return "this recipient" }
+        return name
+    }
+
+    private func confirmDelete(_ child: ChildProfile) {
+        if selectedChildID == child.id {
+            selectedChildID = nil
+        }
+        let result = PersistenceController.shared.deleteChild(child, in: managedObjectContext)
+        if result.letters > 0 || result.deliveries > 0 {
+            // Surface the cascade so the deletion is not silent.
+            let parts = [
+                result.letters > 0 ? "\\(result.letters) letters" : nil,
+                result.deliveries > 0 ? "\\(result.deliveries) deliveries" : nil
+            ].compactMap { $0 }
+            deletionSummary = "Deleted " + parts.joined(separator: " and ") + " for \(child.name)."
+        }
+    }
+
+    @State private var deletionSummary: String?
 }
 
 // MARK: - Child Row

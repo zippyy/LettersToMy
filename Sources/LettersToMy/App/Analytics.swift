@@ -5,7 +5,12 @@ import FirebaseAnalytics
 
 /// Lightweight analytics wrapper. All Firebase calls are iOS-only;
 /// macOS builds compile the stubs without linking Firebase.
-enum Analytics {
+///
+/// NOTE: named `AppAnalytics` (not `Analytics`) on purpose. A type named
+/// `Analytics` shadows the Firebase `Analytics` class inside this module,
+/// which made `Analytics.logEvent(...)` resolve to the wrapper's own method
+/// and recurse infinitely (stack overflow on every analytics call on iOS).
+enum AppAnalytics {
 
     // MARK: - Lifecycle
 
@@ -118,7 +123,11 @@ enum Analytics {
 
     private static func logEvent(_ name: String, params: [String: String]?) {
         #if os(iOS)
-        Analytics.logEvent(name, params: params)
+        // Fully-qualified so this can never resolve to a local type.
+        // Firebase's API label is `parameters:` (the local wrapper used
+        // `params:` only because the old self-recursive call never
+        // reached Firebase at all).
+        FirebaseAnalytics.Analytics.logEvent(name, parameters: params)
         #endif
     }
 }

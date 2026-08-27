@@ -35,13 +35,19 @@ final class LettersToMySceneDelegate: NSObject, UIWindowSceneDelegate {
         _ windowScene: UIWindowScene,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        let participantIdentity = participantIdentity(from: cloudKitShareMetadata)
         let persistence = PersistenceController.shared
         persistence.acceptShare(cloudKitShareMetadata) { result in
             if case .success = result {
-                persistence.activateAcceptedMembers(
-                    participantIdentity: participantIdentity
-                )
+                // The accepting participant's own identity is NOT derivable
+                // from share metadata (which exposes only the share owner),
+                // so resolve it from the user's own CloudKit container
+                // before creating the member record.
+                Task {
+                    let identity = await persistence.currentUserIdentity()
+                    persistence.activateAcceptedMembers(
+                        participantIdentity: identity
+                    )
+                }
             }
         }
     }
@@ -60,13 +66,17 @@ final class LettersToMyApplicationDelegate: NSObject, NSApplicationDelegate {
         _ application: NSApplication,
         userDidAcceptCloudKitShareWith metadata: CKShare.Metadata
     ) {
-        let participantIdentity = participantIdentity(from: metadata)
         let persistence = PersistenceController.shared
         persistence.acceptShare(metadata) { result in
             if case .success = result {
-                persistence.activateAcceptedMembers(
-                    participantIdentity: participantIdentity
-                )
+                // See iOS note: the acceptee's identity must come from
+                // their own container, not from share metadata.
+                Task {
+                    let identity = await persistence.currentUserIdentity()
+                    persistence.activateAcceptedMembers(
+                        participantIdentity: identity
+                    )
+                }
             }
         }
     }

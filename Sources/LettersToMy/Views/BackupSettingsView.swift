@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct BackupSettingsView: View {
     @Environment(\.managedObjectContext) private var context
+    @StateObject private var backupManager = BackupServiceManager.shared
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \BackupRecordEntity.createdAt, ascending: false)],
@@ -61,7 +62,11 @@ struct BackupSettingsView: View {
 
     private var destinationsSection: some View {
         Section("Destinations") {
-            ForEach(BackupDestination.allCases, id: \.self) { destination in
+            if backupManager.availableDestinations.isEmpty {
+                Text("No backup destinations are configured yet.")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(backupManager.availableDestinations, id: \.self) { destination in
                 destinationRow(for: destination)
             }
         }
@@ -208,7 +213,7 @@ struct BackupSettingsView: View {
 
         statusMessage = "\(destination.title) backup complete — \(record.letterCount) letters, \(record.sizeBytes.formattedBytes())."
         statusIsError = false
-        Analytics.backupCompleted(destination: destination.title, sizeBytes: record.sizeBytes)
+        AppAnalytics.backupCompleted(destination: destination.title, sizeBytes: record.sizeBytes)
     }
 
     private func deleteRecord(_ entity: BackupRecordEntity) {
@@ -423,6 +428,8 @@ struct BackupSettingsView: View {
             entity.id = child.id
             entity.name = child.name
             entity.birthDate = child.birthDate
+            // The format payload does not carry child timestamps; preserve
+            // the archive itself and stamp the restore time.
             entity.createdAt = .now
             entity.updatedAt = .now
             imported += 1
@@ -574,6 +581,12 @@ struct BackupSettingsView: View {
         }
 
         try? persistence.save(context)
+
+        // Restored letters that are already past their unlock rule need
+        // deliveries; the same pipeline the app runs at launch handles
+        // this idempotently (letters with an existing delivery are skipped).
+        persistence.processPendingDeliveries(into: context)
+
         restorePayload = nil
         showingRestorePreview = false
         restoreProgress = "Imported \(imported) records, skipped \(skipped) duplicates."

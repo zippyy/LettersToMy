@@ -348,33 +348,6 @@ enum LettersToMyManagedObjectModel {
         destination.properties.append(fromPartition)
     }
 
-    /// Adds a Core Data fetch index on a single UUID attribute so that
-    /// queries filtering by that attribute use an indexed scan instead of
-    /// a full table scan. CloudKit does not use these indexes directly,
-    /// but the local SQLite store benefits significantly.
-    private static func addUUIDIndex(
-        to entity: NSEntityDescription,
-        attribute name: String
-    ) {
-        guard let property = entity.propertiesByName[name] as? NSAttributeDescription else {
-            return
-        }
-        let element = NSFetchIndexElementDescription(
-            property: property,
-            collationType: .binary
-        )
-        let index = NSFetchIndexDescription(
-            name: "\(entity.name!)_\(name)_idx",
-            elements: [element]
-        )
-        // NSPersistentCloudKitContainer may auto-create an index for
-        // the "id" attribute; avoid a duplicate-index crash.
-        if entity.indexes.contains(where: { $0.name == index.name }) {
-            return
-        }
-        entity.indexes.append(index)
-    }
-
     /// Guards against accidental data loss: partition relationships must
     /// use nullify, never cascade. If a future edit regresses this, the
     /// assertion fires at app launch during development.

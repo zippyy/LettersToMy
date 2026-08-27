@@ -149,7 +149,7 @@ struct LetterDetailView: View {
                               let data = attachment.data {
                         #if os(iOS)
                         let player = videoPlayer(for: data)
-                        if let url = (player.currentItem?.asset as? AVURLAsset)?.url {
+                        if (player.currentItem?.asset as? AVURLAsset)?.url != nil {
                             VideoPlayer(player: player)
                                 .frame(minHeight: 200)
                         } else {

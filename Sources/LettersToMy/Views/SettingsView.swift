@@ -53,7 +53,7 @@ struct SettingsView: View {
                     }
                     .onChange(of: selectedIcon) { _, icon in
                         UIApplication.shared.setAlternateIconName(icon.name)
-                        Analytics.iconChanged(icon.name ?? "default")
+                        AppAnalytics.iconChanged(icon.name ?? "default")
                     }
                 }
                 #endif

@@ -14,7 +14,7 @@ struct RootView: View {
                     }
                     MainTabView()
                 }
-                .onAppear { Analytics.appOpened() }
+                .onAppear { AppAnalytics.appOpened() }
             } else {
                 WelcomeView {
                     // Create the archive before revealing the main UI so
@@ -28,7 +28,7 @@ struct RootView: View {
                     // Firebase logEvent initializes the Analytics SDK
                     // synchronously on the calling (main) thread, which can
                     // freeze the UI with the button stuck greyed.
-                    Task.detached { Analytics.onboardingCompleted() }
+                    Task.detached { AppAnalytics.onboardingCompleted() }
                 }
             }
         }

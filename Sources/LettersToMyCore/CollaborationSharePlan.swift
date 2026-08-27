@@ -44,60 +44,44 @@ public enum CollaborationSharePlanner {
             return []
 
         case .parentAdmin:
-            var grants = [
-                CollaborationShareGrant(
-                    partition: .archiveAdministration,
-                    permission: .readWrite,
-                    canInviteOthers: member.canInviteOthers
-                )
-            ]
-            grants += availableBranchIDs.map {
-                CollaborationShareGrant(
-                    partition: .branch($0),
-                    permission: .readWrite,
-                    canInviteOthers: member.canInviteOthers
-                )
+            // Archive-wide access grants the administration share plus every
+            // branch and recipient share. A NARROWER scope (branch or folder)
+            // only grants that scope's shares — otherwise a branch-scoped
+            // parent/admin would receive every branch and recipient inbox in
+            // the archive, over-sharing sealed content.
+            if member.scope.archiveWide {
+                var grants = [
+                    CollaborationShareGrant(
+                        partition: .archiveAdministration,
+                        permission: .readWrite,
+                        canInviteOthers: member.canInviteOthers
+                    )
+                ]
+                grants += availableBranchIDs.map {
+                    CollaborationShareGrant(
+                        partition: .branch($0),
+                        permission: .readWrite,
+                        canInviteOthers: member.canInviteOthers
+                    )
+                }
+                grants += availableRecipientIDs.map {
+                    CollaborationShareGrant(
+                        partition: .recipientInbox($0),
+                        permission: .readWrite,
+                        canInviteOthers: member.canInviteOthers
+                    )
+                }
+                return grants.sorted(by: stablePartitionOrder)
             }
-            grants += availableRecipientIDs.map {
-                CollaborationShareGrant(
-                    partition: .recipientInbox($0),
-                    permission: .readWrite,
-                    canInviteOthers: member.canInviteOthers
-                )
-            }
-            return grants.sorted(by: stablePartitionOrder)
+            // Scoped parent/admin: fall through to the scoped content grants
+            // so the scope is honored.
+            return scopedContentGrants(for: member)
 
         case .organizer, .contributor:
-            let folderGrants = member.scope.folderIDs.map {
-                CollaborationShareGrant(
-                    partition: .folder($0),
-                    permission: .readWrite,
-                    canInviteOthers: member.canInviteOthers
-                )
-            }
-            if !folderGrants.isEmpty {
-                return folderGrants.sorted(by: stablePartitionOrder)
-            }
-            return member.scope.branchIDs.map {
-                CollaborationShareGrant(
-                    partition: .branch($0),
-                    permission: .readWrite,
-                    canInviteOthers: member.canInviteOthers
-                )
-            }
-            .sorted(by: stablePartitionOrder)
+            return scopedContentGrants(for: member, permission: .readWrite)
 
         case .viewer:
-            let folderGrants = member.scope.folderIDs.map {
-                CollaborationShareGrant(partition: .folder($0), permission: .readOnly)
-            }
-            if !folderGrants.isEmpty {
-                return folderGrants.sorted(by: stablePartitionOrder)
-            }
-            return member.scope.branchIDs.map {
-                CollaborationShareGrant(partition: .branch($0), permission: .readOnly)
-            }
-            .sorted(by: stablePartitionOrder)
+            return scopedContentGrants(for: member, permission: .readOnly)
 
         case .recipient:
             return member.scope.recipientIDs.map {
@@ -105,6 +89,33 @@ public enum CollaborationSharePlanner {
             }
             .sorted(by: stablePartitionOrder)
         }
+    }
+
+    /// Content-scoped grants for a member: folders first (narrowest), then
+    /// branches. Used by scoped parent/admins, organizers, contributors,
+    /// and viewers so every role honors the same scope rules.
+    private static func scopedContentGrants(
+        for member: ArchiveMember,
+        permission: CollaborationSharePermission = .readWrite
+    ) -> [CollaborationShareGrant] {
+        let folderGrants = member.scope.folderIDs.map {
+            CollaborationShareGrant(
+                partition: .folder($0),
+                permission: permission,
+                canInviteOthers: member.canInviteOthers
+            )
+        }
+        if !folderGrants.isEmpty {
+            return folderGrants.sorted(by: stablePartitionOrder)
+        }
+        return member.scope.branchIDs.map {
+            CollaborationShareGrant(
+                partition: .branch($0),
+                permission: permission,
+                canInviteOthers: member.canInviteOthers
+            )
+        }
+        .sorted(by: stablePartitionOrder)
     }
 
     private static func stablePartitionOrder(

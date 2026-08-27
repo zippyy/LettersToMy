@@ -1,149 +1,117 @@
-# GitHub Actions CI/CD — TestFlight Deployment
+# GitHub Actions CI/CD
 
-## Overview
+LettersToMy uses GitHub Actions for continuous validation and
+TestFlight distribution. There is no fastlane: signing uses base64
+certificates and provisioning profiles stored as repository secrets
+(the same pattern used for DankDiary).
 
-GitHub Actions builds both iOS and macOS apps, signs them with fastlane
-Match, and uploads to TestFlight automatically when a release is
-published (or manually via workflow_dispatch).
+## Workflows
 
-```
-GitHub Release → Workflow → xcodegen → fastlane match (signing)
-  → build_app → upload_to_testflight → Internal Testers
-```
+### 1. Core tests — `.github/workflows/core-tests.yml`
 
-## Required Secrets
+Triggered on push to `main` and on pull requests.
 
-Set these in your GitHub repo under **Settings → Secrets & Variables →
-Actions → Repository secrets**:
+Runs `swift test` (the portable `LettersToMyCore` package). This is the
+fastest signal and covers unlock rules, collaboration policy, share
+planning, delivery pipeline, and backup round-trips.
 
-| Secret | Description | How to get |
-|--------|-------------|------------|
-| `ASC_KEY_ID` | App Store Connect API Key ID | [App Store Connect → Users → Keys](https://appstoreconnect.apple.com/access/integrations/api) |
-| `ASC_ISSUER_ID` | App Store Connect Issuer ID | Same page as above |
-| `ASC_KEY` | Base64-encoded `.p8` private key | Download .p8, then `base64 -i AuthKey_XXXX.p8 \| tr -d '\n'` |
-| `MATCH_PASSWORD` | Passphrase for the match git repo | Set when you first ran `fastlane match` |
-| `MATCH_GIT_URL` | Git clone URL for the match repo | e.g. `https://github.com/zippyy/letters-to-my-certs.git` |
-| `MATCH_GIT_BASIC_AUTHORIZATION` | (if private repo) GitHub PAT or token | `echo -n 'username:token' \| base64` |
-| `FASTLANE_APPLE_EMAIL` | Apple ID email for the developer account | Your Apple Developer login |
-| `FASTLANE_TEAM_ID` | Apple Developer Team ID | [developer.apple.com → Membership](https://developer.apple.com/account) |
+### 2. Apple builds — `.github/workflows/apple-build.yml`
 
-## App Store Connect API Key Setup
+Triggered on push to `main` and on pull requests.
 
-1. Go to [App Store Connect → Users and Access → Integrations → API Keys](https://appstoreconnect.apple.com/access/integrations/api).
+- Installs XcodeGen and regenerates `LettersToMy.xcodeproj`
+- Builds the iOS app (`-scheme LettersToMy`, iOS Simulator, unsigned)
+- Builds the macOS app (`-scheme LettersToMyMac`, unsigned)
+- Uploads `ios-diagnostics.txt` / `macos-diagnostics.txt` artifacts on
+  every run (including failures) so build warnings/errors are visible
 
-2. Click **+** to create a new key:
-   - Name: `GitHub Actions CI`
-   - Role: **App Manager** (needed to upload builds and manage TestFlight)
+Both builds fail the job on error — `|| true` is never used to mask a
+failed build.
 
-3. Download the `.p8` file — **this is the only time you can download it**.
+### 3. Deploy to TestFlight — `.github/workflows/testflight.yml`
 
-4. Convert to base64 for the `ASC_KEY` secret:
-   ```bash
-   base64 -i AuthKey_XXXXXX.p8 | tr -d '\n' | pbcopy
-   ```
-   Paste into the GitHub secret. No line breaks.
+Manual dispatch only (`workflow_dispatch`) with inputs:
 
-5. Note the **Key ID** (e.g. `ABC123DEF4`) and **Issuer ID** (UUID in the
-   table header).
+- `platform`: `ios`, `macos`, or `both`
+- `build_number`: required, monotonically increasing (bump it every run;
+  never reuse a number — App Store Connect rejects duplicate build
+  numbers and CI must never be made idempotent on an existing tag)
 
-## Fastlane Match — First-Time Setup
+Highlights:
 
-Match stores your signing certificates and provisioning profiles in a
-private git repo. Run these commands once on your Mac:
+- `sed` replaces `CURRENT_PROJECT_VERSION` in `project.yml` with the
+  supplied build number, and replaces the
+  `CI_IOS_PROFILE_UUID_PLACEHOLDER` / `CI_MACOS_PROFILE_UUID_PLACEHOLDER`
+  markers so the manual provisioning profile is scoped to the app target
+  only (global xcodebuild flags would apply it to SwiftPM package
+  targets like Firebase, which fail with "does not support provisioning
+  profiles").
+- Imports the Apple Distribution certificate into a temporary keychain,
+  installs the provisioning profile, installs the ASC API key into
+  `~/private_keys`.
+- Archives with `CODE_SIGN_STYLE=Manual` and exports.
+- macOS export falls back to building the PKG manually from the
+  xcarchive (`pkgbuild --component`) because Xcode 26.5's export cannot
+  validate the Mac Installer cert against the provisioning profile —
+  this is an intentional, documented fallback, not a masked failure;
+  the step still fails if the app directory is missing.
+- Uploads to TestFlight via `xcrun altool` with the ASC key.
+- Uploads the IPA/PKG artifact (fails if no file was found).
+- A `summary` job prints a platform-by-platform status table.
 
-```bash
-cd LettersToMy
-bundle install
+## Required secrets
 
-# Create a private git repo for certificates (e.g. on GitHub).
-# Then configure it:
-bundle exec fastlane match init
+Set these in GitHub → repository → Settings → Secrets and variables →
+Actions:
 
-# Edit fastlane/Matchfile and set git_url to your repo URL.
+| Secret | Used by | Description |
+|--------|---------|-------------|
+| `APPLE_DISTRIBUTION_CERTIFICATE_BASE64` | testflight | Base64 of the distribution `.p12` |
+| `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD` | testflight | `.p12` passphrase |
+| `APPLE_PROVISIONING_PROFILE_BASE64` | testflight (iOS) | Base64 of the iOS distribution profile (UUID `b45ab7db-22b5-4323-aa81-b881079901b5`) |
+| `APPLE_PROVISIONING_PROFILE_BASE64_MAC` | testflight (macOS) | Base64 of the macOS distribution profile (UUID `91405fb4-afd9-4825-96a1-893de956e073`) |
+| `APPLE_MAC_INSTALLER_CERTIFICATE_BASE64` | testflight (macOS) | Base64 of the 3rd Party Mac Developer Installer `.p12` |
+| `APPLE_TEAM_ID` | testflight | Apple Developer Team ID (e.g. `B6LWQPCDFR`) |
+| `ASC_KEY_ID` | testflight | App Store Connect API key ID |
+| `ASC_ISSUER_ID` | testflight | App Store Connect API issuer ID |
+| `ASC_KEY` | testflight | Base64 of the `.p8` API key, saved as `AuthKey_<KEY_ID>.p8` |
 
-# Generate App Store certs and profiles:
-bundle exec fastlane match appstore
+The provisioning profile UUIDs in the workflow must match the profile's
+own UUID (the workflow installs the file under both the short and full
+UUID filenames). If you regenerate a profile, update both the UUID in
+`testflight.yml` and the `PROVISIONING_PROFILE_SPECIFIER` markers in
+`project.yml`.
 
-# Generate Development certs and profiles (for local builds):
-bundle exec fastlane match development
+## Build numbers
 
-# Set a strong passphrase when prompted — this becomes MATCH_PASSWORD.
-```
+- `MARKETING_VERSION` (CFBundleShortVersionString) lives in
+  `project.yml` under `settings.base` — bump it for releases.
+- `CURRENT_PROJECT_VERSION` (CFBundleVersion) is set per-run from the
+  `build_number` input. Never reuse a version/tag number.
 
-After setup, commit only the `fastlane/Matchfile` — the certificates
-themselves live in the match git repo, not in the LettersToMy repo.
-
-## Triggering a Deploy
-
-### Option 1: Publish a GitHub Release
-
-1. Go to **Releases** → **Draft a new release**.
-2. Tag: `v0.1.0` (or any semver tag).
-3. Title: same as tag.
-4. Description: this becomes the TestFlight "What to Test" notes.
-5. Click **Publish release**.
-
-The workflow runs automatically. Both iOS and macOS build in parallel
-(~20-30 minutes total), then upload to TestFlight.
-
-### Option 2: Manual Dispatch
-
-1. Go to **Actions** → **Deploy to TestFlight** → **Run workflow**.
-2. Choose platform: `ios`, `mac`, or `both`.
-3. Optionally enter "What to Test" notes.
-4. Click **Run workflow**.
-
-## Build Numbers
-
-The workflow uses `GITHUB_RUN_NUMBER` as the build number (CFBundleVersion).
-This guarantees every upload has a unique, monotonically increasing build
-number. The marketing version (CFBundleShortVersionString) is set in
-`project.yml` under `MARKETING_VERSION`.
-
-To bump the version for a release:
+## Local equivalents
 
 ```bash
-# Edit Config/project.yml
-# Change: MARKETING_VERSION: 0.2.0
-# Then: xcodegen generate
-# Commit and push.
+# Core tests
+swift test
+
+# Regenerate the Xcode project after editing project.yml
+xcodegen generate
+
+# Unsigned builds (no signing required)
+xcodebuild -project LettersToMy.xcodeproj -scheme LettersToMy \
+  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+
+xcodebuild -project LettersToMy.xcodeproj -scheme LettersToMyMac \
+  -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
 ```
-
-## Monitoring
-
-After a workflow run:
-
-1. **GitHub Actions**: check the workflow run for build logs.
-2. **App Store Connect → TestFlight**: the build appears under
-   **TestFlight → iOS (or macOS) → Builds** after processing (5-15 min).
-3. **Internal testers** get the build automatically.
-4. **External testers** need the build assigned to their group (set
-   `distribute_external: true` in the Fastfile or use the App Store
-   Connect UI).
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| `No provisioning profile found` | Run `fastlane match appstore --force` to regenerate profiles |
-| `Authentication failed` | Verify ASC_KEY is base64 with no line breaks |
-| `Certificate has expired` | Run `fastlane match nuke appstore` then `fastlane match appstore` |
-| `Build processing timeout` | App Store processing can take 30+ min. The lane uses `skip_waiting_for_build_processing: true` to return immediately |
-| `xcodebuild: error: Unable to find destination` | Verify the selected Xcode version has the iOS runtime installed |
-| `Match cannot decrypt repo` | Verify MATCH_PASSWORD and MATCH_GIT_BASIC_AUTHORIZATION |
-
-## macOS Notarization
-
-macOS apps distributed through TestFlight do not require separate
-notarization — Apple handles it as part of App Store distribution.
-If you later distribute outside the App Store, add a notarization lane:
-
-```ruby
-lane :notarize do
-  notarize(
-    package: "build/macos/LettersToMy.pkg",
-    apple_id: ENV["FASTLANE_APPLE_EMAIL"],
-    team_id: ENV["FASTLANE_TEAM_ID"]
-  )
-end
-```
+| `No provisioning profile found` | Confirm the profile UUID in `testflight.yml` matches the installed profile and that `APPLE_PROVISIONING_PROFILE_BASE64` is current |
+| `code sign: errSecInternalComponent` | Re-create the build keychain in the workflow job; keychain corruption is transient per-run |
+| `does not support provisioning profiles` | Ensure the profile is scoped via `project.yml` markers, not passed as a global `xcodebuild` flag |
+| `Unable to find destination` | The hosted runner's Xcode version must have the iOS runtime installed for simulator builds |
+| `Upload failed: Invalid build number` | The `build_number` input was reused — bump it |

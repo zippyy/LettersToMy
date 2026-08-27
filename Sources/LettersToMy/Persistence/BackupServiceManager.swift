@@ -4,7 +4,7 @@ import LettersToMyCore
 /// Application-level singleton that owns the BackupService and
 /// registers the providers available on the current platform.
 @MainActor
-final class BackupServiceManager {
+final class BackupServiceManager: ObservableObject {
     static let shared = BackupServiceManager()
 
     let service = BackupService(
@@ -13,11 +13,23 @@ final class BackupServiceManager {
 
     @Published private(set) var isReady = false
 
+    /// Destinations that have a REAL provider registered. The backup UI
+    /// lists only these; destinations without credentials are not shown
+    /// as if they were usable.
+    @Published private(set) var availableDestinations: [BackupDestination] = []
+
     private init() {
         Task { await registerProviders() }
     }
 
     private func registerProviders() async {
+        // Only providers with REAL configuration are registered. Placeholder
+        // registrations (example.com URLs, empty keys, a "Synology" provider
+        // pointed at the local Documents directory) would make the UI claim a
+        // backup succeeded when nothing was actually stored at the destination
+        // — a silent data-loss hazard. Unregistered destinations fail honestly
+        // with BackupError.notConfigured ("<Destination> is not configured.").
+        //
         // Local file
         if let docs = FileManager.default.urls(
             for: .documentDirectory, in: .userDomainMask
@@ -32,37 +44,7 @@ final class BackupServiceManager {
         // iCloud Drive
         await service.register(ICloudBackupProvider())
 
-        // Other providers registered with placeholder configs.
-        // Google Drive
-        await service.register(GoogleDriveBackupProvider())
-
-        // Synology
-        if let docs = FileManager.default.urls(
-            for: .documentDirectory, in: .userDomainMask
-        ).first {
-            await service.register(SynologyBackupProvider(directoryURL: docs))
-        }
-
-        // Nextcloud
-        if let url = URL(string: "https://nextcloud.example.com/remote.php/dav/files/") {
-            await service.register(NextcloudBackupProvider(baseURL: url))
-        }
-
-        // WebDAV
-        if let url = URL(string: "https://webdav.example.com/") {
-            await service.register(WebDAVBackupProvider(baseURL: url))
-        }
-
-        // S3
-        if let url = URL(string: "https://s3.amazonaws.com") {
-            await service.register(S3BackupProvider(
-                endpointURL: url,
-                bucket: "letters-to-my-backups",
-                accessKey: "",
-                secretKey: ""
-            ))
-        }
-
+        availableDestinations = [.localFile, .iCloudDrive]
         isReady = true
     }
 }

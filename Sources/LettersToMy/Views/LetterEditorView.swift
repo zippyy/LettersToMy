@@ -42,6 +42,7 @@ struct LetterEditorView: View {
     @State private var attachmentsToDelete = Set<NSManagedObjectID>()
     @State private var importError: String?
     @State private var selectedMilestone: MilestoneTemplate?
+    @State private var permissionDenied = false
 
     init(letter: Letter?, child: ChildProfile?) {
         self.letter = letter
@@ -271,6 +272,14 @@ struct LetterEditorView: View {
         } message: {
             Text(importError ?? "Unknown error")
         }
+        .alert(
+            "Permission Denied",
+            isPresented: $permissionDenied
+        ) {
+            Button("OK") {}
+        } message: {
+            Text("Your role does not allow creating or editing a letter in the selected family side or folder.")
+        }
     }
 
     private var canSeal: Bool {
@@ -304,9 +313,31 @@ struct LetterEditorView: View {
             isNew ? .createContent : .editContent,
             context: collabContext,
             target: letter
-        ) else { return }
+        ) else {
+            // A denied permission must not look like a successful save.
+            permissionDenied = true
+            return
+        }
 
-        let target = letter ?? persistence.insertPrivate(Letter.self, into: managedObjectContext)
+        let target: Letter
+        let targetPartition = selectedPartition(using: persistence)
+        if let letter {
+            target = letter
+        } else {
+            // Create the new letter in the SAME store as its destination
+            // partition. A cross-store relationship to a shared partition
+            // would crash the save, and a private-store letter would be
+            // invisible to the archive owner when a collaborator creates it.
+            if let partition = targetPartition {
+                target = persistence.insert(
+                    Letter.self,
+                    inSameStoreAs: partition,
+                    into: managedObjectContext
+                )
+            } else {
+                target = persistence.insertPrivate(Letter.self, into: managedObjectContext)
+            }
+        }
 
         target.childID = child?.id
         target.branchID = branchID
@@ -320,7 +351,21 @@ struct LetterEditorView: View {
         target.lifeEventName = unlockKind == .lifeEvent ? lifeEventName.trimmingCharacters(in: .whitespacesAndNewlines) : ""
         target.updatedAt = .now
         target.sealedAt = sealed ? (target.sealedAt ?? .now) : nil
-        target.partition = selectedPartition(using: persistence)
+        if let partition = targetPartition {
+            // Only assign the partition when it is in the same store as the
+            // letter; cross-store relationships are invalid in Core Data.
+            if partition.objectID.persistentStore === target.objectID.persistentStore {
+                target.partition = partition
+            }
+        } else if isNew {
+            let partition = persistence.insertPrivate(
+                SharePartitionRecord.self,
+                into: managedObjectContext
+            )
+            partition.kind = .archiveAdministration
+            partition.displayName = "Family Archive Administration"
+            target.partition = partition
+        }
 
         // Delete attachments marked for removal.
         for objectID in attachmentsToDelete {
@@ -347,15 +392,15 @@ struct LetterEditorView: View {
 
         if isNew {
             let hasAttachments = !pendingAttachments.isEmpty || (letter?.attachments?.count ?? 0) > 0
-            Analytics.letterCreated(sealed: sealed, hasAttachments: hasAttachments)
+            AppAnalytics.letterCreated(sealed: sealed, hasAttachments: hasAttachments)
         } else {
-            Analytics.letterEdited()
+            AppAnalytics.letterEdited()
         }
 
         dismiss()
     }
 
-    private func selectedPartition(using persistence: PersistenceController) -> SharePartitionRecord {
+    private func selectedPartition(using persistence: PersistenceController) -> SharePartitionRecord? {
         if let folderID,
            let folder = folders.first(where: { $0.id == folderID }),
            let partition = folder.partition {
@@ -370,6 +415,9 @@ struct LetterEditorView: View {
             return archive
         }
 
+        // No partition exists yet — create a fresh admin partition in the
+        // private store. The letter is created in the same store below, so
+        // the relationship stays valid.
         let partition = persistence.insertPrivate(
             SharePartitionRecord.self,
             into: managedObjectContext

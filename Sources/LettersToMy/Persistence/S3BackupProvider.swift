@@ -159,7 +159,11 @@ final class S3BackupProvider: BackupProvider, @unchecked Sendable {
     private func sha256(_ string: String) -> String {
         guard let data = string.data(using: .utf8) else { return "" }
         var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
-        data.withUnsafeBytes { CC_SHA256($0.baseAddress, CC_LONG(data.count), &hash) }
+        data.withUnsafeBytes { bytes in
+            // CC_SHA256 returns a digest pointer (non-Void), so capture
+            // it explicitly to satisfy the unused-result warning.
+            _ = CC_SHA256(bytes.baseAddress, CC_LONG(data.count), &hash)
+        }
         return hash.map { String(format: "%02x", $0) }.joined()
     }
 

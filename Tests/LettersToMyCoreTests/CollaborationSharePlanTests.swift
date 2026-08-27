@@ -106,4 +106,54 @@ struct CollaborationSharePlanTests {
 
         #expect(CollaborationSharePlanner.grants(for: member).isEmpty)
     }
+
+    @Test func branchScopedParentAdminReceivesOnlyTheirBranch() {
+        let maternal = UUID()
+        let paternal = UUID()
+        let child = UUID()
+        let member = ArchiveMember(
+            displayName: "Scoped Parent",
+            relationship: "Parent",
+            role: .parentAdmin,
+            scope: CollaborationScope(branchIDs: [maternal])
+        )
+
+        let grants = CollaborationSharePlanner.grants(
+            for: member,
+            availableBranchIDs: [maternal, paternal],
+            availableRecipientIDs: [child]
+        )
+
+        // A parent/admin scoped to one branch must NOT receive the other
+        // branch or any recipient inbox — that would over-share sealed
+        // content beyond the assigned scope.
+        #expect(grants == [
+            CollaborationShareGrant(partition: .branch(maternal), permission: .readWrite)
+        ])
+        #expect(!grants.contains(where: {
+            if case .branch(paternal) = $0.partition { return true }
+            return false
+        }))
+        #expect(!grants.contains(where: {
+            if case .recipientInbox = $0.partition { return true }
+            return false
+        }))
+    }
+
+    @Test func folderScopedParentAdminReceivesOnlyFolderShare() {
+        let branch = UUID()
+        let folder = UUID()
+        let member = ArchiveMember(
+            displayName: "Folder-Scoped Parent",
+            relationship: "Parent",
+            role: .parentAdmin,
+            scope: CollaborationScope(branchIDs: [branch], folderIDs: [folder])
+        )
+
+        let grants = CollaborationSharePlanner.grants(for: member)
+
+        #expect(grants == [
+            CollaborationShareGrant(partition: .folder(folder), permission: .readWrite)
+        ])
+    }
 }

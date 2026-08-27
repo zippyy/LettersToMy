@@ -1,5 +1,4 @@
 import Foundation
-import LettersToMyCore
 
 /// The delivery state of a single unlocked letter to a recipient inbox.
 public enum DeliveryState: String, Codable, Sendable {

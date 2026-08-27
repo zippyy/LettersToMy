@@ -166,7 +166,7 @@ struct BackupServiceTests {
 
         // Create 5 backups.
         var records: [BackupRecord] = []
-        for i in 0..<5 {
+        for _ in 0..<5 {
             let record = try await service.backup(
                 payload: samplePayload(),
                 to: .localFile,

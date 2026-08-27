@@ -251,7 +251,15 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     func save(_ context: NSManagedObjectContext? = nil) throws {
         let context = context ?? container.viewContext
         guard context.hasChanges else { return }
-        try context.save()
+        do {
+            try context.save()
+        } catch {
+            // Never let a failed save disappear into a `try?` at the call
+            // site without a trace. Callers that swallow the error still
+            // produce a log line for diagnosis.
+            NSLog("LettersToMy: Core Data save failed: \(error)")
+            throw error
+        }
     }
 
     func newBackgroundContext(author: String = "LettersToMy.background") -> NSManagedObjectContext {
@@ -333,6 +341,66 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         guard let sharedStore else { return nil }
         fetch.affectedStores = [sharedStore]
         return try? context.fetch(fetch).first
+    }
+
+    /// The CloudKit identity of the CURRENT signed-in user. Share
+    /// metadata only exposes the share owner's identity; the acceptee's
+    /// identity must come from the user's own container.
+    func currentUserIdentity() async -> VerifiedParticipantIdentity {
+        guard Self.cloudKitAvailable else {
+            return VerifiedParticipantIdentity(userRecordName: "unknown", participantType: "unavailable")
+        }
+        do {
+            let recordID = try await ckContainer.userRecordID()
+            return VerifiedParticipantIdentity(
+                userRecordName: recordID.recordName,
+                participantType: "cloudkit_user"
+            )
+        } catch {
+            return VerifiedParticipantIdentity(userRecordName: "unknown", participantType: "unresolved")
+        }
+    }
+
+    /// Delete a child recipient together with everything that referenced
+    /// them. Letters keep `childID` as a plain UUID attribute (not a Core
+    /// Data relationship), so deleting a child previously orphaned its
+    /// letters and deliveries silently — they stayed in the store but
+    /// became invisible in every filtered view.
+    /// - Returns: The number of letters and deliveries removed.
+    @discardableResult
+    func deleteChild(
+        _ child: ChildProfile,
+        in context: NSManagedObjectContext? = nil
+    ) -> (letters: Int, deliveries: Int) {
+        let context = context ?? container.viewContext
+
+        let letterFetch = NSFetchRequest<Letter>(entityName: "Letter")
+        letterFetch.predicate = NSPredicate(format: "childID == %@", child.id as CVarArg)
+        let letters = (try? context.fetch(letterFetch)) ?? []
+
+        let deliveryFetch = NSFetchRequest<DeliveryRecordEntity>(entityName: "DeliveryRecordEntity")
+        deliveryFetch.predicate = NSPredicate(format: "recipientID == %@", child.id as CVarArg)
+        let deliveries = (try? context.fetch(deliveryFetch)) ?? []
+
+        // Letter → attachments cascades via the model. Delivery →
+        // deliveryAttachments cascades via the model.
+        for letter in letters {
+            context.delete(letter)
+        }
+        for delivery in deliveries {
+            context.delete(delivery)
+        }
+        context.delete(child)
+
+        // The recipient inbox partition is child-specific; remove it too so
+        // an empty partition does not linger. Partition → children is
+        // nullify (by design), so this must be explicit.
+        if let partition = child.partition {
+            context.delete(partition)
+        }
+
+        try? save(context)
+        return (letters.count, deliveries.count)
     }
 
     /// Check whether the current user is authorized to perform an action
@@ -479,6 +547,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
         var existingDeliveryLetterIDs = Set(existingDeliveries.map(\.originalLetterID))
         let now = Date()
+        var createdDeliveryCount = 0
 
         for child in children {
             let childLetters = letters.filter { $0.childID == child.id }
@@ -554,12 +623,17 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 }
 
                 existingDeliveryLetterIDs.insert(deliveryRecord.originalLetterID)
+                createdDeliveryCount += 1
             }
         }
 
         try? save(context)
 
-        scheduleUnlockNotification()
+        // Only announce an unlock when deliveries were actually created;
+        // a repeated launch must not spam "A Letter Has Unlocked".
+        if createdDeliveryCount > 0 {
+            scheduleUnlockNotification()
+        }
     }
 
     private func letterPayload(from letter: Letter) -> LetterPayload {
@@ -629,13 +703,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         into context: NSManagedObjectContext? = nil
     ) {
         let context = context ?? container.viewContext
+        // If the shared store isn't loaded (e.g. first launch without iCloud),
+        // there's nothing to activate — return early instead of crashing.
+        guard let sharedStore else { return }
+
         let fetchRequest = NSFetchRequest<SharePartitionRecord>(
             entityName: "SharePartitionRecord"
         )
         fetchRequest.predicate = NSPredicate(format: "memberActivationData != nil")
-        // If the shared store isn't loaded (e.g. first launch without iCloud),
-        // there's nothing to activate — return early instead of crashing.
-        guard let sharedStore else { return }
         fetchRequest.affectedStores = [sharedStore]
 
         guard let partitions = try? context.fetch(fetchRequest) else { return }

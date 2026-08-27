@@ -142,11 +142,9 @@ LettersToMyMac:
 
 ### 5.2 Confirm entitlements
 
-`Config/LettersToMy-iOS.entitlements` must contain:
+`Config/LettersToMy-iOS.entitlements` currently contains:
 
 ```xml
-<key>aps-environment</key>
-<string>development</string>
 <key>com.apple.developer.icloud-container-identifiers</key>
 <array>
     <string>iCloud.com.bayoumountainholdings.LettersToMy</string>
@@ -157,14 +155,22 @@ LettersToMyMac:
 </array>
 ```
 
-`Config/LettersToMy-macOS.entitlements` needs the same plus:
+`Config/LettersToMy-macOS.entitlements` contains the same CloudKit keys
+plus the App Sandbox keys (mandatory for Mac App Store / TestFlight):
 
 ```xml
 <key>com.apple.security.app-sandbox</key>
 <true/>
 <key>com.apple.security.files.user-selected.read-write</key>
 <true/>
+<key>com.apple.security.network.client</key>
+<true/>
 ```
+
+`aps-environment` is intentionally NOT present yet: push notifications
+are a future feature (see section 10). Add it when remote notifications
+are implemented. CloudKit remote-change notifications are delivered
+through the app's background modes, not through APNs.
 
 ### 5.3 Generate the project
 
