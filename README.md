@@ -60,6 +60,60 @@ LettersToMy has not shipped a production build, so the Core Data implementation 
 
 LettersToMy does not require a proprietary application server for the Apple-first release. Family content is stored locally and synchronized through the signed-in user's iCloud account. Content in private and shared CloudKit databases counts against the originating owner's iCloud storage.
 
+## Self-hosted server (optional add-on)
+
+LettersToMy can optionally connect to a self-hosted
+[LettersToMy-SelfHostedSync](https://github.com/zippyy/LettersToMy-SelfHostedSync)
+server for server-side features. It is an **add-on**: CloudKit remains the
+source of truth for your archive, and the app works fully offline or with no
+server configured.
+
+### What it enables
+
+- **Server backup storage** — encrypted `.letterstomy` archives are uploaded to
+  your server. The archive is encrypted with your passphrase before it leaves
+  the device; the server stores an opaque blob and never sees the passphrase
+  or plaintext letter content.
+- **Cross-platform collaboration directory** — invitations, members, family
+  branches, and folders shared through the server (usable by any client that
+  speaks the same API).
+- **Attachment storage** — opaque media blobs, byte-identical round trip.
+- **Device snapshot storage** (`/sync`) — raw platform database files as
+  backup artifacts. This is **not** logical cross-platform synchronization:
+  a Core Data database cannot be swapped into an Android app or vice versa.
+  The app does not expose snapshot push/pull in the UI and never hot-swaps a
+  live SQLite file.
+
+### Configure it
+
+1. Deploy `LettersToMy-SelfHostedSync` (see its README).
+2. In the app: **Settings → Self-Hosted Server**.
+3. Enter the server URL (e.g. `https://letters.example.com` or
+   `http://192.168.1.50:8080` for LAN testing) and the API token.
+4. Enable Self-Hosted Integration and tap **Test Connection** — the app
+   contacts `/status`, validates the service identity and API version, runs a
+   full capability probe (collaboration, backup, attachment round trips), and
+   reports a real connected/error state.
+
+The API token is stored in the Keychain. The server URL and enabled state are
+stored in UserDefaults. **Clear Configuration** removes all of it.
+
+### When the server is offline
+
+Nothing breaks. The app still launches, CloudKit still syncs, and local
+backups still work. The self-hosted status shows *Server unreachable* and
+backup to that destination fails with an explicit error — it never blocks
+startup and never pretends to succeed.
+
+### API contract
+
+The client and server share a single versioned contract (API v1): structured
+`{"error":{"code","message"}}` errors, Unix-millisecond timestamps, `[]` never
+`null` collections, and role raw values identical to the app's
+`CollaborationRole`. The `selfhosted-check` executable in this repository's
+Swift package runs the full capability probe against a live server; the
+server repo's `scripts/integration-test.sh` drives it end to end.
+
 See:
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
