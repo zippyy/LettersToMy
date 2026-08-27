@@ -44,7 +44,19 @@ final class BackupServiceManager: ObservableObject {
         // iCloud Drive
         await service.register(ICloudBackupProvider())
 
-        availableDestinations = [.localFile, .iCloudDrive]
+        // Self-hosted server — registered whenever a config snapshot exists,
+        // including when the token is missing (isReady() reports false until
+        // the server is reachable with the stored token).
+        let snapshot = SelfHostedConfig.loadSnapshot()
+        if snapshot.isConfigured {
+            await service.register(SelfHostedBackupProvider(config: snapshot))
+        }
+
+        var destinations: [BackupDestination] = [.localFile, .iCloudDrive]
+        if SelfHostedConfig.loadSnapshot().isConfigured {
+            destinations.append(.selfHosted)
+        }
+        availableDestinations = destinations
         isReady = true
     }
 }

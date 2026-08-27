@@ -79,6 +79,12 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Self-Hosted") {
+                    NavigationLink { SelfHostedSettingsView() } label: {
+                        Label("Self-Hosted Server", systemImage: "server.rack")
+                    }
+                }
+
                 Section("Recovery") {
                     NavigationLink { RecoveryContactsView() } label: {
                         Label("Recovery Contacts", systemImage: "person.badge.key")

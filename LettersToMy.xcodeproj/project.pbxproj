@@ -36,16 +36,18 @@
 		4679D2B69C8285B6A27D9E28 /* LetterEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3673FF0949E317F43B93214E /* LetterEditorView.swift */; };
 		4CD12AAC1569AF4F1C6B2A85 /* FamilyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB35F01553CCEE09C5C52D6B /* FamilyView.swift */; };
 		504DD5D6322F54C21287C922 /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
+		53B34BE502E248E9E45D0F1D /* SelfHostedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */; };
+		570F63A02A8434A978C4D2EE /* SelfHostedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */; };
 		5B0B1BC78783C1AE84F01DE9 /* app-icon-preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F52638E7AC452447C783EAFB /* app-icon-preview.png */; };
 		5C326084444318C526E7A9D4 /* LetterEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3673FF0949E317F43B93214E /* LetterEditorView.swift */; };
 		5F591907EA2970308BDDF25B /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58B48CE6639E02B94646058 /* PersistenceController.swift */; };
 		60713B058F91D47E852078E0 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		63D8ECE23E2C446008E17202 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
-		6A7A54CFB1D995088F8018B5 /* SelfHostedSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */; };
 		70550CA2DCAA3B4E22CE3D16 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B1CD5BDF8ACEF1843B3BEE69 /* GoogleService-Info.plist */; };
 		744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C946E20EAA508545CF374D /* S3BackupProvider.swift */; };
 		7967F8AA435180CB69238B3F /* icon-preview-Son.png in Resources */ = {isa = PBXBuildFile; fileRef = 40F6881991B0D35575994FBF /* icon-preview-Son.png */; };
 		7C47924C895A0A8FDC4EF9AA /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
+		7CAA1D54D733DEEE99E87C74 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */; };
 		7CB7564BB6A9F781C54F9230 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8804665E2ADF820017447DDC /* FirebaseCore */; };
 		7E618316706A27194C7C3EAE /* SynologyBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */; };
 		8269FF37CDFCE8A9EA776C82 /* CloudKitShareItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */; };
@@ -57,10 +59,11 @@
 		8F165E8CDB87E3BE22BCFAB4 /* GoogleDriveBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9ACDF836BFA8F60D8B84D2 /* GoogleDriveBackupProvider.swift */; };
 		8FFDE5B95A6ADBDCF7D1BE95 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
 		931584472E40FB99E788589D /* icon-preview-Daughter.png in Resources */ = {isa = PBXBuildFile; fileRef = 5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */; };
+		93F82CC50CCC5F1F36D9D68C /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */; };
+		94ECD194EC5CEC2A4458D2B4 /* SelfHostedAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443C5AF6E07DE11E57216BE5 /* SelfHostedAPITests.swift */; };
 		94FB791206D6C75028428609 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A2457F52453D695C58812872 /* FirebaseCore */; };
 		97B8704924261BAB12AE2A2E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */; };
 		9B830B1DB071D9AE84F36CE8 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = D42992E62F2D0C8EC4F15E24 /* FirebaseAnalytics */; };
-		A43BAB1B87DCBB1AA5442E26 /* SelfHostedCollaborationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */; };
 		A77FC1E4EA5838D17D2728F2 /* LettersToMyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941EC696F83630F717EE5393 /* LettersToMyApp.swift */; };
 		A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0161C38E7CB50077E00EC5 /* SettingsView.swift */; };
 		A90299D7E4AB91D05A274323 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
@@ -68,9 +71,13 @@
 		AA0992A23854035832400DF3 /* BackupServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */; };
 		AB7EE99C7FF7C36675ADD621 /* Letter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC9ABF0969826C33789B127C /* Letter.swift */; };
 		B3694A925CA24DA84FF66C1B /* SynologyBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */; };
+		B635A7E0CD92F0B434A019BF /* SelfHostedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */; };
+		BD7EC875D00E7765863D4155 /* SelfHostedBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */; };
+		BF7260E58F783D98858E277D /* SelfHostedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */; };
 		BFDF0F615ABBAB7B13CC619D /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
-		C4F72209C180D7322C9D7352 /* SelfHostedSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */; };
+		C6FF00BA3EC6734EF61B3F2B /* SelfHostedBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */; };
 		C7FF085F9B162D56F33FC227 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0E39D832D41AD11A73DFB4D9 /* FirebaseAnalytics */; };
+		C80C95D180BA61A61A5D249E /* SelfHostedConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E221D8664C0EAB9CED23474 /* SelfHostedConnection.swift */; };
 		C9064F78F856CAC41A6252A8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED48EC99484C6FF1EC93FC5 /* RootView.swift */; };
 		C9B78403710B7286A0D8CF63 /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
 		CA1B5CF9C9091044B0AF3944 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
@@ -84,6 +91,7 @@
 		D5A1429A7C02D858D46881CB /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		D7F522444E42BF6ABF51A3B7 /* DeliveryPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 208DD25B5FAE5F1A8F72FBA2 /* DeliveryPipelineTests.swift */; };
 		D800877850D09EC42F8C93AA /* BackupRecordEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */; };
+		D99851EA82561194A27619BA /* SelfHostedConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E221D8664C0EAB9CED23474 /* SelfHostedConnection.swift */; };
 		DA9621D9D5D6335AF17C1641 /* Letter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC9ABF0969826C33789B127C /* Letter.swift */; };
 		DBF4898055583B5ED4457FF2 /* BackupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0120C9E862F3AA3971829BBE /* BackupSettingsView.swift */; };
 		DFA9E3E1AD51A8C4319DD277 /* icon-preview-Grandson.png in Resources */ = {isa = PBXBuildFile; fileRef = 251CD83F2C0F54C1697A1C0C /* icon-preview-Grandson.png */; };
@@ -93,7 +101,6 @@
 		EBB8737775A0150F7FBF0D5C /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		ED99E1902963B03880D827C5 /* BackupRecordEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */; };
 		EDD9BB3A37E7E6C7518B9B50 /* WebDAVBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D96485F4087EBD2C1682893 /* WebDAVBackupProvider.swift */; };
-		EEAD82A7B388E28D24F09FBE /* SelfHostedCollaborationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */; };
 		EFDBCF192246249A50C4524E /* LettersToMyManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */; };
 		F3C61167E07BF36C348D51FE /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */; };
@@ -124,8 +131,9 @@
 		2C9ACDF836BFA8F60D8B84D2 /* GoogleDriveBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleDriveBackupProvider.swift; sourceTree = "<group>"; };
 		2ED48EC99484C6FF1EC93FC5 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		3673FF0949E317F43B93214E /* LetterEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterEditorView.swift; sourceTree = "<group>"; };
+		3E221D8664C0EAB9CED23474 /* SelfHostedConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedConnection.swift; sourceTree = "<group>"; };
 		40F6881991B0D35575994FBF /* icon-preview-Son.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Son.png"; sourceTree = "<group>"; };
-		4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedSyncService.swift; sourceTree = "<group>"; };
+		443C5AF6E07DE11E57216BE5 /* SelfHostedAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedAPITests.swift; sourceTree = "<group>"; };
 		4BB311684BD87C308E2B1D04 /* CloudKitShareDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareDelegates.swift; sourceTree = "<group>"; };
 		51466AA6963287351167A822 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRecordEntity.swift; sourceTree = "<group>"; };
@@ -139,6 +147,7 @@
 		765697ED9D4425F9C9629CE8 /* LettersToMyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LettersToMyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		772083D0C30F6004DF196272 /* icon-preview-default.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-default.png"; sourceTree = "<group>"; };
 		77BB45C5B09A2E90D67376A3 /* LettersToMyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LettersToMyMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedBackupProvider.swift; sourceTree = "<group>"; };
 		8987CBF80D5609C540FE6AF4 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		8B80EEDAED106B0AECD1B552 /* LetterDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterDetailView.swift; sourceTree = "<group>"; };
 		928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryContactsView.swift; sourceTree = "<group>"; };
@@ -147,21 +156,23 @@
 		98B539C785B8F91B74871B0F /* ChildProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfile.swift; sourceTree = "<group>"; };
 		9D96485F4087EBD2C1682893 /* WebDAVBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebDAVBackupProvider.swift; sourceTree = "<group>"; };
 		9F4B0658559699E2169EE57E /* NextcloudBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextcloudBackupProvider.swift; sourceTree = "<group>"; };
+		A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		A1C946E20EAA508545CF374D /* S3BackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = S3BackupProvider.swift; sourceTree = "<group>"; };
 		AB35F01553CCEE09C5C52D6B /* FamilyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyView.swift; sourceTree = "<group>"; };
 		B1CD5BDF8ACEF1843B3BEE69 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		BF7C515B55D9908EE831F56D /* icon-preview-Granddaughter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Granddaughter.png"; sourceTree = "<group>"; };
+		C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedConfig.swift; sourceTree = "<group>"; };
 		C85C3FC066655BA92BC30361 /* BackupProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupProviders.swift; sourceTree = "<group>"; };
 		CA8A5E39997BB3AC2C28E2B1 /* LettersToMy */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LettersToMy; path = .; sourceTree = SOURCE_ROOT; };
 		CCEA85461F92C44C1FA40A48 /* CollaborationSharePlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationSharePlanTests.swift; sourceTree = "<group>"; };
 		CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryContactEntity.swift; sourceTree = "<group>"; };
+		D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedSettingsView.swift; sourceTree = "<group>"; };
 		D2A9917E2D311875E0790B9B /* CollaborationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationPolicyTests.swift; sourceTree = "<group>"; };
 		D2F6B20A9E077D9E2DE54AFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D58B48CE6639E02B94646058 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
 		D6ABEDA042E9C24396817268 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		E2CC07F3B82784F2223049EF /* LetterAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterAttachment.swift; sourceTree = "<group>"; };
-		EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedCollaborationClient.swift; sourceTree = "<group>"; };
 		EC9ABF0969826C33789B127C /* Letter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Letter.swift; sourceTree = "<group>"; };
 		F52638E7AC452447C783EAFB /* app-icon-preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "app-icon-preview.png"; sourceTree = "<group>"; };
 		FF7B2464470751CCD2F80A03 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
@@ -233,6 +244,7 @@
 				D2A9917E2D311875E0790B9B /* CollaborationPolicyTests.swift */,
 				CCEA85461F92C44C1FA40A48 /* CollaborationSharePlanTests.swift */,
 				208DD25B5FAE5F1A8F72FBA2 /* DeliveryPipelineTests.swift */,
+				443C5AF6E07DE11E57216BE5 /* SelfHostedAPITests.swift */,
 				096F30AC16AC5AAF72F47A63 /* UnlockRuleTests.swift */,
 			);
 			name = LettersToMyCoreTests;
@@ -293,6 +305,7 @@
 				8987CBF80D5609C540FE6AF4 /* LibraryView.swift */,
 				928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */,
 				2ED48EC99484C6FF1EC93FC5 /* RootView.swift */,
+				D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */,
 				6C0161C38E7CB50077E00EC5 /* SettingsView.swift */,
 				D6ABEDA042E9C24396817268 /* SplashView.swift */,
 				51466AA6963287351167A822 /* TimelineView.swift */,
@@ -321,12 +334,14 @@
 				758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */,
 				73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */,
 				2C9ACDF836BFA8F60D8B84D2 /* GoogleDriveBackupProvider.swift */,
+				A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */,
 				608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */,
 				9F4B0658559699E2169EE57E /* NextcloudBackupProvider.swift */,
 				D58B48CE6639E02B94646058 /* PersistenceController.swift */,
 				A1C946E20EAA508545CF374D /* S3BackupProvider.swift */,
-				EB488EC3924992D5A752BF41 /* SelfHostedCollaborationClient.swift */,
-				4AA56DC0523093784EAB71AA /* SelfHostedSyncService.swift */,
+				830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */,
+				C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */,
+				3E221D8664C0EAB9CED23474 /* SelfHostedConnection.swift */,
 				21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */,
 				9D96485F4087EBD2C1682893 /* WebDAVBackupProvider.swift */,
 			);
@@ -490,6 +505,7 @@
 				D0BEEECF424FBEEC6EC564D8 /* CollaborationPolicyTests.swift in Sources */,
 				443F3F5A6221E36B5F7BD438 /* CollaborationSharePlanTests.swift in Sources */,
 				D7F522444E42BF6ABF51A3B7 /* DeliveryPipelineTests.swift in Sources */,
+				94ECD194EC5CEC2A4458D2B4 /* SelfHostedAPITests.swift in Sources */,
 				8C8BD4D4F81FBCBC80A82997 /* UnlockRuleTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -511,6 +527,7 @@
 				34FD7D1E8967DC278BBE279F /* DeliveryRecordEntity.swift in Sources */,
 				4CD12AAC1569AF4F1C6B2A85 /* FamilyView.swift in Sources */,
 				8F165E8CDB87E3BE22BCFAB4 /* GoogleDriveBackupProvider.swift in Sources */,
+				93F82CC50CCC5F1F36D9D68C /* KeychainHelper.swift in Sources */,
 				AB7EE99C7FF7C36675ADD621 /* Letter.swift in Sources */,
 				504DD5D6322F54C21287C922 /* LetterAttachment.swift in Sources */,
 				467538F2F3FA94CFD7C24312 /* LetterDetailView.swift in Sources */,
@@ -524,8 +541,10 @@
 				F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */,
 				C9064F78F856CAC41A6252A8 /* RootView.swift in Sources */,
 				8747A437873FF2B5230B5EAD /* S3BackupProvider.swift in Sources */,
-				A43BAB1B87DCBB1AA5442E26 /* SelfHostedCollaborationClient.swift in Sources */,
-				6A7A54CFB1D995088F8018B5 /* SelfHostedSyncService.swift in Sources */,
+				BD7EC875D00E7765863D4155 /* SelfHostedBackupProvider.swift in Sources */,
+				B635A7E0CD92F0B434A019BF /* SelfHostedConfig.swift in Sources */,
+				D99851EA82561194A27619BA /* SelfHostedConnection.swift in Sources */,
+				BF7260E58F783D98858E277D /* SelfHostedSettingsView.swift in Sources */,
 				294EE0A7374F92F1B82A7E6F /* SettingsView.swift in Sources */,
 				60713B058F91D47E852078E0 /* SplashView.swift in Sources */,
 				7E618316706A27194C7C3EAE /* SynologyBackupProvider.swift in Sources */,
@@ -551,6 +570,7 @@
 				CD0F9F737FC4DD62A156AD55 /* DeliveryRecordEntity.swift in Sources */,
 				055356B370F7CBC589EF1A50 /* FamilyView.swift in Sources */,
 				427760A77B7B0E209304B1D4 /* GoogleDriveBackupProvider.swift in Sources */,
+				7CAA1D54D733DEEE99E87C74 /* KeychainHelper.swift in Sources */,
 				DA9621D9D5D6335AF17C1641 /* Letter.swift in Sources */,
 				BFDF0F615ABBAB7B13CC619D /* LetterAttachment.swift in Sources */,
 				3978C9D5561CAFD2B7F45C7C /* LetterDetailView.swift in Sources */,
@@ -564,8 +584,10 @@
 				05CCB6F7D19C834C304ECC73 /* RecoveryContactsView.swift in Sources */,
 				0080F2322653AD7C2691143C /* RootView.swift in Sources */,
 				744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */,
-				EEAD82A7B388E28D24F09FBE /* SelfHostedCollaborationClient.swift in Sources */,
-				C4F72209C180D7322C9D7352 /* SelfHostedSyncService.swift in Sources */,
+				C6FF00BA3EC6734EF61B3F2B /* SelfHostedBackupProvider.swift in Sources */,
+				53B34BE502E248E9E45D0F1D /* SelfHostedConfig.swift in Sources */,
+				C80C95D180BA61A61A5D249E /* SelfHostedConnection.swift in Sources */,
+				570F63A02A8434A978C4D2EE /* SelfHostedSettingsView.swift in Sources */,
 				A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */,
 				D5A1429A7C02D858D46881CB /* SplashView.swift in Sources */,
 				B3694A925CA24DA84FF66C1B /* SynologyBackupProvider.swift in Sources */,

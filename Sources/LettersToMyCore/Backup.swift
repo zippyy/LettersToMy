@@ -8,6 +8,7 @@ import Foundation
 public enum BackupDestination: String, Codable, CaseIterable, Sendable {
     case localFile
     case iCloudDrive
+    case selfHosted
     case googleDrive
     case synologyNAS
     case nextcloud
@@ -18,6 +19,7 @@ public enum BackupDestination: String, Codable, CaseIterable, Sendable {
         switch self {
         case .localFile: "Local File"
         case .iCloudDrive: "iCloud Drive"
+        case .selfHosted: "Self-Hosted Server"
         case .googleDrive: "Google Drive"
         case .synologyNAS: "Synology NAS"
         case .nextcloud: "Nextcloud"
@@ -30,6 +32,7 @@ public enum BackupDestination: String, Codable, CaseIterable, Sendable {
         switch self {
         case .localFile: "folder"
         case .iCloudDrive: "icloud"
+        case .selfHosted: "server.rack"
         case .googleDrive: "externaldrive.badge.icloud"
         case .synologyNAS: "server.rack"
         case .nextcloud: "cloud"
