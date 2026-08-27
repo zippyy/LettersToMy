@@ -79,6 +79,25 @@ struct LetterEditorView: View {
         return folders.filter { $0.branchID == branchID }
     }
 
+    @ViewBuilder
+    private var unlockControls: some View {
+        switch unlockKind {
+        case .specificDate:
+            DatePicker("Unlock date", selection: $unlockDate, in: Date.now..., displayedComponents: .date)
+        case .birthdayAge:
+            Stepper("Age \(unlockAgeYears)", value: $unlockAgeYears, in: 1...100)
+            if child?.birthDate == nil {
+                Label("Add a birth date in Family before sealing this letter.", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+            }
+        case .lifeEvent:
+            TextField("Example: Wedding day", text: $lifeEventName)
+            Text("Life-event letters stay sealed until a parent releases them.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         Form {
             if letter == nil {
@@ -138,21 +157,7 @@ struct LetterEditorView: View {
                     }
                 }
 
-                switch unlockKind {
-                case .specificDate:
-                    DatePicker("Unlock date", selection: $unlockDate, in: Date.now..., displayedComponents: .date)
-                case .birthdayAge:
-                    Stepper("Age \(unlockAgeYears)", value: $unlockAgeYears, in: 1...100)
-                    if child?.birthDate == nil {
-                        Label("Add a birth date in Family before sealing this letter.", systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
-                    }
-                case .lifeEvent:
-                    TextField("Example: Wedding day", text: $lifeEventName)
-                    Text("Life-event letters stay sealed until a parent releases them.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                unlockControls
             }
 
             Section("Photos, video, and audio") {
