@@ -609,7 +609,13 @@ struct BackupSettingsView: View {
         let restoredLetters = (try? context.fetch(
             NSFetchRequest<Letter>(entityName: "Letter")
         )) ?? []
-        let letterByID = Dictionary(uniqueKeysWithValues: restoredLetters.map { ($0.id, $0) })
+        // Build the lookup tolerantly: a malicious or corrupt archive can
+        // carry duplicate letter IDs, and Dictionary(uniqueKeysWithValues:)
+        // would trap. Last-write-wins keeps the import crash-free.
+        var letterByID: [UUID: Letter] = [:]
+        for letter in restoredLetters {
+            letterByID[letter.id] = letter
+        }
 
         for attachment in payload.attachments {
             guard !existingAttachmentIDs.contains(attachment.id) else { skipped += 1; continue }
@@ -715,7 +721,14 @@ struct BackupSettingsView: View {
             imported += 1
         }
 
-        try? persistence.save(context)
+        do {
+            try persistence.save(context)
+        } catch {
+            // Never report a false "Imported N records" success when the
+            // persistent store rejected the write.
+            restoreProgress = "Restore failed to save: \(error.localizedDescription)"
+            return
+        }
 
         // Restored letters that are already past their unlock rule need
         // deliveries; the same pipeline the app runs at launch handles
