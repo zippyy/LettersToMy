@@ -25,6 +25,10 @@ struct BackupSettingsView: View {
     @State private var restorePayload: BackupPayload?
     @State private var showingRestorePreview = false
     @State private var restoreProgress = ""
+    @State private var showingRemoteRestorePicker = false
+    @State private var remoteBackups: [BackupRemoteHandle] = []
+    @State private var isListingRemote = false
+    @State private var remoteListError: String?
 
     private var service: BackupService { BackupServiceManager.shared.service }
 
@@ -55,6 +59,9 @@ struct BackupSettingsView: View {
         }
         .sheet(isPresented: $showingRestorePreview) {
             restorePreviewSheet
+        }
+        .sheet(isPresented: $showingRemoteRestorePicker) {
+            remoteRestorePickerSheet
         }
     }
 
@@ -149,6 +156,25 @@ struct BackupSettingsView: View {
                 showingRestoreImporter = true
             } label: {
                 Label("Import .letterstomy File", systemImage: "arrow.down.doc")
+            }
+
+            if backupManager.availableDestinations.contains(.selfHosted) {
+                Button {
+                    Task { await listRemoteBackups() }
+                } label: {
+                    if isListingRemote {
+                        Label("Checking Server…", systemImage: "ellipsis.circle")
+                    } else {
+                        Label("Restore from Self-Hosted Server", systemImage: "server.rack")
+                    }
+                }
+                .disabled(isListingRemote)
+            }
+
+            if let remoteListError {
+                Text(remoteListError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
             }
 
             if !restoreProgress.isEmpty {
@@ -316,6 +342,113 @@ struct BackupSettingsView: View {
 
     private func latestRecord(for destination: BackupDestination) -> BackupRecordEntity? {
         backupRecords.first { $0.destination == destination }
+    }
+
+    // MARK: - Self-hosted remote restore
+
+    /// List the backups stored on the configured self-hosted server via the
+    /// existing provider abstraction (the same provider used for backup).
+    private func listRemoteBackups() async {
+        guard let provider = service.provider(for: .selfHosted) else {
+            remoteListError = "Self-hosted server is not configured."
+            return
+        }
+        isListingRemote = true
+        remoteListError = nil
+        defer { isListingRemote = false }
+        do {
+            let handles = try await provider.listRemoteBackups()
+            remoteBackups = handles.sorted { lhs, rhs in
+                let lts = Int64(lhs.metadata["timestamp"] ?? "0") ?? 0
+                let rts = Int64(rhs.metadata["timestamp"] ?? "0") ?? 0
+                return lts > rts
+            }
+            if remoteBackups.isEmpty {
+                remoteListError = "No backups found on the server."
+            } else {
+                showingRemoteRestorePicker = true
+            }
+        } catch {
+            remoteListError = "Could not reach the server: \(error.localizedDescription)"
+        }
+    }
+
+    /// Download a remote backup, decrypt it with the existing backup system,
+    /// and hand the payload to the shared restore preview.
+    private func downloadRemoteBackup(_ handle: BackupRemoteHandle) async {
+        let pass = restorePassphrase.isEmpty ? passphrase : restorePassphrase
+        guard !pass.isEmpty else {
+            restoreProgress = "Enter a passphrase to restore this backup."
+            return
+        }
+        restoreProgress = "Downloading and decrypting…"
+        do {
+            let payload = try await service.restore(
+                from: .selfHosted,
+                handle: handle,
+                passphrase: pass
+            )
+            restorePayload = payload
+            showingRemoteRestorePicker = false
+            showingRestorePreview = true
+            restoreProgress = ""
+        } catch {
+            restoreProgress = "Restore failed: \(error.localizedDescription)"
+        }
+    }
+
+    @ViewBuilder
+    private var remoteRestorePickerSheet: some View {
+        NavigationStack {
+            List {
+                if remoteBackups.isEmpty {
+                    ContentUnavailableView(
+                        "No Remote Backups",
+                        systemImage: "server.rack",
+                        description: Text("No backups were found on the self-hosted server.")
+                    )
+                } else {
+                    Section("Select a backup to restore") {
+                        ForEach(remoteBackups, id: \.identifier) { handle in
+                            Button {
+                                Task { await downloadRemoteBackup(handle) }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(handle.identifier)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    HStack(spacing: 8) {
+                                        if let timestamp = handle.metadata["timestamp"],
+                                           let ms = Int64(timestamp) {
+                                            Text(Date(timeIntervalSince1970: Double(ms) / 1000)
+                                                .formatted(date: .abbreviated, time: .shortened))
+                                        }
+                                        if let size = handle.metadata["size"] {
+                                            Text(ByteCountFormatter.string(fromByteCount: Int64(size) ?? 0, countStyle: .file))
+                                        }
+                                        if let letters = handle.metadata["letters"] {
+                                            Text("\(letters) letters")
+                                        }
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Restore from Server")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showingRemoteRestorePicker = false
+                        remoteBackups = []
+                    }
+                }
+            }
+        }
+        .frame(minWidth: 480, minHeight: 400)
     }
 
     // MARK: - Restore

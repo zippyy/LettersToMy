@@ -379,4 +379,23 @@ private func drainBody(from request: URLRequest) -> Data? {
     #expect(meta.timestamp == 1787851693356)
 }
 
+@Test func backupUploadSendsLetterCountQueryItem() async throws {
+    // The server cannot decrypt opaque archives; the client reports the
+    // letter count from its manifest so /backup/list can display it.
+    var captured: URL?
+    StubURLProtocol.requestHandler = { request in
+        captured = request.url
+        let response = HTTPURLResponse(
+            url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        return (response, Data(#"{"id":"b1","timestamp":1,"size":2,"letter_count":5}"#.utf8))
+    }
+    let client = try makeClient()
+    _ = try await client.uploadBackup(id: "b1", data: Data([1, 2]), letterCount: 5)
+    let components = try #require(captured.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) })
+    let letterCount = components.queryItems?.first { $0.name == "letter_count" }?.value
+    #expect(letterCount == "5")
+    let id = components.queryItems?.first { $0.name == "id" }?.value
+    #expect(id == "b1")
+}
+
 }

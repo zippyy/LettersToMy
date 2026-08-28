@@ -514,8 +514,15 @@ public final class SelfHostedAPIClient: @unchecked Sendable {
 
     // MARK: - Backup (opaque encrypted archives)
 
-    public func uploadBackup(id: String, data: Data) async throws -> SelfHostedBackupMeta {
-        let path = try url("/backup/push", queryItems: [URLQueryItem(name: "id", value: id)])
+    public func uploadBackup(id: String, data: Data, letterCount: Int = 0) async throws -> SelfHostedBackupMeta {
+        var queryItems = [URLQueryItem(name: "id", value: id)]
+        // The server stores archives as opaque encrypted blobs and cannot
+        // decrypt them; the client knows the letter count from its manifest
+        // and reports it as metadata so listings can display it.
+        if letterCount > 0 {
+            queryItems.append(URLQueryItem(name: "letter_count", value: String(letterCount)))
+        }
+        let path = try url("/backup/push", queryItems: queryItems)
         let resp = try await send(method: "PUT", url: path, body: data, context: "uploadBackup(\(id))")
         return try decode(SelfHostedBackupMeta.self, from: resp, context: "uploadBackup(\(id))")
     }

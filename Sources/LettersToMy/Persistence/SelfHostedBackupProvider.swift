@@ -43,13 +43,14 @@ final class SelfHostedBackupProvider: BackupProvider, @unchecked Sendable {
     func store(archive: Data, manifest: BackupManifest) async throws -> BackupRemoteHandle {
         let client = try client()
         let id = manifest.archiveID.uuidString
-        let meta = try await client.uploadBackup(id: id, data: archive)
+        let meta = try await client.uploadBackup(id: id, data: archive, letterCount: manifest.letterCount)
         return BackupRemoteHandle(
             identifier: meta.id,
             location: "",
             metadata: [
                 "size": "\(meta.size)",
-                "timestamp": "\(meta.timestamp)"
+                "timestamp": "\(meta.timestamp)",
+                "letters": "\(meta.letterCount)"
             ]
         )
     }
