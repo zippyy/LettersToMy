@@ -348,8 +348,9 @@ struct BackupSettingsView: View {
 
     /// List the backups stored on the configured self-hosted server via the
     /// existing provider abstraction (the same provider used for backup).
+    @MainActor
     private func listRemoteBackups() async {
-        guard let provider = service.provider(for: .selfHosted) else {
+        guard let provider = await service.provider(for: .selfHosted) else {
             remoteListError = "Self-hosted server is not configured."
             return
         }
@@ -375,6 +376,7 @@ struct BackupSettingsView: View {
 
     /// Download a remote backup, decrypt it with the existing backup system,
     /// and hand the payload to the shared restore preview.
+    @MainActor
     private func downloadRemoteBackup(_ handle: BackupRemoteHandle) async {
         let pass = restorePassphrase.isEmpty ? passphrase : restorePassphrase
         guard !pass.isEmpty else {
