@@ -219,6 +219,32 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
     }
 
+    /// Formats a CloudKit error for user-facing surfacing. A
+    /// `CKError.partialFailure` carries per-record errors in its userInfo
+    /// (`CKPartialErrorsByItemIDKey`); the top-level localizedDescription for
+    /// a partial failure is only "The operation couldn't be completed.
+    /// (CKErrorDomain error 2.)" and hides which records were rejected. This
+    /// unwraps the per-item errors (capped to the first 10) so the UI shows
+    /// the actionable cause — e.g. a record type the production schema does
+    /// not yet know.
+    private static func cloudKitErrorDescription(_ error: Error) -> String {
+        guard let ckError = error as? CKError, ckError.code == .partialFailure,
+              let partialErrors = ckError.userInfo[CKPartialErrorsByItemIDKey]
+                as? [AnyHashable: Error], !partialErrors.isEmpty else {
+            return error.localizedDescription
+        }
+        let perItem = partialErrors
+            .map { (recordID, itemError) -> String in
+                let id = (recordID as? CKRecord.ID)?.recordName ?? "\(recordID)"
+                let code = (itemError as NSError).code
+                return "\(id): \(itemError.localizedDescription) (CKError \(code))"
+            }
+            .sorted()
+            .prefix(10)
+            .joined(separator: "; ")
+        return "\(error.localizedDescription) — per-record: \(perItem)"
+    }
+
     private func observeRemoteChanges() {
         NotificationCenter.default.addObserver(
             forName: NSPersistentCloudKitContainer.eventChangedNotification,
@@ -236,11 +262,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 break
             case .import:
                 if let error = event.error {
-                    self?.lastSyncError = "Import error: \(error.localizedDescription)"
+                    self?.lastSyncError = "Import error: \(Self.cloudKitErrorDescription(error))"
                 }
             case .export:
                 if let error = event.error {
-                    self?.lastSyncError = "Export error: \(error.localizedDescription)"
+                    self?.lastSyncError = "Export error: \(Self.cloudKitErrorDescription(error))"
                 }
             @unknown default:
                 break

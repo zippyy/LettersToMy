@@ -5,6 +5,16 @@ iPhone, iPad, and macOS. Versioning follows `MARKETING_VERSION`
 (currently `0.1.0`); build numbers are per-archive (see
 `CURRENT_PROJECT_VERSION`).
 
+## [Unreleased]
+
+### Fixed
+
+- **CloudKit error diagnostics** — a `CKError.partialFailure` (export/import
+  errors) now surfaces the per-record underlying errors (record ID + CKError
+  code + message, capped at 10) instead of the generic "The operation
+  couldn't be completed. (CKErrorDomain error 2.)" message. Makes schema /
+  record-rejection issues visible in Settings → iCloud.
+
 ## [0.1.0] - 2026-08-28
 
 First tagged release. Paired with LettersToMy-SelfHostedSync **v0.3.0**
