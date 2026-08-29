@@ -228,24 +228,52 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// the actionable cause — e.g. a record type the production schema does
     /// not yet know.
     private static func cloudKitErrorDescription(_ error: Error) -> String {
-        guard let ckError = error as? CKError, ckError.code == .partialFailure,
-              let rawPartial = ckError.userInfo[CKPartialErrorsByItemIDKey],
-              let partialDict = rawPartial as? [AnyHashable: Any],
-              !partialDict.isEmpty else {
+        // 1) Try to extract per-record errors from a CKError.partialFailure.
+        if let ckError = error as? CKError, ckError.code == .partialFailure,
+           let raw = ckError.userInfo[CKPartialErrorsByItemIDKey] {
+            var pairs: [(Any, Error)] = []
+            if let dict = raw as? [AnyHashable: Any] {
+                pairs = dict.compactMap { (key, value) -> (Any, Error)? in
+                    guard let e = value as? Error else { return nil }
+                    return (key, e)
+                }
+            } else if let nsdict = raw as? NSDictionary {
+                for (key, value) in nsdict {
+                    if let e = value as? Error { pairs.append((key, e)) }
+                }
+            }
+            if !pairs.isEmpty {
+                let formatted = pairs
+                    .map { (key, itemError) -> String in
+                        let id = (key as? CKRecord.ID)?.recordName ?? "\(key)"
+                        let code = (itemError as NSError).code
+                        return "\(id): \(itemError.localizedDescription) (CKError \(code))"
+                    }
+                    .sorted()
+                    .prefix(10)
+                    .joined(separator: "; ")
+                if !formatted.isEmpty {
+                    return "\(error.localizedDescription) — per-record: \(formatted)"
+                }
+            }
+        }
+
+        // 2) Fallback: dump raw userInfo (incl. underlying error) so the row
+        // can never be just the generic partialFailure sentence.
+        let nsError = error as NSError
+        var details: [String] = []
+        for (key, value) in nsError.userInfo {
+            var line = "\(key)=\(value)"
+            if line.count > 300 { line = String(line.prefix(300)) + "…" }
+            details.append(line)
+        }
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] {
+            details.append("underlying=\(underlying)")
+        }
+        if details.isEmpty {
             return error.localizedDescription
         }
-        let perItem = partialDict
-            .compactMap { (recordID, itemErrorValue) -> String? in
-                guard let itemError = itemErrorValue as? Error else { return nil }
-                let id = (recordID as? CKRecord.ID)?.recordName ?? "\(recordID)"
-                let code = (itemError as NSError).code
-                return "\(id): \(itemError.localizedDescription) (CKError \(code))"
-            }
-            .sorted()
-            .prefix(10)
-            .joined(separator: "; ")
-        guard !perItem.isEmpty else { return error.localizedDescription }
-        return "\(error.localizedDescription) — per-record: \(perItem)"
+        return "\(error.localizedDescription) — details: \(details.joined(separator: "; "))"
     }
 
     private func observeRemoteChanges() {
