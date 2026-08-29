@@ -202,7 +202,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 NSPersistentCloudKitContainer.eventNotificationUserInfoKey
             ] as? NSPersistentCloudKitContainer.Event,
                   let error = event.error else { return }
-            self?.lastSyncError = error.localizedDescription
+            self?.lastSyncError = Self.cloudKitErrorDescription(error)
         }
         .store(in: &cancellables)
     }
@@ -229,12 +229,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// not yet know.
     private static func cloudKitErrorDescription(_ error: Error) -> String {
         guard let ckError = error as? CKError, ckError.code == .partialFailure,
-              let partialErrors = ckError.userInfo[CKPartialErrorsByItemIDKey]
-                as? [AnyHashable: Error], !partialErrors.isEmpty else {
+              let rawPartial = ckError.userInfo[CKPartialErrorsByItemIDKey],
+              let partialDict = rawPartial as? [AnyHashable: Any],
+              !partialDict.isEmpty else {
             return error.localizedDescription
         }
-        let perItem = partialErrors
-            .map { (recordID, itemError) -> String in
+        let perItem = partialDict
+            .compactMap { (recordID, itemErrorValue) -> String? in
+                guard let itemError = itemErrorValue as? Error else { return nil }
                 let id = (recordID as? CKRecord.ID)?.recordName ?? "\(recordID)"
                 let code = (itemError as NSError).code
                 return "\(id): \(itemError.localizedDescription) (CKError \(code))"
@@ -242,6 +244,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             .sorted()
             .prefix(10)
             .joined(separator: "; ")
+        guard !perItem.isEmpty else { return error.localizedDescription }
         return "\(error.localizedDescription) — per-record: \(perItem)"
     }
 
