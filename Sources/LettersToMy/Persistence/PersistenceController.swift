@@ -3,6 +3,7 @@ import Combine
 import CoreData
 import Foundation
 import LettersToMyCore
+import os
 import Security
 import UserNotifications
 
@@ -126,6 +127,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             var loaded = 0
             container.loadPersistentStores { [weak self] description, error in
                 if let error {
+                    Self.logger.error("CloudKit store load error: \(error.localizedDescription, privacy: .public)")
                     guard let self else {
                         continuation.resume()
                         return
@@ -202,6 +204,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 NSPersistentCloudKitContainer.eventNotificationUserInfoKey
             ] as? NSPersistentCloudKitContainer.Event,
                   let error = event.error else { return }
+            Self.logger.error("CloudKit event error: \(error.localizedDescription, privacy: .public)")
             self?.lastSyncError = Self.cloudKitErrorDescription(error)
         }
         .store(in: &cancellables)
@@ -214,10 +217,17 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         do {
             cloudKitAccountStatus = try await ckContainer.accountStatus()
         } catch {
+            Self.logger.error("CloudKit account status error: \(error.localizedDescription, privacy: .public)")
             cloudKitAccountStatus = .couldNotDetermine
             lastSyncError = Self.cloudKitErrorDescription(error)
         }
     }
+
+    /// Unified os.Logger for CloudKit diagnostics.
+    private static let logger = Logger(
+        subsystem: "com.bayoumountainholdings.LettersToMy",
+        category: "CloudKit"
+    )
 
     /// Formats a CloudKit error for user-facing surfacing. A
     /// `CKError.partialFailure` carries per-record errors in its userInfo
@@ -288,7 +298,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             details.append("underlying=\(underlying)")
         }
         if details.isEmpty {
-            return error.localizedDescription
+            // Last resort: never emit the bare generic sentence. A
+            // CKErrorDomain error with empty userInfo (container strips the
+            // per-record dictionary before the app sees it) still gets a
+            // named diagnostic so the row is actionable.
+            return "\(error.localizedDescription) — domain=\(nsError.domain), code=\(nsError.code)"
         }
         return "\(error.localizedDescription) — details: \(details.joined(separator: "; "))"
     }
@@ -310,10 +324,12 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 break
             case .import:
                 if let error = event.error {
+                    Self.logger.error("CloudKit import error: \(error.localizedDescription, privacy: .public)")
                     self?.lastSyncError = "Import error: \(Self.cloudKitErrorDescription(error))"
                 }
             case .export:
                 if let error = event.error {
+                    Self.logger.error("CloudKit export error: \(error.localizedDescription, privacy: .public)")
                     self?.lastSyncError = "Export error: \(Self.cloudKitErrorDescription(error))"
                 }
             @unknown default:

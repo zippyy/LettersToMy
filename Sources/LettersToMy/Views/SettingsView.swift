@@ -17,6 +17,14 @@ struct SettingsView: View {
         }
     }
 
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+    }
+
     private var canManagePreview: Bool {
         PersistenceController.shared.canPerform(
             .viewSealedContent,
@@ -95,6 +103,12 @@ struct SettingsView: View {
                     Label("Encrypted archive export and recovery contacts", systemImage: "lock.doc")
                     Label("Participant revocation and multi-account integration tests", systemImage: "person.crop.circle.badge.checkmark")
                     Label("Integrated web client using the same CloudKit container", systemImage: "safari")
+                }
+
+                Section {
+                    LabeledContent("Version", value: "\(appVersion) (\(buildNumber))")
+                } footer: {
+                    Text("LettersToMy \(appVersion) (\(buildNumber)) — CloudKit \(PersistenceController.cloudKitContainerIdentifier)")
                 }
             }
             .navigationTitle("Settings")

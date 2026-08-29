@@ -14,6 +14,11 @@ iPhone, iPad, and macOS. Versioning follows `MARKETING_VERSION`
   code + message, capped at 10) instead of the generic "The operation
   couldn't be completed. (CKErrorDomain error 2.)" message. Makes schema /
   record-rejection issues visible in Settings → iCloud.
+- **Hardened CloudKit error surfacing** — every CloudKit error now also logs
+  to `os.Logger` (`CloudKit` category) at the moment it fires; the last-resort
+  fallback names the error domain + code instead of repeating the generic
+  sentence; and Settings shows the app version, build number, and CloudKit
+  container ID so error reports are self-identifying.
 
 ## [0.1.0] - 2026-08-28
 
