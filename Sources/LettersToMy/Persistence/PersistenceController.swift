@@ -130,7 +130,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                         continuation.resume()
                         return
                     }
-                    self.lastSyncError = error.localizedDescription
+                    self.lastSyncError = Self.cloudKitErrorDescription(error)
                 } else if let store = self?.container.persistentStoreCoordinator.persistentStores.first(
                     where: { $0.configurationName == description.configuration }
                 ) {
@@ -215,7 +215,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             cloudKitAccountStatus = try await ckContainer.accountStatus()
         } catch {
             cloudKitAccountStatus = .couldNotDetermine
-            lastSyncError = error.localizedDescription
+            lastSyncError = Self.cloudKitErrorDescription(error)
         }
     }
 
@@ -227,9 +227,26 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// unwraps the per-item errors (capped to the first 10) so the UI shows
     /// the actionable cause — e.g. a record type the production schema does
     /// not yet know.
+    /// Walks the NSUnderlyingError chain and returns the first CKError found.
+    /// `NSPersistentCloudKitContainer.Event.error` is frequently an NSError
+    /// wrapper (e.g. NSCocoaError) with the real CKError buried underneath;
+    /// casting the wrapper directly to CKError fails and would fall back to
+    /// the generic message.
+    private static func deepestCloudKitError(_ error: Error) -> CKError? {
+        if let ck = error as? CKError { return ck }
+        let nsError = error as NSError
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+            return deepestCloudKitError(underlying)
+        }
+        return nil
+    }
+
     private static func cloudKitErrorDescription(_ error: Error) -> String {
-        // 1) Try to extract per-record errors from a CKError.partialFailure.
-        if let ckError = error as? CKError, ckError.code == .partialFailure,
+        // 1) Try to extract per-record errors from a CKError.partialFailure,
+        //    following the underlying-error chain if the surfaced error is a
+        //    wrapper.
+        if let ckError = deepestCloudKitError(error),
+           ckError.code == .partialFailure,
            let raw = ckError.userInfo[CKPartialErrorsByItemIDKey] {
             var pairs: [(Any, Error)] = []
             if let dict = raw as? [AnyHashable: Any] {
@@ -259,7 +276,7 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
 
         // 2) Fallback: dump raw userInfo (incl. underlying error) so the row
-        // can never be just the generic partialFailure sentence.
+        //    can never be just the generic partialFailure sentence.
         let nsError = error as NSError
         var details: [String] = []
         for (key, value) in nsError.userInfo {
