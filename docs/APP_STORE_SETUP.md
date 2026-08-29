@@ -315,11 +315,37 @@ xcodegen generate
 
 ### 9.1 Deploy to production
 
-In CloudKit Console:
-1. Select `iCloud.com.bayoumountainholdings.LettersToMy`.
-2. Go to **Schema → Deployment**.
-3. Review the differences between Development and Production.
-4. Click **Deploy to Production**.
+**Every signed build — TestFlight or App Store — talks to the Production
+CloudKit environment.** A schema that exists only in Development is invisible
+to those builds, and `NSPersistentCloudKitContainer` does not auto-create
+schema in Production. A fresh install then exports record types the app
+generated in Development, CloudKit rejects the unknown types, and the app
+shows a sync error even though the account is healthy:
+
+- Settings → iCloud shows **Account Available** together with
+  **Export error: The operation couldn't be completed. (CKErrorDomain
+  error 2.)**
+- Error 2 is `CKError.partialFailure`. The top-level message hides the real
+  cause; since build 44 the app surfaces per-record details (record ID +
+  CKError code) in the same location. A missing record type typically shows
+  as `CKError 11` (unknown item) on the rejected `CD_*` records.
+
+To deploy:
+
+1. Open [CloudKit Console](https://icloud.developer.apple.com/dashboard).
+2. Select the container `iCloud.com.bayoumountainholdings.LettersToMy`.
+3. In the **Development** environment, confirm the expected `CD_*` record
+   types exist (they are generated automatically on first sync from a
+   development build).
+4. Go to **Schema → Deployment**.
+5. Review the Development → Production diff carefully. Deployment is
+   forward-only: destructive changes cannot be rolled back via the console.
+6. Click **Deploy to Production**.
+
+After deployment: relaunch the app — pending exports retry automatically and
+the error clears once the rejected records upload. Then verify on a **clean
+iCloud account** (one that has never run the app) so the fresh-install path is
+exercised, not just an account with existing sync history.
 
 ### 9.2 Production security roles
 
@@ -356,7 +382,8 @@ Before submitting for App Store review:
       12.9" iPad, Mac)
 - [ ] App icon is set (currently using a placeholder)
 - [ ] No references to "beta" or "test" in the app description
-- [ ] All CloudKit schemas deployed to production
+- [ ] All CloudKit schemas deployed to production and verified with a signed
+      TestFlight or App Store build on a clean iCloud account
 - [ ] Multi-account collaboration tested with production CloudKit
 - [ ] Export compliance: uses standard encryption (AES-256-GCM for backups)
       — answer "Yes" to export compliance and select the exempt option

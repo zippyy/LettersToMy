@@ -18,6 +18,24 @@ The container must be created and assigned to both app identifiers in the Apple 
 6. Inspect the development schema in CloudKit Console.
 7. Promote the schema to production only after migrations, sharing, and revocation tests have been reviewed.
 
+### Production deployment gate
+
+The development schema is **not** automatically the production schema. Before
+shipping a production or TestFlight build, deploy the reviewed CloudKit schema
+from the Development environment to Production in CloudKit Console.
+
+The production schema must include every Core Data entity and field used by the
+current app model — including private/shared collaboration records,
+attachments, recovery contacts, delivery records, and backup metadata. After
+deployment, test with a **clean iCloud account** (one that has never run the
+app) and verify both private- and shared-store export/import behavior.
+
+Do not treat `CKAccountStatus.available` as proof the schema is complete: an
+available account can still surface `CKError.partialFailure` (`CKErrorDomain
+error 2`, e.g. "Export error") when the app writes record types that only
+exist in the Development schema. Since build 44, the app reports the specific
+rejected record IDs and CKError codes in Settings → iCloud.
+
 ## Web setup
 
 The future web app will:
