@@ -347,6 +347,25 @@ the error clears once the rejected records upload. Then verify on a **clean
 iCloud account** (one that has never run the app) so the fresh-install path is
 exercised, not just an account with existing sync history.
 
+### 9.1.1 Verifying with CloudKit Console logs
+
+Use **CloudKit Console → Logs** (production) to confirm which record type a
+reported `CKErrorDomain error 2` (`partialFailure`) rejection is actually
+about:
+
+- If the only failures are `RecordSave`/`RecordDelete` of **`_pcs_data`**
+  (`overallStatus: USER_ERROR`, `error: BAD_REQUEST`, zone
+  `com.apple.coredata.cloudkit.zone`) while your own `CD_*` `RecordSave`
+  operations succeed, the schema is fine and **no deploy fixes it**:
+  `_pcs_data` is a server-managed system record used by
+  `NSPersistentCloudKitContainer`; there is no developer action (Console or
+  cktool) that can add it to Production. This is the known Apple-side issue
+  tracked as FB24378074 (Apple Developer Forums threads 838743, 842760,
+  840248). Fixes have landed in OS releases and server-side incident
+  resolutions; retest after iOS updates.
+- If failures name a `CD_*` record type or show `CKError 11` (unknown item),
+  the schema deploy above applies.
+
 ### 9.2 Production security roles
 
 After deployment, verify under **Schema → Security Roles**:

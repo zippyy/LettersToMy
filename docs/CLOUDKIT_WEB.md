@@ -36,6 +36,13 @@ error 2`, e.g. "Export error") when the app writes record types that only
 exist in the Development schema. Since build 44, the app reports the specific
 rejected record IDs and CKError codes in Settings → iCloud.
 
+**Exception — `_pcs_data`:** CloudKit Console production logs showing only
+`_pcs_data` failures (`BAD_REQUEST`, USER_ERROR) while `CD_*` saves succeed
+are NOT a schema problem. `_pcs_data` is a server-managed system record type
+(it appears in neither Development nor Production schema exports; no deploy
+can add it). This is the known Apple-side issue FB24378074; retest after iOS
+updates / incident resolution.
+
 ## Web setup
 
 The future web app will:
