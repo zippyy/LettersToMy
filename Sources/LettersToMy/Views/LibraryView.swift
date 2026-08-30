@@ -19,6 +19,8 @@ struct LibraryView: View {
     @State private var showingEditor = false
     @State private var editingLetter: Letter?
     @State private var selectedChildID: UUID?
+    @State private var pendingDeletion: Letter?
+    @State private var deleteError: String?
 
     private var selectedChild: ChildProfile? {
         children.first { $0.id == selectedChildID }
@@ -107,6 +109,9 @@ struct LibraryView: View {
                     List(filteredLetters, selection: $selection) { letter in
                         LetterRow(letter: letter, child: child(for: letter))
                             .tag(letter)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                deleteAction(for: letter)
+                            }
                             .contextMenu {
                                 if PersistenceController.shared.canUpdate(letter) {
                                     Button("Edit") {
@@ -114,9 +119,14 @@ struct LibraryView: View {
                                         showingEditor = true
                                     }
                                 }
-                                if PersistenceController.shared.canDelete(letter) {
+                                if PersistenceController.shared.canDelete(letter),
+                                   PersistenceController.shared.canPerform(
+                                       .deleteContent,
+                                       context: letter.collaborationContext(for: child(for: letter)),
+                                       target: letter
+                                   ) {
                                     Button("Delete", role: .destructive) {
-                                        delete(letter)
+                                        pendingDeletion = letter
                                     }
                                 }
                             }
@@ -161,6 +171,13 @@ struct LibraryView: View {
             .environment(\.managedObjectContext, managedObjectContext)
             .frame(minWidth: 480, minHeight: 620)
         }
+        .letterDeletion(
+            pendingLetter: $pendingDeletion,
+            errorMessage: $deleteError,
+            child: { child(for: $0) },
+            context: managedObjectContext,
+            selection: $selection
+        )
     }
 
     private var compactBody: some View {
@@ -200,6 +217,12 @@ struct LibraryView: View {
             }
             .environment(\.managedObjectContext, managedObjectContext)
         }
+        .letterDeletion(
+            pendingLetter: $pendingDeletion,
+            errorMessage: $deleteError,
+            child: { child(for: $0) },
+            context: managedObjectContext
+        )
     }
 
     private var childPicker: some View {
@@ -213,18 +236,16 @@ struct LibraryView: View {
         .pickerStyle(.menu)
     }
 
-    private func delete(_ letter: Letter) {
-        guard PersistenceController.shared.canPerform(
-            .deleteContent,
-            context: letter.collaborationContext(for: selectedChild),
-            target: letter
-        ) else { return }
-
-        if selection?.objectID == letter.objectID {
-            selection = nil
+    @ViewBuilder
+    private func deleteAction(for letter: Letter) -> some View {
+        if PersistenceController.shared.canDelete(letter),
+           PersistenceController.shared.canPerform(
+               .deleteContent,
+               context: letter.collaborationContext(for: child(for: letter)),
+               target: letter
+           ) {
+            Button("Delete", role: .destructive) { pendingDeletion = letter }
         }
-        managedObjectContext.delete(letter)
-        try? PersistenceController.shared.save(managedObjectContext)
     }
 }
 

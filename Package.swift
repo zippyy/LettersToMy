@@ -18,7 +18,8 @@ let package = Package(
             dependencies: ["LettersToMyCore"],
             exclude: [
                 "CloudKitSyncHealthTests.swift",
-                "LetterLibraryFilteringTests.swift"
+                "LetterLibraryFilteringTests.swift",
+                "LetterDeletionCoreDataTests.swift"
             ]
         ),
         .executableTarget(

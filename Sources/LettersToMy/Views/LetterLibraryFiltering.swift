@@ -42,3 +42,9 @@ func saveLetter(_ operation: () throws -> Void) -> LetterSaveResult {
         return .failed(error.localizedDescription)
     }
 }
+
+enum LetterLifecycle {
+    static func sealedDate(existing: Date?, sealed: Bool, now: Date) -> Date? {
+        sealed ? (existing ?? now) : nil
+    }
+}

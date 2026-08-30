@@ -114,6 +114,7 @@ struct LetterEditorView: View {
             }
             ToolbarItemGroup(placement: .confirmationAction) {
                 if letter?.isDraft == false {
+                    Button("Move to Draft") { save(sealed: false) }
                     Button("Save Changes") { save(sealed: true) }
                         .buttonStyle(.borderedProminent)
                 } else {
@@ -380,7 +381,7 @@ struct LetterEditorView: View {
         target.unlockAgeYears = unlockKind == .birthdayAge ? unlockAgeYears : nil
         target.lifeEventName = unlockKind == .lifeEvent ? lifeEventName.trimmingCharacters(in: .whitespacesAndNewlines) : ""
         target.updatedAt = .now
-        target.sealedAt = sealed ? (target.sealedAt ?? .now) : nil
+        target.sealedAt = LetterLifecycle.sealedDate(existing: target.sealedAt, sealed: sealed, now: .now)
         if let partition = targetPartition {
             // Only assign the partition when it is in the same store as the
             // letter; cross-store relationships are invalid in Core Data.

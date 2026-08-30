@@ -3,12 +3,16 @@ import CoreData
 import SwiftUI
 
 struct LetterDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
     @ObservedObject var letter: Letter
     @AppStorage("recipientPreview") private var recipientPreview = false
 
     let child: ChildProfile?
     let editAction: () -> Void
+
+    @State private var pendingDeletion: Letter?
+    @State private var deleteError: String?
 
     private var attachments: [LetterAttachment] {
         (letter.attachments?.allObjects as? [LetterAttachment] ?? [])
@@ -33,6 +37,15 @@ struct LetterDetailView: View {
         PersistenceController.shared.canUpdate(letter)
     }
 
+    private var canDelete: Bool {
+        PersistenceController.shared.canDelete(letter)
+            && PersistenceController.shared.canPerform(
+                .deleteContent,
+                context: letter.collaborationContext(for: child),
+                target: letter
+            )
+    }
+
     private var canRelease: Bool {
         PersistenceController.shared.canPerform(
             .releaseLifeEventLetter,
@@ -42,6 +55,19 @@ struct LetterDetailView: View {
     }
 
     var body: some View {
+        // Defensive guard for the compact-navigation delete path: the delete
+        // save happens before the NavigationStack finishes dismissing, so the
+        // detail view can be asked to render one more time against a deleted
+        // object. Accessing any faulted property of a deleted object would
+        // throw "Object has been deleted or invalidated", so bail out early
+        // with an inert placeholder and let the stack pop.
+        if letter.isDeleted {
+            return AnyView(EmptyView())
+        }
+        return AnyView(detailContent)
+    }
+
+    private var detailContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
@@ -90,8 +116,23 @@ struct LetterDetailView: View {
 
                     Button("Edit", action: editAction)
                 }
+
+                if canDelete {
+                    Button(role: .destructive) {
+                        pendingDeletion = letter
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
             }
         }
+        .letterDeletion(
+            pendingLetter: $pendingDeletion,
+            errorMessage: $deleteError,
+            child: { _ in child },
+            context: managedObjectContext,
+            dismissAction: dismiss
+        )
     }
 
     private var header: some View {
