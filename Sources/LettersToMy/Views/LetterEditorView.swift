@@ -170,24 +170,11 @@ struct LetterEditorView: View {
 
                 if !existingAttachments.isEmpty {
                     ForEach(existingAttachments) { attachment in
-                        let attachmentName = displayName(for: attachment)
-                        let attachmentIcon = displayIcon(for: attachment)
-                        let isMarkedForDeletion = attachmentsToDelete.contains(attachment.objectID)
-                        HStack {
-                            Label(attachmentName, systemImage: attachmentIcon)
-                                .foregroundStyle(isMarkedForDeletion ? .secondary : .primary)
-                            Spacer()
-                            Button {
-                                if attachmentsToDelete.contains(attachment.objectID) {
-                                    attachmentsToDelete.remove(attachment.objectID)
-                                } else {
-                                    attachmentsToDelete.insert(attachment.objectID)
-                                }
-                            } label: {
-                                Image(systemName: attachmentsToDelete.contains(attachment.objectID) ? "arrow.uturn.backward" : "trash")
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(.plain)
+                        ExistingAttachmentRow(
+                            attachment: attachment,
+                            isMarkedForDeletion: attachmentsToDelete.contains(attachment.objectID)
+                        ) {
+                            toggleAttachmentDeletion(attachment)
                         }
                     }
                 }
@@ -321,13 +308,12 @@ struct LetterEditorView: View {
         Array((letter?.attachments as? Set<LetterAttachment>) ?? [])
     }
 
-    private func displayName(for attachment: LetterAttachment) -> String {
-        guard !attachment.fileName.isEmpty else { return "Attachment" }
-        return attachment.fileName
-    }
-
-    private func displayIcon(for attachment: LetterAttachment) -> String {
-        attachment.kind.systemImage
+    private func toggleAttachmentDeletion(_ attachment: LetterAttachment) {
+        if attachmentsToDelete.contains(attachment.objectID) {
+            attachmentsToDelete.remove(attachment.objectID)
+        } else {
+            attachmentsToDelete.insert(attachment.objectID)
+        }
     }
 
     private func save(sealed: Bool) {
@@ -517,6 +503,28 @@ struct LetterEditorView: View {
                 kind: AttachmentKind(contentType: contentType),
                 data: data
             ))
+        }
+    }
+}
+
+private struct ExistingAttachmentRow: View {
+    @ObservedObject var attachment: LetterAttachment
+    let isMarkedForDeletion: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack {
+            Label(
+                attachment.fileName.isEmpty ? "Attachment" : attachment.fileName,
+                systemImage: attachment.kind.systemImage
+            )
+            .foregroundStyle(isMarkedForDeletion ? .secondary : .primary)
+            Spacer()
+            Button(action: onToggle) {
+                Image(systemName: isMarkedForDeletion ? "arrow.uturn.backward" : "trash")
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
         }
     }
 }
