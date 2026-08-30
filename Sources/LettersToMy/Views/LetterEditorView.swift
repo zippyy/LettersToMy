@@ -192,12 +192,12 @@ struct LetterEditorView: View {
 
                 if !existingAttachments.isEmpty {
                     ForEach(existingAttachments) { attachment in
+                        let attachmentName = attachment.fileName.isEmpty ? "Attachment" : attachment.fileName
+                        let attachmentIcon = attachment.kind.systemImage
+                        let isMarkedForDeletion = attachmentsToDelete.contains(attachment.objectID)
                         HStack {
-                            Label(
-                                attachment.fileName.isEmpty ? "Attachment" : attachment.fileName,
-                                systemImage: attachment.kind.systemImage
-                            )
-                            .foregroundStyle(attachmentsToDelete.contains(attachment.objectID) ? .secondary : .primary)
+                            Label(attachmentName, systemImage: attachmentIcon)
+                                .foregroundStyle(isMarkedForDeletion ? .secondary : .primary)
                             Spacer()
                             Button {
                                 if attachmentsToDelete.contains(attachment.objectID) {
