@@ -101,84 +101,11 @@ struct LetterEditorView: View {
 
     var body: some View {
         Form {
-            if letter == nil {
-                Section("Quick Start") {
-                    Picker("Milestone", selection: $selectedMilestone) {
-                        Text("Start from scratch").tag(nil as MilestoneTemplate?)
-                        ForEach(MilestoneTemplate.all) { milestone in
-                            Text(milestone.title).tag(milestone as MilestoneTemplate?)
-                        }
-                    }
-                    .onChange(of: selectedMilestone) { _, milestone in
-                        if let milestone { applyMilestone(milestone) }
-                    }
-                }
-            }
-
-            Section("Letter") {
-                TextField("Title", text: $title)
-                TextField("From", text: $authorName)
-
-                TextEditor(text: $bodyText)
-                    .frame(minHeight: 220)
-                    .accessibilityLabel("Letter message")
-            }
-
+            quickStartSection
+            letterSection
             familySideAndFolderSection
-
-            Section("Unlock") {
-                Picker("Unlock rule", selection: $unlockKind) {
-                    ForEach(UnlockRuleKind.allCases, id: \.self) { kind in
-                        Text(kind.title).tag(kind)
-                    }
-                }
-
-                unlockControls
-            }
-
-            Section("Photos, video, and audio") {
-                Menu {
-                    #if os(iOS)
-                    Button {
-                        showingCamera = true
-                    } label: {
-                        Label("Camera", systemImage: "camera")
-                    }
-                    Button {
-                        showingVoiceRecorder = true
-                    } label: {
-                        Label("Record Voice", systemImage: "mic")
-                    }
-                    #endif
-                    Button {
-                        showingPhotoPicker = true
-                    } label: {
-                        Label("Photo Library", systemImage: "photo.on.rectangle")
-                    }
-                    Button {
-                        showingFileImporter = true
-                    } label: {
-                        Label("Files", systemImage: "folder")
-                    }
-                } label: {
-                    Label("Add Attachments", systemImage: "paperclip")
-                }
-
-                ForEach(pendingAttachments) { attachment in
-                    Label(attachment.fileName, systemImage: attachment.kind.systemImage)
-                }
-
-                if !existingAttachments.isEmpty {
-                    ForEach(existingAttachments) { attachment in
-                        ExistingAttachmentRow(
-                            attachment: attachment,
-                            isMarkedForDeletion: attachmentsToDelete.contains(attachment.objectID)
-                        ) {
-                            toggleAttachmentDeletion(attachment)
-                        }
-                    }
-                }
-            }
+            unlockSection
+            attachmentsSection
         }
         .navigationTitle(letter == nil ? "New Letter" : "Edit Letter")
         .toolbar {
@@ -274,6 +201,91 @@ struct LetterEditorView: View {
             return child?.birthDate != nil
         case .lifeEvent:
             return !lifeEventName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    @ViewBuilder
+    private var quickStartSection: some View {
+        if letter == nil {
+            Section("Quick Start") {
+                Picker("Milestone", selection: $selectedMilestone) {
+                    Text("Start from scratch").tag(nil as MilestoneTemplate?)
+                    ForEach(MilestoneTemplate.all) { milestone in
+                        Text(milestone.title).tag(milestone as MilestoneTemplate?)
+                    }
+                }
+                .onChange(of: selectedMilestone) { _, milestone in
+                    if let milestone { applyMilestone(milestone) }
+                }
+            }
+        }
+    }
+
+    private var letterSection: some View {
+        Section("Letter") {
+            TextField("Title", text: $title)
+            TextField("From", text: $authorName)
+            TextEditor(text: $bodyText)
+                .frame(minHeight: 220)
+                .accessibilityLabel("Letter message")
+        }
+    }
+
+    private var unlockSection: some View {
+        Section("Unlock") {
+            Picker("Unlock rule", selection: $unlockKind) {
+                ForEach(UnlockRuleKind.allCases, id: \.self) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+            unlockControls
+        }
+    }
+
+    @ViewBuilder
+    private var attachmentsSection: some View {
+        Section("Photos, video, and audio") {
+            Menu {
+                #if os(iOS)
+                Button {
+                    showingCamera = true
+                } label: {
+                    Label("Camera", systemImage: "camera")
+                }
+                Button {
+                    showingVoiceRecorder = true
+                } label: {
+                    Label("Record Voice", systemImage: "mic")
+                }
+                #endif
+                Button {
+                    showingPhotoPicker = true
+                } label: {
+                    Label("Photo Library", systemImage: "photo.on.rectangle")
+                }
+                Button {
+                    showingFileImporter = true
+                } label: {
+                    Label("Files", systemImage: "folder")
+                }
+            } label: {
+                Label("Add Attachments", systemImage: "paperclip")
+            }
+
+            ForEach(pendingAttachments) { attachment in
+                Label(attachment.fileName, systemImage: attachment.kind.systemImage)
+            }
+
+            if !existingAttachments.isEmpty {
+                ForEach(existingAttachments) { attachment in
+                    ExistingAttachmentRow(
+                        attachment: attachment,
+                        isMarkedForDeletion: attachmentsToDelete.contains(attachment.objectID)
+                    ) {
+                        toggleAttachmentDeletion(attachment)
+                    }
+                }
+            }
         }
     }
 
