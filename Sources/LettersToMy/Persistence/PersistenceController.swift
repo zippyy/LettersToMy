@@ -82,10 +82,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
 
     /// Published for SwiftUI views to observe CloudKit account state.
     @Published var cloudKitAccountStatus: CKAccountStatus = .couldNotDetermine
+    @Published private(set) var syncStatus: CloudKitSyncStatus = .idle
+    @Published private(set) var syncStatusMessage: String?
     @Published var lastSyncError: String?
     @Published var isLoaded = false
 
     private var cancellables = Set<AnyCancellable>()
+    private var cloudKitObservationStarted = false
+    private var syncHealth = CloudKitSyncHealth()
 
     init(inMemory: Bool = false) {
         let useInMemory = inMemory || !Self.cloudKitAvailable
@@ -132,7 +136,13 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                         continuation.resume()
                         return
                     }
-                    self.lastSyncError = Self.cloudKitErrorDescription(error)
+                    self.applySyncEvent(.init(
+                        kind: .setup,
+                        succeeded: false,
+                        date: Date(),
+                        classification: CloudKitFailureClassifier.classify(error),
+                        diagnostic: Self.cloudKitErrorDescription(error)
+                    ))
                 } else if let store = self?.container.persistentStoreCoordinator.persistentStores.first(
                     where: { $0.configurationName == description.configuration }
                 ) {
@@ -186,14 +196,15 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         // Observe CloudKit account and sync state (only when available).
         if Self.cloudKitAvailable {
             Task { await refreshCloudKitAccountStatus() }
-            observeRemoteChanges()
         }
 
         await MainActor.run { isLoaded = true }
     }
 
     private func observeCloudKitEvents() {
-        guard let ckContainer = cloudKitContainer else { return }
+        guard !cloudKitObservationStarted,
+              let ckContainer = cloudKitContainer else { return }
+        cloudKitObservationStarted = true
         NotificationCenter.default.publisher(
             for: NSPersistentCloudKitContainer.eventChangedNotification,
             object: ckContainer
@@ -202,16 +213,61 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         .sink { [weak self] note in
             guard let event = note.userInfo?[
                 NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-            ] as? NSPersistentCloudKitContainer.Event,
-                  let error = event.error else { return }
-            Self.logger.error("CloudKit event error: \(error.localizedDescription, privacy: .public)")
-            self?.lastSyncError = Self.cloudKitErrorDescription(error)
+            ] as? NSPersistentCloudKitContainer.Event else { return }
+            self?.handleCloudKitEvent(event)
         }
         .store(in: &cancellables)
     }
 
+    private func handleCloudKitEvent(_ event: NSPersistentCloudKitContainer.Event) {
+        let kind: CloudKitSyncEventSnapshot.Kind
+        switch event.type {
+        case .setup: kind = .setup
+        case .import: kind = .importEvent
+        case .export: kind = .export
+        @unknown default: return
+        }
+
+        let error = event.error
+        let classification = error.map(CloudKitFailureClassifier.classify)
+        let diagnostic = error.map(Self.cloudKitErrorDescription)
+        let isOpaquePartialFailure = error.map {
+            CloudKitFailureClassifier.isPartialFailure($0)
+                && classification == .transient
+                && !Self.cloudKitErrorDescription($0).contains("per-record:")
+        } ?? false
+        Self.logger.log(
+            "CloudKit event id=\(event.identifier.uuidString, privacy: .public) type=\(String(describing: event.type), privacy: .public) store=\(event.storeIdentifier, privacy: .public) succeeded=\(event.succeeded, privacy: .public) start=\(event.startDate.ISO8601Format(), privacy: .public) end=\(event.endDate?.ISO8601Format() ?? "nil", privacy: .public) classification=\(String(describing: classification), privacy: .public) diagnostic=\(diagnostic ?? "none", privacy: .private)"
+        )
+
+        applySyncEvent(.init(
+            kind: kind,
+            succeeded: event.succeeded,
+            date: event.endDate ?? event.startDate,
+            classification: classification,
+            diagnostic: diagnostic,
+            isOpaquePartialFailure: isOpaquePartialFailure
+        ))
+    }
+
+    private func applySyncEvent(_ event: CloudKitSyncEventSnapshot) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.applySyncEvent(event)
+            }
+            return
+        }
+        syncHealth.apply(event)
+        syncStatus = syncHealth.status
+        syncStatusMessage = syncHealth.userFacingMessage
+        lastSyncError = syncHealth.lastErrorClassification?.isUserActionable == true
+            ? syncHealth.userFacingMessage
+            : nil
+    }
+
     // MARK: - CloudKit Status
 
+    @MainActor
     func refreshCloudKitAccountStatus() async {
         guard Self.cloudKitAvailable else { return }
         do {
@@ -219,7 +275,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         } catch {
             Self.logger.error("CloudKit account status error: \(error.localizedDescription, privacy: .public)")
             cloudKitAccountStatus = .couldNotDetermine
-            lastSyncError = Self.cloudKitErrorDescription(error)
+            applySyncEvent(.init(
+                kind: .setup,
+                succeeded: false,
+                date: Date(),
+                classification: CloudKitFailureClassifier.classify(error),
+                diagnostic: Self.cloudKitErrorDescription(error),
+                isOpaquePartialFailure: false
+            ))
         }
     }
 
@@ -307,36 +370,6 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         return "\(error.localizedDescription) — details: \(details.joined(separator: "; "))"
     }
 
-    private func observeRemoteChanges() {
-        NotificationCenter.default.addObserver(
-            forName: NSPersistentCloudKitContainer.eventChangedNotification,
-            object: container,
-            queue: .main
-        ) { [weak self] notification in
-            guard let event = notification.userInfo?[
-                NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-            ] as? NSPersistentCloudKitContainer.Event else {
-                return
-            }
-
-            switch event.type {
-            case .setup:
-                break
-            case .import:
-                if let error = event.error {
-                    Self.logger.error("CloudKit import error: \(error.localizedDescription, privacy: .public)")
-                    self?.lastSyncError = "Import error: \(Self.cloudKitErrorDescription(error))"
-                }
-            case .export:
-                if let error = event.error {
-                    Self.logger.error("CloudKit export error: \(error.localizedDescription, privacy: .public)")
-                    self?.lastSyncError = "Export error: \(Self.cloudKitErrorDescription(error))"
-                }
-            @unknown default:
-                break
-            }
-        }
-    }
 
     func save(_ context: NSManagedObjectContext? = nil) throws {
         let context = context ?? container.viewContext

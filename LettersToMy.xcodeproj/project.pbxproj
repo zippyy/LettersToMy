@@ -36,6 +36,7 @@
 		4679D2B69C8285B6A27D9E28 /* LetterEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3673FF0949E317F43B93214E /* LetterEditorView.swift */; };
 		4CD12AAC1569AF4F1C6B2A85 /* FamilyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB35F01553CCEE09C5C52D6B /* FamilyView.swift */; };
 		504DD5D6322F54C21287C922 /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
+		525EB21BB74FAD6D360F3207 /* CloudKitSyncHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB88E49051C6D0C0C78990FD /* CloudKitSyncHealth.swift */; };
 		53B34BE502E248E9E45D0F1D /* SelfHostedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */; };
 		570F63A02A8434A978C4D2EE /* SelfHostedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */; };
 		5B0B1BC78783C1AE84F01DE9 /* app-icon-preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F52638E7AC452447C783EAFB /* app-icon-preview.png */; };
@@ -44,6 +45,7 @@
 		60713B058F91D47E852078E0 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		63D8ECE23E2C446008E17202 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
 		70550CA2DCAA3B4E22CE3D16 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B1CD5BDF8ACEF1843B3BEE69 /* GoogleService-Info.plist */; };
+		71E933A3C2C0BA1F65359C3F /* CloudKitSyncHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A120F554666E8F21E9A78A8 /* CloudKitSyncHealthTests.swift */; };
 		744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C946E20EAA508545CF374D /* S3BackupProvider.swift */; };
 		7967F8AA435180CB69238B3F /* icon-preview-Son.png in Resources */ = {isa = PBXBuildFile; fileRef = 40F6881991B0D35575994FBF /* icon-preview-Son.png */; };
 		7C47924C895A0A8FDC4EF9AA /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
@@ -55,6 +57,7 @@
 		8747A437873FF2B5230B5EAD /* S3BackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C946E20EAA508545CF374D /* S3BackupProvider.swift */; };
 		89946DCAC56BED06CCA68200 /* ChildProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B539C785B8F91B74871B0F /* ChildProfile.swift */; };
 		8C8BD4D4F81FBCBC80A82997 /* UnlockRuleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096F30AC16AC5AAF72F47A63 /* UnlockRuleTests.swift */; };
+		8CBD13507334DFCCCE151B53 /* CloudKitSyncHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB88E49051C6D0C0C78990FD /* CloudKitSyncHealth.swift */; };
 		8E8E72C351F776DF905D0A73 /* BackupProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85C3FC066655BA92BC30361 /* BackupProviders.swift */; };
 		8F165E8CDB87E3BE22BCFAB4 /* GoogleDriveBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9ACDF836BFA8F60D8B84D2 /* GoogleDriveBackupProvider.swift */; };
 		8FFDE5B95A6ADBDCF7D1BE95 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7B2464470751CCD2F80A03 /* Analytics.swift */; };
@@ -141,6 +144,7 @@
 		5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Daughter.png"; sourceTree = "<group>"; };
 		608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LettersToMyManagedObjectModel.swift; sourceTree = "<group>"; };
 		68C05E2ADB39A2D3762A3CE7 /* DeliveryRecordEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryRecordEntity.swift; sourceTree = "<group>"; };
+		6A120F554666E8F21E9A78A8 /* CloudKitSyncHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncHealthTests.swift; sourceTree = "<group>"; };
 		6C0161C38E7CB50077E00EC5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareItem.swift; sourceTree = "<group>"; };
 		758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceManager.swift; sourceTree = "<group>"; };
@@ -159,6 +163,7 @@
 		A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		A1C946E20EAA508545CF374D /* S3BackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = S3BackupProvider.swift; sourceTree = "<group>"; };
 		AB35F01553CCEE09C5C52D6B /* FamilyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyView.swift; sourceTree = "<group>"; };
+		AB88E49051C6D0C0C78990FD /* CloudKitSyncHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncHealth.swift; sourceTree = "<group>"; };
 		B1CD5BDF8ACEF1843B3BEE69 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		BF7C515B55D9908EE831F56D /* icon-preview-Granddaughter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Granddaughter.png"; sourceTree = "<group>"; };
 		C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedConfig.swift; sourceTree = "<group>"; };
@@ -241,6 +246,7 @@
 			isa = PBXGroup;
 			children = (
 				D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */,
+				6A120F554666E8F21E9A78A8 /* CloudKitSyncHealthTests.swift */,
 				D2A9917E2D311875E0790B9B /* CollaborationPolicyTests.swift */,
 				CCEA85461F92C44C1FA40A48 /* CollaborationSharePlanTests.swift */,
 				208DD25B5FAE5F1A8F72FBA2 /* DeliveryPipelineTests.swift */,
@@ -333,6 +339,7 @@
 				C85C3FC066655BA92BC30361 /* BackupProviders.swift */,
 				758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */,
 				73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */,
+				AB88E49051C6D0C0C78990FD /* CloudKitSyncHealth.swift */,
 				2C9ACDF836BFA8F60D8B84D2 /* GoogleDriveBackupProvider.swift */,
 				A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */,
 				608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */,
@@ -502,6 +509,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				97B8704924261BAB12AE2A2E /* BackupServiceTests.swift in Sources */,
+				71E933A3C2C0BA1F65359C3F /* CloudKitSyncHealthTests.swift in Sources */,
 				D0BEEECF424FBEEC6EC564D8 /* CollaborationPolicyTests.swift in Sources */,
 				443F3F5A6221E36B5F7BD438 /* CollaborationSharePlanTests.swift in Sources */,
 				D7F522444E42BF6ABF51A3B7 /* DeliveryPipelineTests.swift in Sources */,
@@ -522,6 +530,7 @@
 				89946DCAC56BED06CCA68200 /* ChildProfile.swift in Sources */,
 				19CEFC043AF7D080C43CEA29 /* CloudKitShareDelegates.swift in Sources */,
 				8269FF37CDFCE8A9EA776C82 /* CloudKitShareItem.swift in Sources */,
+				525EB21BB74FAD6D360F3207 /* CloudKitSyncHealth.swift in Sources */,
 				E7CEB5DEF4E7772ED9DC892F /* CollaborationRecords.swift in Sources */,
 				EBB8737775A0150F7FBF0D5C /* CollaboratorsView.swift in Sources */,
 				34FD7D1E8967DC278BBE279F /* DeliveryRecordEntity.swift in Sources */,
@@ -565,6 +574,7 @@
 				A905A132828CAB3629BE72A0 /* ChildProfile.swift in Sources */,
 				33B711F67EE5E59F215DB287 /* CloudKitShareDelegates.swift in Sources */,
 				388A5FCCD835A28FF8733E81 /* CloudKitShareItem.swift in Sources */,
+				8CBD13507334DFCCCE151B53 /* CloudKitSyncHealth.swift in Sources */,
 				32643EC79ACED2403CA38887 /* CollaborationRecords.swift in Sources */,
 				F3C61167E07BF36C348D51FE /* CollaboratorsView.swift in Sources */,
 				CD0F9F737FC4DD62A156AD55 /* DeliveryRecordEntity.swift in Sources */,
@@ -642,7 +652,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMyTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LettersToMy.app/LettersToMy";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Letters to My.app/Letters to My";
 			};
 			name = Debug;
 		};
@@ -746,7 +756,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMyTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LettersToMy.app/LettersToMy";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Letters to My.app/Letters to My";
 			};
 			name = Release;
 		};
@@ -766,6 +776,7 @@
 				PRODUCT_NAME = "Letters to My";
 				PROVISIONING_PROFILE_SPECIFIER = CI_IOS_PROFILE_UUID_PLACEHOLDER;
 				SDKROOT = iphoneos;
+				SWIFT_MODULE_NAME = LettersToMy;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -786,6 +797,7 @@
 				PRODUCT_NAME = "Letters to My";
 				PROVISIONING_PROFILE_SPECIFIER = CI_IOS_PROFILE_UUID_PLACEHOLDER;
 				SDKROOT = iphoneos;
+				SWIFT_MODULE_NAME = LettersToMy;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;

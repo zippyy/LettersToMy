@@ -15,7 +15,8 @@ let package = Package(
         .target(name: "LettersToMyCore"),
         .testTarget(
             name: "LettersToMyCoreTests",
-            dependencies: ["LettersToMyCore"]
+            dependencies: ["LettersToMyCore"],
+            exclude: ["CloudKitSyncHealthTests.swift"]
         ),
         .executableTarget(
             name: "SelfHostedCheck",

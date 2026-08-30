@@ -68,8 +68,12 @@ struct SettingsView: View {
 
                 Section("iCloud") {
                     LabeledContent("Account", value: iCloudStatus)
-                    if let error = persistence.lastSyncError {
-                        Text(error).font(.footnote).foregroundStyle(.red)
+                    LabeledContent("Sync", value: persistence.syncStatus.userFacingLabel)
+                        .foregroundStyle(persistence.syncStatus == .needsAttention ? .red : .primary)
+                    if let message = persistence.syncStatusMessage {
+                        Text(message)
+                            .font(.footnote)
+                            .foregroundStyle(persistence.syncStatus == .needsAttention ? .red : .secondary)
                     }
                     Text("Owned content synchronizes through the private CloudKit store.")
                         .font(.footnote).foregroundStyle(.secondary)
