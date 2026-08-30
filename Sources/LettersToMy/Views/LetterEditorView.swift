@@ -41,6 +41,7 @@ struct LetterEditorView: View {
     @State private var pendingAttachments: [PendingAttachment] = []
     @State private var attachmentsToDelete = Set<NSManagedObjectID>()
     @State private var importError: String?
+    @State private var saveError: String?
     @State private var selectedMilestone: MilestoneTemplate?
     @State private var permissionDenied = false
 
@@ -285,6 +286,17 @@ struct LetterEditorView: View {
         } message: {
             Text("Your role does not allow creating or editing a letter in the selected family side or folder.")
         }
+        .alert(
+            "Could Not Save Letter",
+            isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveError ?? "The letter could not be saved. Your changes are still in the editor.")
+        }
     }
 
     private var canSeal: Bool {
@@ -393,7 +405,13 @@ struct LetterEditorView: View {
             attachment.letter = target
         }
 
-        try? persistence.save(managedObjectContext)
+        switch saveLetter({ try persistence.save(managedObjectContext) }) {
+        case .saved:
+            break
+        case .failed(let message):
+            saveError = message
+            return
+        }
 
         if isNew {
             let hasAttachments = !pendingAttachments.isEmpty || (letter?.attachments?.count ?? 0) > 0

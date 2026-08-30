@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		00235FC88C88181FFD906BD2 /* icon-preview-Grandson.png in Resources */ = {isa = PBXBuildFile; fileRef = 251CD83F2C0F54C1697A1C0C /* icon-preview-Grandson.png */; };
 		0080F2322653AD7C2691143C /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED48EC99484C6FF1EC93FC5 /* RootView.swift */; };
+		00F970C44445171044E0DB43 /* LetterLibraryFilteringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EBD4D62CD688B8DC175AC5C /* LetterLibraryFilteringTests.swift */; };
 		055356B370F7CBC589EF1A50 /* FamilyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB35F01553CCEE09C5C52D6B /* FamilyView.swift */; };
 		05BEAE71FA96BF94347D7DA4 /* icon-preview-Son.png in Resources */ = {isa = PBXBuildFile; fileRef = 40F6881991B0D35575994FBF /* icon-preview-Son.png */; };
 		05CCB6F7D19C834C304ECC73 /* RecoveryContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */; };
@@ -18,6 +19,7 @@
 		1BDBCADC4BB4EABDF3C835FF /* LettersToMyManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */; };
 		2527CF8BFBF7D8CE38C2ED0E /* NextcloudBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F4B0658559699E2169EE57E /* NextcloudBackupProvider.swift */; };
 		2578BA1BDE9430F4C096A99D /* BackupProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85C3FC066655BA92BC30361 /* BackupProviders.swift */; };
+		2712800F184296413A3348FB /* LibraryLetterListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A919C5F6E4FE690F9879E05 /* LibraryLetterListView.swift */; };
 		294EE0A7374F92F1B82A7E6F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0161C38E7CB50077E00EC5 /* SettingsView.swift */; };
 		2AC7E4691767F67F9ABE92CC /* icon-preview-Granddaughter.png in Resources */ = {isa = PBXBuildFile; fileRef = BF7C515B55D9908EE831F56D /* icon-preview-Granddaughter.png */; };
 		2D8BB9FD6FA16AB8AA682AAA /* LettersToMyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941EC696F83630F717EE5393 /* LettersToMyApp.swift */; };
@@ -44,6 +46,7 @@
 		5F591907EA2970308BDDF25B /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58B48CE6639E02B94646058 /* PersistenceController.swift */; };
 		60713B058F91D47E852078E0 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		63D8ECE23E2C446008E17202 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
+		663108A90E862F61C939AF16 /* LetterLibraryFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5843CFF608A7BD2F96FF71B6 /* LetterLibraryFiltering.swift */; };
 		70550CA2DCAA3B4E22CE3D16 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B1CD5BDF8ACEF1843B3BEE69 /* GoogleService-Info.plist */; };
 		71E933A3C2C0BA1F65359C3F /* CloudKitSyncHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A120F554666E8F21E9A78A8 /* CloudKitSyncHealthTests.swift */; };
 		744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C946E20EAA508545CF374D /* S3BackupProvider.swift */; };
@@ -66,6 +69,7 @@
 		94ECD194EC5CEC2A4458D2B4 /* SelfHostedAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443C5AF6E07DE11E57216BE5 /* SelfHostedAPITests.swift */; };
 		94FB791206D6C75028428609 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A2457F52453D695C58812872 /* FirebaseCore */; };
 		97B8704924261BAB12AE2A2E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */; };
+		9A166E38596BDFE9BCF8074F /* LetterLibraryFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5843CFF608A7BD2F96FF71B6 /* LetterLibraryFiltering.swift */; };
 		9B830B1DB071D9AE84F36CE8 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = D42992E62F2D0C8EC4F15E24 /* FirebaseAnalytics */; };
 		A77FC1E4EA5838D17D2728F2 /* LettersToMyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941EC696F83630F717EE5393 /* LettersToMyApp.swift */; };
 		A8D04903E4458B100BFBE1D9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0161C38E7CB50077E00EC5 /* SettingsView.swift */; };
@@ -107,6 +111,7 @@
 		EFDBCF192246249A50C4524E /* LettersToMyManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */; };
 		F3C61167E07BF36C348D51FE /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */; };
+		F708DDDEADDB71EA23141013 /* LibraryLetterListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A919C5F6E4FE690F9879E05 /* LibraryLetterListView.swift */; };
 		FA6D3B0C97BC0BF4A4E0439F /* LettersToMyCore in Frameworks */ = {isa = PBXBuildFile; productRef = C4353EC3A214FA369BFCBA6A /* LettersToMyCore */; };
 		FC377294E356E4B1A6C8AC37 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D2F6B20A9E077D9E2DE54AFC /* Assets.xcassets */; };
 		FC76372D468241E8C59492DD /* app-icon-preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F52638E7AC452447C783EAFB /* app-icon-preview.png */; };
@@ -140,6 +145,7 @@
 		4BB311684BD87C308E2B1D04 /* CloudKitShareDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareDelegates.swift; sourceTree = "<group>"; };
 		51466AA6963287351167A822 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRecordEntity.swift; sourceTree = "<group>"; };
+		5843CFF608A7BD2F96FF71B6 /* LetterLibraryFiltering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterLibraryFiltering.swift; sourceTree = "<group>"; };
 		585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaboratorsView.swift; sourceTree = "<group>"; };
 		5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Daughter.png"; sourceTree = "<group>"; };
 		608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LettersToMyManagedObjectModel.swift; sourceTree = "<group>"; };
@@ -153,12 +159,14 @@
 		77BB45C5B09A2E90D67376A3 /* LettersToMyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LettersToMyMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedBackupProvider.swift; sourceTree = "<group>"; };
 		8987CBF80D5609C540FE6AF4 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		8A919C5F6E4FE690F9879E05 /* LibraryLetterListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryLetterListView.swift; sourceTree = "<group>"; };
 		8B80EEDAED106B0AECD1B552 /* LetterDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterDetailView.swift; sourceTree = "<group>"; };
 		928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryContactsView.swift; sourceTree = "<group>"; };
 		92B071285075BC1D4965EC8E /* LettersToMy.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LettersToMy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		941EC696F83630F717EE5393 /* LettersToMyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LettersToMyApp.swift; sourceTree = "<group>"; };
 		98B539C785B8F91B74871B0F /* ChildProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfile.swift; sourceTree = "<group>"; };
 		9D96485F4087EBD2C1682893 /* WebDAVBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebDAVBackupProvider.swift; sourceTree = "<group>"; };
+		9EBD4D62CD688B8DC175AC5C /* LetterLibraryFilteringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterLibraryFilteringTests.swift; sourceTree = "<group>"; };
 		9F4B0658559699E2169EE57E /* NextcloudBackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextcloudBackupProvider.swift; sourceTree = "<group>"; };
 		A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		A1C946E20EAA508545CF374D /* S3BackupProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = S3BackupProvider.swift; sourceTree = "<group>"; };
@@ -250,6 +258,7 @@
 				D2A9917E2D311875E0790B9B /* CollaborationPolicyTests.swift */,
 				CCEA85461F92C44C1FA40A48 /* CollaborationSharePlanTests.swift */,
 				208DD25B5FAE5F1A8F72FBA2 /* DeliveryPipelineTests.swift */,
+				9EBD4D62CD688B8DC175AC5C /* LetterLibraryFilteringTests.swift */,
 				443C5AF6E07DE11E57216BE5 /* SelfHostedAPITests.swift */,
 				096F30AC16AC5AAF72F47A63 /* UnlockRuleTests.swift */,
 			);
@@ -308,6 +317,8 @@
 				AB35F01553CCEE09C5C52D6B /* FamilyView.swift */,
 				8B80EEDAED106B0AECD1B552 /* LetterDetailView.swift */,
 				3673FF0949E317F43B93214E /* LetterEditorView.swift */,
+				5843CFF608A7BD2F96FF71B6 /* LetterLibraryFiltering.swift */,
+				8A919C5F6E4FE690F9879E05 /* LibraryLetterListView.swift */,
 				8987CBF80D5609C540FE6AF4 /* LibraryView.swift */,
 				928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */,
 				2ED48EC99484C6FF1EC93FC5 /* RootView.swift */,
@@ -513,6 +524,7 @@
 				D0BEEECF424FBEEC6EC564D8 /* CollaborationPolicyTests.swift in Sources */,
 				443F3F5A6221E36B5F7BD438 /* CollaborationSharePlanTests.swift in Sources */,
 				D7F522444E42BF6ABF51A3B7 /* DeliveryPipelineTests.swift in Sources */,
+				00F970C44445171044E0DB43 /* LetterLibraryFilteringTests.swift in Sources */,
 				94ECD194EC5CEC2A4458D2B4 /* SelfHostedAPITests.swift in Sources */,
 				8C8BD4D4F81FBCBC80A82997 /* UnlockRuleTests.swift in Sources */,
 			);
@@ -541,8 +553,10 @@
 				504DD5D6322F54C21287C922 /* LetterAttachment.swift in Sources */,
 				467538F2F3FA94CFD7C24312 /* LetterDetailView.swift in Sources */,
 				5C326084444318C526E7A9D4 /* LetterEditorView.swift in Sources */,
+				9A166E38596BDFE9BCF8074F /* LetterLibraryFiltering.swift in Sources */,
 				A77FC1E4EA5838D17D2728F2 /* LettersToMyApp.swift in Sources */,
 				EFDBCF192246249A50C4524E /* LettersToMyManagedObjectModel.swift in Sources */,
+				F708DDDEADDB71EA23141013 /* LibraryLetterListView.swift in Sources */,
 				37C9448FF51FD690B4C13A77 /* LibraryView.swift in Sources */,
 				0D89837DE7E02444F9BF19BF /* NextcloudBackupProvider.swift in Sources */,
 				5F591907EA2970308BDDF25B /* PersistenceController.swift in Sources */,
@@ -585,8 +599,10 @@
 				BFDF0F615ABBAB7B13CC619D /* LetterAttachment.swift in Sources */,
 				3978C9D5561CAFD2B7F45C7C /* LetterDetailView.swift in Sources */,
 				4679D2B69C8285B6A27D9E28 /* LetterEditorView.swift in Sources */,
+				663108A90E862F61C939AF16 /* LetterLibraryFiltering.swift in Sources */,
 				2D8BB9FD6FA16AB8AA682AAA /* LettersToMyApp.swift in Sources */,
 				1BDBCADC4BB4EABDF3C835FF /* LettersToMyManagedObjectModel.swift in Sources */,
+				2712800F184296413A3348FB /* LibraryLetterListView.swift in Sources */,
 				D5743C1A1D36DC46CB93865A /* LibraryView.swift in Sources */,
 				2527CF8BFBF7D8CE38C2ED0E /* NextcloudBackupProvider.swift in Sources */,
 				EBB6622A016ADF6719B5EF72 /* PersistenceController.swift in Sources */,

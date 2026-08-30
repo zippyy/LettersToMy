@@ -3,6 +3,7 @@ import SwiftUI
 
 struct LibraryView: View {
     @Environment(\.managedObjectContext) private var managedObjectContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Letter.updatedAt, ascending: false)],
         animation: .default
@@ -20,22 +21,48 @@ struct LibraryView: View {
     @State private var selectedChildID: UUID?
 
     private var selectedChild: ChildProfile? {
-        children.first { $0.id == selectedChildID } ?? children.first
+        children.first { $0.id == selectedChildID }
     }
 
-    private var filteredLetters: [Letter] {
-        letters.filter { letter in
-            let matchesChild = selectedChildID == nil || letter.childID == selectedChildID
-            let matchesStatus = statusFilter == nil || letter.status(for: selectedChild) == statusFilter
-            let matchesSearch = searchText.isEmpty
-                || letter.title.localizedCaseInsensitiveContains(searchText)
-                || letter.body.localizedCaseInsensitiveContains(searchText)
-                || letter.authorName.localizedCaseInsensitiveContains(searchText)
-            return matchesChild && matchesStatus && matchesSearch
+    private func child(for letter: Letter) -> ChildProfile? {
+        if let selectedChild { return selectedChild }
+        guard let childID = letter.childID else { return nil }
+        return children.first { $0.id == childID }
+    }
+
+    private var librarySnapshots: [LibraryLetterSnapshot] {
+        letters.map { letter in
+            LibraryLetterSnapshot(
+                id: letter.id,
+                childID: letter.childID,
+                title: letter.title,
+                body: letter.body,
+                authorName: letter.authorName,
+                isDraft: letter.isDraft,
+                status: letter.status(for: child(for: letter))
+            )
         }
     }
 
+    private var filteredLetters: [Letter] {
+        let ids = Set(LetterLibraryFilter.filter(
+            librarySnapshots,
+            status: statusFilter,
+            childID: selectedChildID,
+            searchText: searchText
+        ).map(\.id))
+        return letters.filter { ids.contains($0.id) }
+    }
+
     var body: some View {
+        if horizontalSizeClass == .compact {
+            compactBody
+        } else {
+            splitBody
+        }
+    }
+
+    private var splitBody: some View {
         NavigationSplitView {
             List(selection: $statusFilter) {
                 Label("All Letters", systemImage: "tray.full")
@@ -78,7 +105,7 @@ struct LibraryView: View {
                     }
                 } else {
                     List(filteredLetters, selection: $selection) { letter in
-                        LetterRow(letter: letter, child: selectedChild)
+                        LetterRow(letter: letter, child: child(for: letter))
                             .tag(letter)
                             .contextMenu {
                                 if PersistenceController.shared.canUpdate(letter) {
@@ -115,7 +142,7 @@ struct LibraryView: View {
             }
         } detail: {
             if let selection {
-                LetterDetailView(letter: selection, child: selectedChild) {
+                LetterDetailView(letter: selection, child: child(for: selection)) {
                     editingLetter = selection
                     showingEditor = true
                 }
@@ -134,8 +161,44 @@ struct LibraryView: View {
             .environment(\.managedObjectContext, managedObjectContext)
             .frame(minWidth: 480, minHeight: 620)
         }
-        .onAppear {
-            if selectedChildID == nil { selectedChildID = children.first?.id }
+    }
+
+    private var compactBody: some View {
+        NavigationStack {
+            List {
+                NavigationLink {
+                    LibraryLetterListView(statusFilter: nil, selectedChildID: $selectedChildID)
+                } label: {
+                    Label("All Letters", systemImage: "tray.full")
+                }
+
+                Section("Status") {
+                    ForEach(LetterStatus.allCases) { status in
+                        NavigationLink {
+                            LibraryLetterListView(statusFilter: status, selectedChildID: $selectedChildID)
+                        } label: {
+                            Label(status.title, systemImage: status.systemImage)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Letters")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        editingLetter = nil
+                        showingEditor = true
+                    } label: {
+                        Label("New Letter", systemImage: "square.and.pencil")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditor) {
+            NavigationStack {
+                LetterEditorView(letter: editingLetter, child: selectedChild)
+            }
+            .environment(\.managedObjectContext, managedObjectContext)
         }
     }
 
@@ -165,7 +228,7 @@ struct LibraryView: View {
     }
 }
 
-private struct LetterRow: View {
+struct LetterRow: View {
     @ObservedObject var letter: Letter
     let child: ChildProfile?
 

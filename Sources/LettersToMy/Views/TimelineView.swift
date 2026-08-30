@@ -14,7 +14,13 @@ struct TimelineView: View {
     @State private var selectedChildID: UUID?
 
     private var selectedChild: ChildProfile? {
-        children.first { $0.id == selectedChildID } ?? children.first
+        children.first { $0.id == selectedChildID }
+    }
+
+    private func child(for letter: Letter) -> ChildProfile? {
+        if let selectedChild { return selectedChild }
+        guard let childID = letter.childID else { return nil }
+        return children.first { $0.id == childID }
     }
 
     private var scheduledLetters: [Letter] {
@@ -27,8 +33,8 @@ struct TimelineView: View {
                 return true
             }
             .sorted {
-                let lhs = $0.schedule.resolvedDate(birthDate: selectedChild?.birthDate) ?? .distantFuture
-                let rhs = $1.schedule.resolvedDate(birthDate: selectedChild?.birthDate) ?? .distantFuture
+                let lhs = $0.schedule.resolvedDate(birthDate: child(for: $0)?.birthDate) ?? .distantFuture
+                let rhs = $1.schedule.resolvedDate(birthDate: child(for: $1)?.birthDate) ?? .distantFuture
                 return lhs < rhs
             }
     }
@@ -45,7 +51,7 @@ struct TimelineView: View {
                 } else {
                     List(scheduledLetters) { letter in
                         HStack(spacing: 14) {
-                            Image(systemName: letter.status(for: selectedChild).systemImage)
+                            Image(systemName: letter.status(for: child(for: letter)).systemImage)
                                 .font(.title2)
                                 .frame(width: 34)
 
@@ -53,7 +59,7 @@ struct TimelineView: View {
                                 Text(letter.title.isEmpty ? "Untitled Letter" : letter.title)
                                     .font(.headline)
                                 HStack(spacing: 6) {
-                                    Text(letter.schedule.summary(birthDate: selectedChild?.birthDate))
+                                    Text(letter.schedule.summary(birthDate: child(for: letter)?.birthDate))
                                         .foregroundStyle(.secondary)
                                     if selectedChildID == nil, let childID = letter.childID,
                                        let child = children.first(where: { $0.id == childID }) {
@@ -82,9 +88,6 @@ struct TimelineView: View {
                         .pickerStyle(.menu)
                     }
                 }
-            }
-            .onAppear {
-                if selectedChildID == nil { selectedChildID = children.first?.id }
             }
         }
     }
