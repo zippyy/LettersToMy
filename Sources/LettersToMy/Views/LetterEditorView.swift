@@ -124,29 +124,7 @@ struct LetterEditorView: View {
                     .accessibilityLabel("Letter message")
             }
 
-            Section("Family side and folder") {
-                Picker("Family side", selection: $branchID) {
-                    Text("Unassigned").tag(nil as UUID?)
-                    ForEach(branches) { branch in
-                        Text(branch.name).tag(branch.id as UUID?)
-                    }
-                }
-                .onChange(of: branchID) { _, newBranchID in
-                    clearFolderIfNeeded(for: newBranchID)
-                }
-
-                Picker("Folder", selection: $folderID) {
-                    Text("No folder").tag(nil as UUID?)
-                    ForEach(availableFolders) { folder in
-                        Text(folder.name).tag(folder.id as UUID?)
-                    }
-                }
-                .disabled(branchID == nil)
-
-                Text("Family sides and folders determine the CloudKit share that contains this letter and which collaborators can receive it.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+            familySideAndFolderSection
 
             Section("Unlock") {
                 Picker("Unlock rule", selection: $unlockKind) {
@@ -309,6 +287,33 @@ struct LetterEditorView: View {
             return child?.birthDate != nil
         case .lifeEvent:
             return !lifeEventName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    @ViewBuilder
+    private var familySideAndFolderSection: some View {
+        Section("Family side and folder") {
+            Picker("Family side", selection: $branchID) {
+                Text("Unassigned").tag(nil as UUID?)
+                ForEach(branches) { branch in
+                    Text(branch.name).tag(branch.id as UUID?)
+                }
+            }
+            .onChange(of: branchID) { _, newBranchID in
+                clearFolderIfNeeded(for: newBranchID)
+            }
+
+            Picker("Folder", selection: $folderID) {
+                Text("No folder").tag(nil as UUID?)
+                ForEach(availableFolders) { folder in
+                    Text(folder.name).tag(folder.id as UUID?)
+                }
+            }
+            .disabled(branchID == nil)
+
+            Text("Family sides and folders determine the CloudKit share that contains this letter and which collaborators can receive it.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 
