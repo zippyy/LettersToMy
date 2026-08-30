@@ -132,10 +132,7 @@ struct LetterEditorView: View {
                     }
                 }
                 .onChange(of: branchID) { _, newBranchID in
-                    guard let folderID else { return }
-                    if !folders.contains(where: { $0.id == folderID && $0.branchID == newBranchID }) {
-                        self.folderID = nil
-                    }
+                    clearFolderIfNeeded(for: newBranchID)
                 }
 
                 Picker("Folder", selection: $folderID) {
@@ -483,6 +480,13 @@ struct LetterEditorView: View {
             lifeEventName = milestone.lifeEventName ?? ""
         }
         selectedMilestone = nil
+    }
+
+    private func clearFolderIfNeeded(for branchID: UUID?) {
+        guard let folderID else { return }
+        if !folders.contains(where: { $0.id == folderID && $0.branchID == branchID }) {
+            self.folderID = nil
+        }
     }
 
     private func importPhotoItems(_ items: [PhotosPickerItem]) async {
