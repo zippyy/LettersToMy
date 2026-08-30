@@ -190,8 +190,8 @@ struct LetterEditorView: View {
                     Label(attachment.fileName, systemImage: attachment.kind.systemImage)
                 }
 
-                if let existing = letter?.attachments as? Set<LetterAttachment>, !existing.isEmpty {
-                    ForEach(Array(existing)) { attachment in
+                if !existingAttachments.isEmpty {
+                    ForEach(existingAttachments) { attachment in
                         HStack {
                             Label(
                                 attachment.fileName.isEmpty ? "Attachment" : attachment.fileName,
@@ -310,6 +310,10 @@ struct LetterEditorView: View {
         case .lifeEvent:
             return !lifeEventName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
+    }
+
+    private var existingAttachments: [LetterAttachment] {
+        Array((letter?.attachments as? Set<LetterAttachment>) ?? [])
     }
 
     private func save(sealed: Bool) {
