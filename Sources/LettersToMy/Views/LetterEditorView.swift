@@ -192,8 +192,8 @@ struct LetterEditorView: View {
 
                 if !existingAttachments.isEmpty {
                     ForEach(existingAttachments) { attachment in
-                        let attachmentName = attachment.fileName.isEmpty ? "Attachment" : attachment.fileName
-                        let attachmentIcon = attachment.kind.systemImage
+                        let attachmentName = displayName(for: attachment)
+                        let attachmentIcon = displayIcon(for: attachment)
                         let isMarkedForDeletion = attachmentsToDelete.contains(attachment.objectID)
                         HStack {
                             Label(attachmentName, systemImage: attachmentIcon)
@@ -314,6 +314,15 @@ struct LetterEditorView: View {
 
     private var existingAttachments: [LetterAttachment] {
         Array((letter?.attachments as? Set<LetterAttachment>) ?? [])
+    }
+
+    private func displayName(for attachment: LetterAttachment) -> String {
+        guard !attachment.fileName.isEmpty else { return "Attachment" }
+        return attachment.fileName
+    }
+
+    private func displayIcon(for attachment: LetterAttachment) -> String {
+        attachment.kind.systemImage
     }
 
     private func save(sealed: Bool) {
