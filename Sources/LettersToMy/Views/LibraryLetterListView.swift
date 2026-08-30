@@ -78,6 +78,11 @@ struct LibraryLetterListView: View {
                         }
                         if PersistenceController.shared.canDelete(letter) {
                             Button("Delete", role: .destructive) {
+                                guard PersistenceController.shared.canPerform(
+                                    .deleteContent,
+                                    context: letter.collaborationContext(for: child(for: letter)),
+                                    target: letter
+                                ) else { return }
                                 managedObjectContext.delete(letter)
                                 try? PersistenceController.shared.save(managedObjectContext)
                             }

@@ -422,6 +422,11 @@ struct LetterEditorView: View {
         case .saved:
             break
         case .failed(let message):
+            // A new object has not been committed. Remove it so a retry
+            // cannot leave duplicate unsaved Letters/attachments in context.
+            if isNew {
+                managedObjectContext.delete(target)
+            }
             saveError = message
             return
         }
