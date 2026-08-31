@@ -7,6 +7,16 @@ iPhone, iPad, and macOS. Versioning follows `MARKETING_VERSION`
 
 ## [Unreleased]
 
+### Added
+
+- **`backup-e2e` executable product** — cross-repo regression harness for
+  the self-hosted backup contract. Builds realistic archives through the
+  production `BackupService` (AES-256-GCM serialization), exercises
+  `SelfHostedAPIClient` over real HTTP, and verifies `letter_count`
+  semantics before/after deletion, byte-identical download, restore-decode
+  of every collection, and backup deletion isolation. Driven by
+  LettersToMy-SelfHostedSync's integration harness.
+
 ### Fixed
 
 - **CloudKit error diagnostics** — a `CKError.partialFailure` (export/import

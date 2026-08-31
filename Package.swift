@@ -9,7 +9,8 @@ let package = Package(
     ],
     products: [
         .library(name: "LettersToMyCore", targets: ["LettersToMyCore"]),
-        .executable(name: "selfhosted-check", targets: ["SelfHostedCheck"])
+        .executable(name: "selfhosted-check", targets: ["SelfHostedCheck"]),
+        .executable(name: "backup-e2e", targets: ["BackupE2E"])
     ],
     targets: [
         .target(name: "LettersToMyCore"),
@@ -24,6 +25,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "SelfHostedCheck",
+            dependencies: ["LettersToMyCore"]
+        ),
+        .executableTarget(
+            name: "BackupE2E",
             dependencies: ["LettersToMyCore"]
         )
     ]
