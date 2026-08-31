@@ -316,9 +316,18 @@ jobs:
           # ship a working one (the Xcode-bundled iTMSTransporter is a
           # stub that says to install Transporter from the Mac App Store),
           # so install Apple's standalone transporter pkg first.
-          curl -fsSL https://itunesconnect.apple.com/itms/download/itmstransporter.pkg \
+          # Apple's legacy /itms/download/itmstransporter.pkg endpoint now
+          # returns an HTML page, not the package (observed: 7 KB HTML;
+          # installer fails with "package path was invalid"). The current
+          # endpoint, used by Apple-Actions/upload-testflight-build, serves
+          # the real installer (xar archive) directly at the directory URL.
+          # Verify the xar magic so a bad download fails fast with a clear
+          # error instead of an obtuse installer failure.
+          curl -fsSL "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/resources/download/public/Transporter__OSX/bin/" \
             -o "$RUNNER_TEMP/itmstransporter.pkg"
           test -s "$RUNNER_TEMP/itmstransporter.pkg"
+          MAGIC="$(head -c 4 "$RUNNER_TEMP/itmstransporter.pkg" | od -An -tx1 | tr -d ' \n')"
+          test "$MAGIC" = "78617221"
           sudo installer -pkg "$RUNNER_TEMP/itmstransporter.pkg" -target /
           test -x /usr/local/itms/bin/iTMSTransporter
           /usr/local/itms/bin/iTMSTransporter -m upload \

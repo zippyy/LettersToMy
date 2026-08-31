@@ -60,7 +60,10 @@ Highlights:
   rejected by App Store Connect on current Xcode with error -22421, and
   `notarytool` is the notarization service, not an App Store Connect
   delivery channel). The macOS job downloads Apple's standalone
-  `itmstransporter.pkg` and installs it because macOS runners do not ship
+  `itmstransporter.pkg` (fetched from Apple's
+  `WebObjects/iTunesConnect.woa/ra/resources/download/public/Transporter__OSX/bin/`
+  endpoint — the old `/itms/download/itmstransporter.pkg` URL now returns
+  HTML, not a package) and installs it because macOS runners do not ship
   a working Transporter.
 - Uploads the IPA/PKG artifact (fails if no file was found).
 - A `summary` job prints a platform-by-platform status table, including
