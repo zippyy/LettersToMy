@@ -55,10 +55,13 @@ Highlights:
   validate the Mac Installer cert against the provisioning profile —
   this is an intentional, documented fallback, not a masked failure;
   the step still fails if the app directory is missing.
-- Uploads the IPA (iOS, via `xcrun altool`) or PKG (macOS, via `xcrun
-  notarytool submit` — `altool --upload-app` is rejected by App Store
-  Connect on current Xcode with error -22421) artifact (fails if no file
-  was found).
+- Uploads the IPA (iOS, via `xcrun altool`) or PKG (macOS, via
+  Transporter — `iTMSTransporter -m upload`; `altool --upload-app` is
+  rejected by App Store Connect on current Xcode with error -22421, and
+  `notarytool` is the notarization service, not an App Store Connect
+  delivery channel). The macOS job downloads Apple's standalone
+  `itmstransporter.pkg` and installs it because macOS runners do not ship
+  a working Transporter.
 - Uploads the IPA/PKG artifact (fails if no file was found).
 - A `summary` job prints a platform-by-platform status table, including
   the macOS TestFlight PKG file name.
@@ -97,8 +100,9 @@ Flow:
 5. `productbuild --component <app> /Applications --sign "Developer ID
    Installer: ..."` → `LettersToMy-<version>-macOS.pkg`, then
    `pkgutil --check-signature`.
-6. Notarize: `xcrun notarytool submit --wait` (ASC API key; the workflow
-   FAILS if notarization fails — no async fire-and-forget).
+6. Notarize: `xcrun notarytool submit --wait --output-format json`, then
+   explicitly fail unless the parsed verdict is `Accepted` (`notarytool`
+   exits 0 even on `Invalid`). No async fire-and-forget.
 7. Staple: `xcrun stapler staple` + `stapler validate`, then
    `spctl --assess --type install` (advisory).
 8. `shasum -a 256` → `.sha256`; upload pkg + checksum as workflow

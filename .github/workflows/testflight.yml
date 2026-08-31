@@ -302,21 +302,29 @@ jobs:
           echo "--- PKG signature ---"
           pkgutil --check-signature "$PKG_PATH"
 
-      - name: Upload to TestFlight
+      - name: Upload to TestFlight (Transporter)
         run: |
           set -euo pipefail
           test -f "$PKG_PATH"
           test -s "$PKG_PATH"
           # altool --upload-app is rejected by App Store Connect on current
-          # Xcode (ERROR -22421: use the Transporter app or xcrun
-          # notarytool). notarytool submit is the supported replacement for
-          # macOS .pkg delivery; --wait blocks until Apple returns a
-          # verdict and a rejection fails this step.
-          xcrun notarytool submit "$PKG_PATH" \
-            --key "$HOME/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8" \
-            --key-id "${{ secrets.ASC_KEY_ID }}" \
-            --issuer "${{ secrets.ASC_ISSUER_ID }}" \
-            --wait
+          # Xcode (ERROR -22421). notarytool submit is the NOTARIZATION
+          # service, not App Store Connect delivery - it never uploads a
+          # 3rd Party Mac Developer Installer pkg to TestFlight (Apple
+          # returns status: Invalid, and notarytool still exits 0). The
+          # supported delivery tool is Transporter; macOS runners do not
+          # ship a working one (the Xcode-bundled iTMSTransporter is a
+          # stub that says to install Transporter from the Mac App Store),
+          # so install Apple's standalone transporter pkg first.
+          curl -fsSL https://itunesconnect.apple.com/itms/download/itmstransporter.pkg \
+            -o "$RUNNER_TEMP/itmstransporter.pkg"
+          test -s "$RUNNER_TEMP/itmstransporter.pkg"
+          sudo installer -pkg "$RUNNER_TEMP/itmstransporter.pkg" -target /
+          test -x /usr/local/itms/bin/iTMSTransporter
+          /usr/local/itms/bin/iTMSTransporter -m upload \
+            -assetFile "$PKG_PATH" \
+            -apiKey "${{ secrets.ASC_KEY_ID }}" \
+            -apiIssuer "${{ secrets.ASC_ISSUER_ID }}"
 
       - name: Upload PKG artifact
         if: always()

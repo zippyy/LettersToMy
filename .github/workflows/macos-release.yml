@@ -206,13 +206,19 @@ jobs:
           KEY_PATH="$RUNNER_TEMP/AuthKey_${{ secrets.ASC_KEY_ID }}.p8"
           echo -n "${{ secrets.ASC_KEY }}" | base64 --decode > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
-          # --wait blocks until Apple returns a verdict; a non-zero exit
-          # (invalid/other) fails the job. Never fire-and-forget.
-          xcrun notarytool submit "$PKG_PATH" \
+          # notarytool exits 0 even when Apple's verdict is "Invalid"
+          # (observed with a rejected submission), so parse the JSON verdict
+          # and fail unless it is exactly "Accepted". --wait blocks until
+          # Apple finishes processing; auth/network errors already fail.
+          OUTPUT="$(xcrun notarytool submit "$PKG_PATH" \
             --key "$KEY_PATH" \
             --key-id "${{ secrets.ASC_KEY_ID }}" \
             --issuer "${{ secrets.ASC_ISSUER_ID }}" \
-            --wait
+            --wait \
+            --output-format json)"
+          echo "$OUTPUT"
+          STATUS="$(printf '%s' "$OUTPUT" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("status",""))')"
+          test "$STATUS" = "Accepted"
 
       - name: Staple and verify notarization
         run: |
