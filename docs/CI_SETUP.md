@@ -1,9 +1,9 @@
 # GitHub Actions CI/CD
 
-LettersToMy uses GitHub Actions for continuous validation and
-TestFlight distribution. There is no fastlane: signing uses base64
-certificates and provisioning profiles stored as repository secrets
-(the same pattern used for DankDiary).
+LettersToMy uses GitHub Actions for continuous validation, TestFlight
+distribution, and notarized macOS GitHub Releases. There is no fastlane:
+signing uses base64 certificates and provisioning profiles stored as
+repository secrets (the same pattern used for DankDiary).
 
 ## Workflows
 
@@ -51,13 +51,57 @@ Highlights:
   `~/private_keys`.
 - Archives with `CODE_SIGN_STYLE=Manual` and exports.
 - macOS export falls back to building the PKG manually from the
-  xcarchive (`pkgbuild --component`) because Xcode 26.5's export cannot
+  xcarchive (`productbuild --component`) because Xcode 26.5's export cannot
   validate the Mac Installer cert against the provisioning profile —
   this is an intentional, documented fallback, not a masked failure;
   the step still fails if the app directory is missing.
 - Uploads to TestFlight via `xcrun altool` with the ASC key.
 - Uploads the IPA/PKG artifact (fails if no file was found).
-- A `summary` job prints a platform-by-platform status table.
+- A `summary` job prints a platform-by-platform status table, including
+  the macOS TestFlight PKG file name.
+
+### 4. macOS GitHub Release — direct download — `.github/workflows/macos-release.yml`
+
+This is a SEPARATE distribution channel from Mac App Store / TestFlight.
+It produces a **Developer ID** signed, notarized, stapled `.pkg` that users
+install directly from GitHub. It is NOT the App Store package.
+
+Triggered by:
+
+- Push of a `v*` tag (e.g. `v0.2.0`) — production path; version is derived
+  from the tag.
+- `workflow_dispatch` — controlled testing. `version` input sets the
+  version/tag; `create_release=false` builds, signs, notarizes, and uploads
+  artifacts WITHOUT touching the GitHub Release.
+
+Never runs on plain pushes to `main`.
+
+Flow:
+
+1. Install XcodeGen, decode the Developer ID provisioning profile (UUID
+   extracted from the profile itself), `sed` the
+   `CI_MACOS_PROFILE_UUID_PLACEHOLDER` + `MARKETING_VERSION` in
+   `project.yml`, regenerate the project.
+2. Import BOTH Developer ID `.p12`s (Application + Installer) into a
+   temporary keychain with `-T /usr/bin/{codesign,security,xcodebuild,
+   xcrun,pkgbuild,productbuild}` and
+   `security set-key-partition-list`, so no GUI/keychain prompt can block
+   CI (this is what previously hung package creation).
+3. `xcodebuild archive` with `CODE_SIGN_STYLE=Manual`,
+   `CODE_SIGN_IDENTITY="Developer ID Application"`.
+4. Verify the archived `.app`: exactly one `.app`, `codesign --verify
+   --deep --strict`, `codesign -dv`.
+5. `productbuild --component <app> /Applications --sign "Developer ID
+   Installer: ..."` → `LettersToMy-<version>-macOS.pkg`, then
+   `pkgutil --check-signature`.
+6. Notarize: `xcrun notarytool submit --wait` (ASC API key; the workflow
+   FAILS if notarization fails — no async fire-and-forget).
+7. Staple: `xcrun stapler staple` + `stapler validate`, then
+   `spctl --assess --type install` (advisory).
+8. `shasum -a 256` → `.sha256`; upload pkg + checksum as workflow
+   artifacts AND as GitHub Release assets (`gh release create` with
+   `--generate-notes`, or `gh release upload --clobber` to update an
+   existing release with only our same-named assets).
 
 ## Required secrets
 
@@ -75,6 +119,42 @@ Actions:
 | `ASC_KEY_ID` | testflight | App Store Connect API key ID |
 | `ASC_ISSUER_ID` | testflight | App Store Connect API issuer ID |
 | `ASC_KEY` | testflight | Base64 of the `.p8` API key, saved as `AuthKey_<KEY_ID>.p8` |
+
+### GitHub Release (Developer ID) secrets
+
+Required by `.github/workflows/macos-release.yml` — none exist yet; the
+repository owner must create them:
+
+| Secret | Used by | Description |
+|--------|---------|-------------|
+| `APPLE_DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64` | release | Base64 of the **Developer ID Application** `.p12` (signs the public `.app`) |
+| `APPLE_DEVELOPER_ID_INSTALLER_CERTIFICATE_BASE64` | release | Base64 of the **Developer ID Installer** `.p12` (signs the public `.pkg`) |
+| `APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD` | release | `.p12` passphrase for the two Developer ID certs (reuse the same password if the exports share it) |
+| `APPLE_DEVELOPER_ID_PROVISIONING_PROFILE_BASE64` | release | Base64 of the **Developer ID provisioning profile** (required: the app uses CloudKit + keychain access groups, which need a profile even for Developer ID distribution) |
+
+`APPLE_TEAM_ID`, `ASC_KEY`, `ASC_KEY_ID`, `ASC_ISSUER_ID` are reused from
+the TestFlight table — the same App Store Connect API key authenticates
+`notarytool`.
+
+### Certificate classes — do not conflate
+
+| Channel | App signing identity | Package signing identity |
+|---------|----------------------|--------------------------|
+| iOS TestFlight | `Apple Distribution` | n/a (`.ipa`) |
+| macOS TestFlight / Mac App Store | `Apple Distribution` | `3rd Party Mac Developer Installer` |
+| macOS GitHub Release (direct download) | `Developer ID Application` | `Developer ID Installer` |
+
+`Apple Distribution` and `Developer ID Application` are DIFFERENT
+certificate classes and are NOT interchangeable. Same for
+`3rd Party Mac Developer Installer` vs `Developer ID Installer`. The mac
+App Store provisioning profile (`91405fb4-…`) authorizes only `Apple
+Distribution`; the Developer ID profile is a separate profile for the
+`Developer ID Application` cert.
+
+**All certificates/profiles live in GitHub Actions secrets — never commit
+them to the repository.** (The repo is scanned by CI; `.p12`, `.p8`,
+`.mobileprovision`, and private keys are not tracked and must never be
+added.)
 
 The provisioning profile UUIDs in the workflow must match the profile's
 own UUID (the workflow installs the file under both the short and full

@@ -46,10 +46,13 @@ jobs:
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
         run: |
           set -euo pipefail
+          test -n "$CERTIFICATE_BASE64"
+          test -n "$CERTIFICATE_PASSWORD"
           CERT_PATH="$RUNNER_TEMP/distribution.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
           echo -n "$CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          test -s "$CERT_PATH"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -134,6 +137,8 @@ jobs:
   macos:
     if: inputs.platform == 'macos' || inputs.platform == 'both'
     runs-on: macos-26
+    outputs:
+      pkg_name: ${{ steps.package.outputs.pkg_name }}
     # The first macOS archive of a Firebase-linked app rebuilds the whole
     # SPM graph (FirebaseCore, GoogleUtilities, Promises, nanopb) for both
     # arm64 and x86_64, which can exceed the default 45 minutes on a cold
@@ -273,6 +278,7 @@ jobs:
           codesign -dv --verbose=4 "$APP_PATH" 2>&1 | awk '/Identifier=|TeamIdentifier=|Authority=/{print "  " $0}'
 
       - name: Package signed PKG
+        id: package
         run: |
           set -euo pipefail
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -284,7 +290,7 @@ jobs:
           # directly with productbuild (the same tool Xcode's export uses)
           # and sign the PKG with the separate Mac Installer cert. No error
           # suppression: any packaging failure fails this step.
-          PKG_PATH="$RUNNER_TEMP/LettersToMy.pkg"
+          PKG_PATH="$RUNNER_TEMP/LettersToMy-TestFlight-${{ inputs.build_number }}.pkg"
           productbuild \
             --component "$APP_PATH" /Applications \
             --sign "$INSTALLER_IDENTITY" \
@@ -292,6 +298,7 @@ jobs:
           test -f "$PKG_PATH"
           test -s "$PKG_PATH"
           echo "PKG_PATH=$PKG_PATH" >> "$GITHUB_ENV"
+          echo "pkg_name=$(basename "$PKG_PATH")" >> "$GITHUB_OUTPUT"
           echo "--- PKG signature ---"
           pkgutil --check-signature "$PKG_PATH"
 
@@ -313,6 +320,12 @@ jobs:
           path: ${{ env.PKG_PATH }}
           if-no-files-found: error
 
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/mac-installer.p12"
+
   summary:
     if: always()
     needs: [ios, macos]
@@ -321,9 +334,10 @@ jobs:
       - name: Summary
         run: |
           echo "## TestFlight Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "| Platform | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| iOS      | ${{ needs.ios.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| macOS    | ${{ needs.macos.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| iOS TestFlight | ${{ needs.ios.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| macOS TestFlight | ${{ needs.macos.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| macOS TestFlight PKG | ${{ needs.macos.outputs.pkg_name }} |" >> $GITHUB_STEP_SUMMARY
           echo ""
           echo "Build: #${{ inputs.build_number }}" >> $GITHUB_STEP_SUMMARY
