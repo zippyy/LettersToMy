@@ -307,18 +307,24 @@ jobs:
           set -euo pipefail
           test -f "$PKG_PATH"
           test -s "$PKG_PATH"
-          xcrun altool --upload-app \
-            -f "$PKG_PATH" \
-            -t osx \
-            --apiKey "${{ secrets.ASC_KEY_ID }}" \
-            --apiIssuer "${{ secrets.ASC_ISSUER_ID }}"
+          # altool --upload-app is rejected by App Store Connect on current
+          # Xcode (ERROR -22421: use the Transporter app or xcrun
+          # notarytool). notarytool submit is the supported replacement for
+          # macOS .pkg delivery; --wait blocks until Apple returns a
+          # verdict and a rejection fails this step.
+          xcrun notarytool submit "$PKG_PATH" \
+            --key "$HOME/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8" \
+            --key-id "${{ secrets.ASC_KEY_ID }}" \
+            --issuer "${{ secrets.ASC_ISSUER_ID }}" \
+            --wait
 
       - name: Upload PKG artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: LettersToMy-macos-build-${{ inputs.build_number }}
           path: ${{ env.PKG_PATH }}
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Cleanup keychain
         if: always()

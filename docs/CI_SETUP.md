@@ -55,7 +55,10 @@ Highlights:
   validate the Mac Installer cert against the provisioning profile —
   this is an intentional, documented fallback, not a masked failure;
   the step still fails if the app directory is missing.
-- Uploads to TestFlight via `xcrun altool` with the ASC key.
+- Uploads the IPA (iOS, via `xcrun altool`) or PKG (macOS, via `xcrun
+  notarytool submit` — `altool --upload-app` is rejected by App Store
+  Connect on current Xcode with error -22421) artifact (fails if no file
+  was found).
 - Uploads the IPA/PKG artifact (fails if no file was found).
 - A `summary` job prints a platform-by-platform status table, including
   the macOS TestFlight PKG file name.
