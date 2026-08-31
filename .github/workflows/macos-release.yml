@@ -91,6 +91,16 @@ jobs:
           # bundle version matches the release file name.
           sed -i '' "s/MARKETING_VERSION: .*/MARKETING_VERSION: $VERSION/" project.yml
           xcodegen generate
+          # The App Store path needs com.apple.developer.icloud-container-
+          # environment = Production (ITMS-90046), but Developer ID
+          # distribution does NOT support that entitlement. The entitlements
+          # file is shared with the TestFlight pipeline, so strip the key
+          # here before signing.
+          if plutil -extract com.apple.developer.icloud-container-environment xml1 \
+            -o - Config/LettersToMy-macOS.entitlements >/dev/null 2>&1; then
+            plutil -remove com.apple.developer.icloud-container-environment \
+              Config/LettersToMy-macOS.entitlements
+          fi
 
       - name: Import Developer ID certificates
         env:

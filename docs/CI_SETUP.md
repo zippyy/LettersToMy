@@ -69,6 +69,17 @@ Highlights:
 - A `summary` job prints a platform-by-platform status table, including
   the macOS TestFlight PKG file name.
 
+macOS App Store validation notes (errors seen live on CI):
+
+- The macOS app icon must be a real `AppIcon-Mac.appiconset` with a 1024px
+  `icon-512-2x.png` and `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon-Mac`.
+  The generated `AppIcon-Mac.icns` is what App Store Connect validates
+  (ITMS-90236 otherwise).
+- The macOS entitlements must contain
+  `com.apple.developer.icloud-container-environment = Production` for App
+  Store uploads (ITMS-90046 otherwise). The Developer ID release workflow
+  strips this key because Developer ID distribution does not support it.
+
 ### 4. macOS GitHub Release — direct download — `.github/workflows/macos-release.yml`
 
 This is a SEPARATE distribution channel from Mac App Store / TestFlight.

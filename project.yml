@@ -97,7 +97,7 @@ targets:
         PRODUCT_NAME: Letters to My
         INFOPLIST_FILE: Config/Info-macOS.plist
         CODE_SIGN_ENTITLEMENTS: Config/LettersToMy-macOS.entitlements
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon-Mac
         ENABLE_HARDENED_RUNTIME: YES
         OTHER_LDFLAGS: ["$(inherited)", "-ObjC"]
         # Filled in by the TestFlight CI workflow (sed) so the manual
@@ -111,6 +111,10 @@ targets:
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.bayoumountainholdings.LettersToMy
+        # Required by App Store Connect validation (ITMS-90046): the value
+        # must be the string "Production". Xcode injects an empty string
+        # when the key is absent, and ASC rejects the upload.
+        com.apple.developer.icloud-container-environment: Production
         keychain-access-groups:
           - $(AppIdentifierPrefix)$(CFBundleIdentifier)
         # App Sandbox is mandatory for Mac App Store / TestFlight
