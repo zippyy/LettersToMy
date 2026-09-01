@@ -149,11 +149,8 @@ Required by `.github/workflows/macos-release.yml`:
 |--------|---------|-------------|
 | `APPLE_DEVELOPER_ID_APPLICATION_CERTIFICATE_BASE64` | release | Base64 of the **Developer ID Application** `.p12` (signs the public `.app`) — **present** (team cert `DEVELOPER_ID_APPLICATION_G2`, serial `0E2456C7041D00AACF6CB6E6FE598C10`, expires 2031-06-28) |
 | `APPLE_DEVELOPER_ID_INSTALLER_CERTIFICATE_BASE64` | release | Base64 of the **Developer ID Installer** `.p12` (signs the public `.pkg`) — **MISSING; portal only** (the App Store Connect API does not support creating `DEVELOPER_ID_INSTALLER` certs; cert issuance is also `Account Holder`-only via API) |
+| `APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD` | release | `.p12` passphrase for the Developer ID certs (does NOT reuse the distribution password — the distribution `.p12` in CI was exported with a different passphrase, so it has its own secret) |
 | `APPLE_DEVELOPER_ID_PROVISIONING_PROFILE_BASE64` | release | Base64 of the **Developer ID provisioning profile** (required: the app uses CloudKit + keychain access groups) — **present** (created via ASC API 2026-09-01, UUID `b311c3a7-4023-4dc9-bd64-488ea9859ef6`, MAC_APP_DIRECT) |
-
-There is no separate Developer ID certificate password secret: the workflow
-reuses `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD` — export any new `.p12`
-files with that same passphrase.
 
 `APPLE_TEAM_ID`, `ASC_KEY`, `ASC_KEY_ID`, `ASC_ISSUER_ID` are reused from
 the TestFlight table — the same App Store Connect API key authenticates
