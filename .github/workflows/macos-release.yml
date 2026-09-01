@@ -7,7 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version for manual test runs (e.g. 0.2.0 -> tag v0.2.0)'
+        description: 'Version for manual test runs (e.g. 0.2.0 -> tag v0.2.0). Stays the same across builds; bump only for major/point releases.'
+        required: true
+        type: string
+      build_number:
+        description: 'Build number (CFBundleVersion). Increment for every build.'
         required: true
         type: string
       create_release:
@@ -52,15 +56,27 @@ jobs:
             VERSION="${VERSION#v}"
             test -n "$VERSION"
             TAG_NAME="v${VERSION}"
+            BUILD_NUMBER="${{ inputs.build_number }}"
           else
             TAG_NAME="${GITHUB_REF_NAME}"
             VERSION="${TAG_NAME#v}"
             test -n "$VERSION"
+            # Tag-push runs have no dispatch inputs; use the run number so
+            # the build number is unique and monotonically rising across
+            # releases (matches "builds are incremented"). Also require the
+            # version itself to be numeric (major[.minor[.patch]]).
+            BUILD_NUMBER="${{ github.run_number }}"
+            case "$VERSION" in
+              ''|*[!0-9.]*) echo "version '$VERSION' must be numeric (e.g. 0.2.0)" >&2; exit 1 ;;
+            esac
           fi
+          test -n "$BUILD_NUMBER"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -90,6 +106,8 @@ jobs:
           # Tag/dispatch version becomes the app's short version too, so the
           # bundle version matches the release file name.
           sed -i '' "s/MARKETING_VERSION: .*/MARKETING_VERSION: $VERSION/" project.yml
+          # Build number (CFBundleVersion) — incremented every build.
+          sed -i '' "s/CURRENT_PROJECT_VERSION: .*/CURRENT_PROJECT_VERSION: $BUILD_NUMBER/" project.yml
           xcodegen generate
           # The App Store path needs com.apple.developer.icloud-container-
           # environment = Production (ITMS-90046), but Developer ID
@@ -287,6 +305,7 @@ jobs:
           echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Version | $VERSION |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | $BUILD_NUMBER |" >> $GITHUB_STEP_SUMMARY
           echo "| GitHub Release PKG | $PKG_NAME |" >> $GITHUB_STEP_SUMMARY
           echo "| SHA-256 | ${{ steps.checksum.outputs.sha256 }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Notarization | ${{ steps.notarize.outcome }} |" >> $GITHUB_STEP_SUMMARY
