@@ -99,13 +99,23 @@ final class ServerAndBackupUITests: XCTestCase {
             "Self-Hosted screen did not open"
         )
 
-        // Start from a known-clean configuration: Keychain state can survive an
-        // app reinstall on the simulator, so clear if a config is already present.
+        // CRITICAL ORDERING. The URL and token fields are
+        // `.disabled(config.enabled)`, and `typeText` into a disabled field
+        // silently does nothing — so `enabled` MUST be off before typing.
+        // `enabled` persists in UserDefaults and survives relaunch, so a
+        // leftover true from an earlier run leaves the fields disabled and the
+        // typed values are discarded, which surfaces as the app sitting on
+        // "Status: Not configured" with an empty URL field.
+        let toggle = app.switches.firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: 20), "Enable toggle missing")
+        if (toggle.value as? String) == "1" { toggle.tap() }   // force OFF first
+
+        // Now clear any leftover URL/token (Keychain state also survives
+        // reinstall on the simulator).
         let clear = app.buttons["Clear Configuration"]
         if clear.exists && clear.isEnabled { clear.tap() }
+        composeWait()
 
-        // NOTE: the URL/token fields are `.disabled(config.enabled)`, so they must
-        // be filled BEFORE the integration is enabled.
         let urlField = app.textFields.firstMatch
         XCTAssertTrue(urlField.waitForExistence(timeout: 20), "server URL field missing")
         urlField.tap()
@@ -116,8 +126,8 @@ final class ServerAndBackupUITests: XCTestCase {
         tokenField.tap()
         tokenField.typeText(token)
 
-        let toggle = app.switches.firstMatch
-        XCTAssertTrue(toggle.exists, "Enable toggle missing")
+        // Enable LAST, now that the config is complete: enabling with a complete
+        // config auto-starts the probe (.onChange(of: config.enabled)).
         if (toggle.value as? String) != "1" { toggle.tap() }
     }
 
@@ -140,6 +150,13 @@ final class ServerAndBackupUITests: XCTestCase {
     private func triggerProbe(_ app: XCUIApplication) {
         let test = app.buttons["Test Connection"]
         if test.exists && test.isEnabled { test.tap() }
+    }
+
+    /// Let the UI settle. XCTest has no waitForIdle for SwiftUI, so this polls
+    /// the app's own state via a short expectation-free sleep bounded by a
+    /// quiescence check on the current app.
+    private func composeWait(_ seconds: TimeInterval = 0.6) {
+        Thread.sleep(forTimeInterval: seconds)
     }
 
     // MARK: - Tests
