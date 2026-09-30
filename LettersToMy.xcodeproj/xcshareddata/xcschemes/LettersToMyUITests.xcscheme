@@ -75,7 +75,7 @@
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "LTM_SERVER_URL"
-            value = "http://192.168.80.232:8080"
+            value = "http://127.0.0.1:8080"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
