@@ -44,6 +44,7 @@
 		570F63A02A8434A978C4D2EE /* SelfHostedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */; };
 		5B0B1BC78783C1AE84F01DE9 /* app-icon-preview.png in Resources */ = {isa = PBXBuildFile; fileRef = F52638E7AC452447C783EAFB /* app-icon-preview.png */; };
 		5C326084444318C526E7A9D4 /* LetterEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3673FF0949E317F43B93214E /* LetterEditorView.swift */; };
+		5ECFA0C18CAA4E1CE668EDF0 /* CoreFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88FB07966262AB001D45375 /* CoreFlowUITests.swift */; };
 		5F591907EA2970308BDDF25B /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58B48CE6639E02B94646058 /* PersistenceController.swift */; };
 		60713B058F91D47E852078E0 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6ABEDA042E9C24396817268 /* SplashView.swift */; };
 		63D8ECE23E2C446008E17202 /* RecoveryContactEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */; };
@@ -83,6 +84,7 @@
 		B3694A925CA24DA84FF66C1B /* SynologyBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C1D1D45AA4D90728A4A5D4 /* SynologyBackupProvider.swift */; };
 		B635A7E0CD92F0B434A019BF /* SelfHostedConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */; };
 		BD7EC875D00E7765863D4155 /* SelfHostedBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */; };
+		BECC7B1371A57A80922C71A4 /* OnboardingLaunchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF60032F487B8C787BADF789 /* OnboardingLaunchUITests.swift */; };
 		BF7260E58F783D98858E277D /* SelfHostedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */; };
 		BFDF0F615ABBAB7B13CC619D /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
 		C6FF00BA3EC6734EF61B3F2B /* SelfHostedBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */; };
@@ -131,6 +133,13 @@
 			remoteGlobalIDString = 73C549B54D7E04883FDD9414;
 			remoteInfo = LettersToMy;
 		};
+		75F327DCD70835931D3DCBDA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BDE715AEA1C4B95A461718EC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 73C549B54D7E04883FDD9414;
+			remoteInfo = LettersToMy;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -153,6 +162,7 @@
 		57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRecordEntity.swift; sourceTree = "<group>"; };
 		5843CFF608A7BD2F96FF71B6 /* LetterLibraryFiltering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterLibraryFiltering.swift; sourceTree = "<group>"; };
 		585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaboratorsView.swift; sourceTree = "<group>"; };
+		5C7A09689FE2C1D6DFDD5CC7 /* LettersToMyUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LettersToMyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5DAF85C9E02B48F9C8FFE3DD /* icon-preview-Daughter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Daughter.png"; sourceTree = "<group>"; };
 		60702C53BEE4BCBF858843EA /* LetterDeletePermissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterDeletePermissionTests.swift; sourceTree = "<group>"; };
 		608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LettersToMyManagedObjectModel.swift; sourceTree = "<group>"; };
@@ -193,10 +203,12 @@
 		D58B48CE6639E02B94646058 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		D58BDE5709829B6ECFCD10B5 /* BackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
 		D6ABEDA042E9C24396817268 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		D88FB07966262AB001D45375 /* CoreFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreFlowUITests.swift; sourceTree = "<group>"; };
 		DA4EE693C9483ACAEC6285FF /* PersistenceStoreBookkeepingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceStoreBookkeepingTests.swift; sourceTree = "<group>"; };
 		E2CC07F3B82784F2223049EF /* LetterAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterAttachment.swift; sourceTree = "<group>"; };
 		EC9ABF0969826C33789B127C /* Letter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Letter.swift; sourceTree = "<group>"; };
 		F52638E7AC452447C783EAFB /* app-icon-preview.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "app-icon-preview.png"; sourceTree = "<group>"; };
+		FF60032F487B8C787BADF789 /* OnboardingLaunchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLaunchUITests.swift; sourceTree = "<group>"; };
 		FF7B2464470751CCD2F80A03 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -238,6 +250,7 @@
 				92B071285075BC1D4965EC8E /* LettersToMy.app */,
 				77BB45C5B09A2E90D67376A3 /* LettersToMyMac.app */,
 				765697ED9D4425F9C9629CE8 /* LettersToMyTests.xctest */,
+				5C7A09689FE2C1D6DFDD5CC7 /* LettersToMyUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -288,6 +301,16 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		75ABBC1D69E7818FFE022FB1 /* LettersToMyUITests */ = {
+			isa = PBXGroup;
+			children = (
+				D88FB07966262AB001D45375 /* CoreFlowUITests.swift */,
+				FF60032F487B8C787BADF789 /* OnboardingLaunchUITests.swift */,
+			);
+			name = LettersToMyUITests;
+			path = Tests/LettersToMyUITests;
+			sourceTree = "<group>";
+		};
 		933C6D65D4D309681372BF4C /* LettersToMy */ = {
 			isa = PBXGroup;
 			children = (
@@ -314,6 +337,7 @@
 				943D392C3E4529510BAD3A42 /* Config */,
 				933C6D65D4D309681372BF4C /* LettersToMy */,
 				57471201624C69697E8A10BE /* LettersToMyCoreTests */,
+				75ABBC1D69E7818FFE022FB1 /* LettersToMyUITests */,
 				27689FA45D17DB79ED3B2D01 /* macOS */,
 				19B0657594B6483E2C11D00A /* Packages */,
 				DB1B3F2C13E1B7D84C407FE1 /* Resources */,
@@ -396,6 +420,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		6FDED9804E3BFB16F9540EB1 /* LettersToMyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EEBDF6BC9D1334F43C6A7AFC /* Build configuration list for PBXNativeTarget "LettersToMyUITests" */;
+			buildPhases = (
+				D37DE48A3DB864876034CD51 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				866F67160A92A88079963DCE /* PBXTargetDependency */,
+			);
+			name = LettersToMyUITests;
+			packageProductDependencies = (
+			);
+			productName = LettersToMyUITests;
+			productReference = 5C7A09689FE2C1D6DFDD5CC7 /* LettersToMyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		73C549B54D7E04883FDD9414 /* LettersToMy */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BB062DFFEBEDC229ED742FE2 /* Build configuration list for PBXNativeTarget "LettersToMy" */;
@@ -468,6 +510,11 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					6FDED9804E3BFB16F9540EB1 = {
+						TestTargetID = 73C549B54D7E04883FDD9414;
+					};
+				};
 			};
 			buildConfigurationList = BA6CC500FE1869C1C277EB37 /* Build configuration list for PBXProject "LettersToMy" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -490,6 +537,7 @@
 				73C549B54D7E04883FDD9414 /* LettersToMy */,
 				87FCA2A070A9E70584C32571 /* LettersToMyMac */,
 				E179B795F2D43FEA841DE557 /* LettersToMyTests */,
+				6FDED9804E3BFB16F9540EB1 /* LettersToMyUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -640,6 +688,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D37DE48A3DB864876034CD51 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5ECFA0C18CAA4E1CE668EDF0 /* CoreFlowUITests.swift in Sources */,
+				BECC7B1371A57A80922C71A4 /* OnboardingLaunchUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -647,6 +704,11 @@
 			isa = PBXTargetDependency;
 			target = 73C549B54D7E04883FDD9414 /* LettersToMy */;
 			targetProxy = 4670A54C52E6C0659A533E72 /* PBXContainerItemProxy */;
+		};
+		866F67160A92A88079963DCE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 73C549B54D7E04883FDD9414 /* LettersToMy */;
+			targetProxy = 75F327DCD70835931D3DCBDA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -756,6 +818,23 @@
 			};
 			name = Debug;
 		};
+		58EB8B61332EF7CC48D1292F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMyUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LettersToMy;
+			};
+			name = Debug;
+		};
 		649057A7EA009411D6880032 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -776,6 +855,23 @@
 				PRODUCT_NAME = "Letters to My";
 				PROVISIONING_PROFILE_SPECIFIER = CI_MACOS_PROFILE_UUID_PLACEHOLDER;
 				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		896CB45F91F6FBC71C7FE9AE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bayoumountainholdings.LettersToMyUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LettersToMy;
 			};
 			name = Release;
 		};
@@ -931,6 +1027,15 @@
 			buildConfigurations = (
 				DB8B7941566FB2744F1E5866 /* Debug */,
 				DAA5F1742F3297FEBA423097 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EEBDF6BC9D1334F43C6A7AFC /* Build configuration list for PBXNativeTarget "LettersToMyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58EB8B61332EF7CC48D1292F /* Debug */,
+				896CB45F91F6FBC71C7FE9AE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

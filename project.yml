@@ -30,6 +30,23 @@ schemes:
       config: Debug
       targets:
         - LettersToMyTests
+  # Runtime acceptance scheme. Kept OUT of the default LettersToMy scheme on
+  # purpose: that scheme is used by the no-secret CI job with
+  # CODE_SIGNING_ALLOWED=NO, and an unsigned launch traps in CloudKit setup
+  # (EXC_BREAKPOINT via PFCloudKitContainerProvider). UI tests therefore get
+  # their own scheme and must be run signed:
+  #   xcodebuild test -scheme LettersToMyUITests -destination ... DEVELOPMENT_TEAM=... CODE_SIGN_STYLE=Automatic
+  LettersToMyUITests:
+    build:
+      targets:
+        LettersToMy: all
+        LettersToMyUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - LettersToMyUITests
   LettersToMyMac:
     build:
       targets:
@@ -142,4 +159,24 @@ targets:
         # CloudKit test files, which are excluded from `swift test`, with no
         # way to execute anywhere. Generating the plist makes the bundle
         # signable and the test action runnable.
+        GENERATE_INFOPLIST_FILE: YES
+
+  # Runtime acceptance target. The unit tests cover logic; this target drives
+  # the real app UI on a simulator, which is the only way to prove the
+  # user-facing flows actually work (build success and unit tests cannot).
+  #
+  # Deliberately has NO TEST_HOST: a UI test does not load the app bundle into
+  # the test process, it launches the app as a separate process and drives it
+  # via the accessibility layer.
+  LettersToMyUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/LettersToMyUITests
+    dependencies:
+      - target: LettersToMy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bayoumountainholdings.LettersToMyUITests
+        TEST_TARGET_NAME: LettersToMy
         GENERATE_INFOPLIST_FILE: YES
