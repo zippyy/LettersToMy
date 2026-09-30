@@ -215,18 +215,34 @@ struct LetterDeletionCoreDataTests {
         let controller = await makeController()
         let context = controller.container.viewContext
 
-        // Build a second in-memory store to stand in for the shared store.
-        // A normal Core Data delete in a context must work regardless of
-        // which store the object belongs to.
-        let sharedDescription = NSPersistentStoreDescription()
-        sharedDescription.type = NSInMemoryStoreType
-        sharedDescription.configuration = PersistenceController.sharedConfigurationName
-        controller.container.persistentStoreCoordinator.addPersistentStore(with: sharedDescription) { _, error in
-            #expect(error == nil)
-        }
-        guard let sharedStore = controller.container.persistentStoreCoordinator.persistentStores.last else {
-            Issue.record("Expected a shared in-memory store")
-            return
+        // Resolve the Shared store from the COORDINATOR, which is the
+        // authoritative record of registered stores. Checking
+        // `controller.sharedStore == nil` is not sufficient: the property is
+        // populated by the controller's own bookkeeping, and this test must
+        // test deletion — not accidentally re-register a store the
+        // coordinator already holds (which throws
+        // NSCocoaErrorDomain 134081 "Can't add the same store twice").
+        let coordinator = controller.container.persistentStoreCoordinator
+        let sharedStore: NSPersistentStore
+        if let registered = coordinator.persistentStores.first(
+            where: { $0.configurationName == PersistenceController.sharedConfigurationName }
+        ) {
+            sharedStore = registered
+        } else {
+            let sharedDescription = NSPersistentStoreDescription()
+            sharedDescription.type = NSInMemoryStoreType
+            sharedDescription.configuration = PersistenceController.sharedConfigurationName
+            sharedDescription.url = URL(fileURLWithPath: "/dev/null/Shared-test")
+            var addError: Error?
+            coordinator.addPersistentStore(with: sharedDescription) { _, error in
+                addError = error
+            }
+            #expect(addError == nil)
+            guard let added = coordinator.persistentStores.last else {
+                Issue.record("Expected a shared in-memory store")
+                return
+            }
+            sharedStore = added
         }
 
         let letter = NSEntityDescription.insertNewObject(

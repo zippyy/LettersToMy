@@ -47,10 +47,25 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     /// entitlement in the provisioning profile).
     static var cloudKitAvailable: Bool {
         #if DEBUG
+        // Hosted unit tests run inside the app on a simulator that has no
+        // iCloud entitlement. `NSPersistentCloudKitContainer` terminates the
+        // process on launch in that state ("your process must have a
+        // com.apple.developer.icloud-services entitlement"), which happens
+        // before any test can execute — so the whole app-target suite was
+        // unrunnable. Detecting the test host explicitly lets the suite run in
+        // CI with no production signing secrets.
+        //
+        // A build configuration cannot be used for this: a custom Xcode
+        // configuration makes the SwiftPM `LettersToMyCore` product resolve
+        // against a mismatched build ("Unable to resolve Swift module
+        // dependency to a compatible module"). The test host environment is
+        // available from the very first line of code, before store setup.
+        if isRunningUnitTests { return false }
         #if os(macOS)
-        // SecTask reads the process's code-signing entitlements.
-        // On macOS, Xcode debug builds may lack entitlements when
-        // CODE_SIGNING_ALLOWED=NO, so we check at runtime.
+        // SecTask reads the process's code-signing entitlements. (These APIs
+        // are macOS-only, hence the platform split.) On macOS, Xcode debug
+        // builds may lack entitlements when CODE_SIGNING_ALLOWED=NO, so this
+        // is checked at runtime.
         guard let task = SecTaskCreateFromSelf(nil) else { return false }
         guard let value = SecTaskCopyValueForEntitlement(
             task,
@@ -61,13 +76,24 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
         return value.contains("CloudKit") || value.contains("CloudKit-Anonymous")
         #else
-        // iOS: Xcode always signs debug builds with the dev cert,
-        // so entitlements are always present.
         return true
         #endif
         #else
         return true
         #endif
+    }
+
+    /// True when the current process is an XCTest host. Checks the environment
+    /// the test runner sets and, as a fallback, whether XCTest is loaded into
+    /// this process. Release builds never call this.
+    private static var isRunningUnitTests: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["XCTestConfigurationFilePath"] != nil
+            || environment["XCTestBundlePath"] != nil
+            || environment["XCTestSessionIdentifier"] != nil {
+            return true
+        }
+        return NSClassFromString("XCTestCase") != nil
     }
 
     var container: NSPersistentContainer
@@ -91,11 +117,12 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
     private var cloudKitObservationStarted = false
     private var syncHealth = CloudKitSyncHealth()
 
-    init(inMemory: Bool = false) {
-        let useInMemory = inMemory || !Self.cloudKitAvailable
+    init(inMemory: Bool = false, includeSharedStore: Bool? = nil) {
+        let cloudKitEnabled = Self.cloudKitAvailable
+        let useInMemory = inMemory || !cloudKitEnabled
         let model = LettersToMyManagedObjectModel.makeModel()
 
-        if Self.cloudKitAvailable {
+        if cloudKitEnabled {
             container = NSPersistentCloudKitContainer(name: "LettersToMy", managedObjectModel: model)
         } else {
             container = NSPersistentContainer(name: "LettersToMy", managedObjectModel: model)
@@ -108,7 +135,12 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             inMemory: useInMemory
         )
         var descriptions: [NSPersistentStoreDescription] = [privateDescription]
-        if Self.cloudKitAvailable {
+        // `includeSharedStore` lets tests exercise the two-store
+        // configuration (and the bookkeeping that keeps `sharedStore` in sync
+        // with the coordinator) even when CloudKit is unavailable. Production
+        // callers leave it nil so the Shared store still follows CloudKit.
+        let wantsSharedStore = includeSharedStore ?? cloudKitEnabled
+        if wantsSharedStore {
             let sharedDescription = Self.makeStoreDescription(
                 name: "LettersToMy-shared",
                 configuration: Self.sharedConfigurationName,
@@ -162,6 +194,11 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
             }
         }
 
+        // The coordinator is the authoritative record of which stores actually
+        // loaded. Reconcile the controller's references from it so they are
+        // correct regardless of callback ordering or description identity.
+        reconcileStoreReferences()
+
         // If the private store failed to load, fall back to in-memory
         // so the app always renders even without iCloud or disk access.
         if privateStore == nil {
@@ -199,6 +236,28 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         }
 
         await MainActor.run { isLoaded = true }
+    }
+
+    /// Reconcile `privateStore` / `sharedStore` from the persistent store
+    /// coordinator, which is the authoritative record of what actually
+    /// loaded. The per-description `loadPersistentStores` callback reports a
+    /// description, not the store instance, so matching by
+    /// `description.configuration` inside the callback is order- and
+    /// identity-fragile: a store that loaded but was not matched there would
+    /// leave its property nil even though the coordinator holds it, and every
+    /// `guard let sharedStore` production path (share acceptance, shared-store
+    /// fetches, member activation) would silently no-op.
+    ///
+    /// Store identity is therefore derived from the coordinator, keyed by
+    /// `configurationName`. Never clears a reference that is already correct.
+    private func reconcileStoreReferences() {
+        let stores = container.persistentStoreCoordinator.persistentStores
+        if let store = stores.first(where: { $0.configurationName == Self.privateConfigurationName }) {
+            privateStore = store
+        }
+        if let store = stores.first(where: { $0.configurationName == Self.sharedConfigurationName }) {
+            sharedStore = store
+        }
     }
 
     private func observeCloudKitEvents() {
@@ -1021,6 +1080,12 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
                 if error == nil {
                     self.privateStore = inMemoryContainer.persistentStoreCoordinator.persistentStores.first
                     self.container = inMemoryContainer
+                    // The replacement container has no Shared configuration.
+                    // Clearing the reference prevents it pointing at a store
+                    // owned by the discarded coordinator (a stale
+                    // cross-container reference that every `guard let
+                    // sharedStore` path would then act on).
+                    self.sharedStore = nil
                 }
                 continuation.resume()
             }
@@ -1040,6 +1105,14 @@ final class PersistenceController: ObservableObject, @unchecked Sendable {
         if inMemory {
             description = NSPersistentStoreDescription()
             description.type = NSInMemoryStoreType
+            // In-memory stores are identified by URL. Without a distinct URL
+            // per configuration both descriptions collapse onto the default
+            // (/dev/null) and the second load fails with
+            // "Can't add the same store twice" — leaving only the private
+            // store. Production uses distinct on-disk files, so this keeps the
+            // in-memory configuration equivalent to production: one store per
+            // configuration.
+            description.url = URL(fileURLWithPath: "/dev/null/\(configuration)")
         } else {
             guard let applicationSupport = FileManager.default.urls(
                 for: .applicationSupportDirectory,

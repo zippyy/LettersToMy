@@ -64,17 +64,39 @@ enum LetterDeletion {
 
         // Group the deletion so a failed save can be undone without touching
         // unrelated pending edits in the same context.
-        context.undoManager = context.undoManager ?? UndoManager()
-        context.undoManager?.beginUndoGrouping()
-        context.delete(letter)
-        context.undoManager?.endUndoGrouping()
+        //
+        // Two things are required for that isolation:
+        //
+        // 1. Flush unrelated pending edits into the CURRENT undo manager
+        //    BEFORE swapping managers. Core Data registers undo actions for
+        //    pending changes during `processPendingChanges()`, which
+        //    `delete(_:)` triggers. Without this flush, a pending edit made
+        //    moments earlier is registered into whatever manager is installed
+        //    at that moment — i.e. the deletion manager — so `undo()` would
+        //    revert the user's unrelated edit too. Flushing first pins those
+        //    edits to the pre-existing manager.
+        // 2. Use a dedicated manager for the deletion so `undo()` can only
+        //    restore the deleted letter.
+        //
+        // `groupsByEvent` must stay at its default (true): `undo()` opens a
+        // redo group, and with event grouping disabled it throws
+        // "_registerUndoObject:: NSUndoManager is in invalid state".
+        context.processPendingChanges()
 
+        let previousUndoManager = context.undoManager
+        let deletionUndo = UndoManager()
+        context.undoManager = deletionUndo
+        deletionUndo.beginUndoGrouping()
+        context.delete(letter)
+        deletionUndo.endUndoGrouping()
         let performSave = save ?? { try persistence.save($0) }
         do {
             try performSave(context)
+            context.undoManager = previousUndoManager
             return .deleted
         } catch {
-            context.undoManager?.undo()
+            deletionUndo.undo()
+            context.undoManager = previousUndoManager
             NSLog("LettersToMy: letter deletion save failed; delete rolled back: \(error)")
             return .failed(Self.userFacingMessage(for: error))
         }
