@@ -50,11 +50,44 @@ struct LetterLibraryFilteringTests {
 
     @Test func searchAppliesAcrossTitleBodyAndAuthor() {
         let letters = [
-            item("Birthday", childID: childA, status: .scheduled, body: "A special day"),
-            item("School", childID: childB, status: .scheduled, author: "Grandma")
+            item("Birthday", childID: childA, status: .unlocked, body: "A special day"),
+            item("School", childID: childB, status: .unlocked, author: "Grandma")
         ]
         #expect(LetterLibraryFilter.filter(letters, status: nil, childID: nil, searchText: "special").count == 1)
         #expect(LetterLibraryFilter.filter(letters, status: nil, childID: nil, searchText: "grandma").count == 1)
+    }
+
+    // MARK: - Sealed-content privacy
+
+    /// A sealed (scheduled, not yet unlocked) letter must not be findable by
+    /// its body text. Otherwise typing a phrase from a sealed letter confirms
+    /// its contents to a viewer who cannot open it.
+    @Test func searchDoesNotMatchSealedLetterBody() {
+        let letters = [
+            item("Birthday", childID: childA, status: .scheduled, body: "SECRETPHRASE")
+        ]
+        #expect(LetterLibraryFilter.filter(letters, status: nil, childID: nil, searchText: "SECRETPHRASE").isEmpty)
+    }
+
+    /// The sealed letter's own title/author are already rendered in the row,
+    /// so those stay searchable and the letter is still findable.
+    @Test func searchStillMatchesSealedLetterTitleAndAuthor() {
+        let letters = [
+            item("Graduation", childID: childA, status: .scheduled, body: "SECRETPHRASE", author: "Grandpa")
+        ]
+        #expect(LetterLibraryFilter.filter(letters, status: nil, childID: nil, searchText: "Graduation").count == 1)
+        #expect(LetterLibraryFilter.filter(letters, status: nil, childID: nil, searchText: "Grandpa").count == 1)
+    }
+
+    /// Unlocked and draft letters keep full-body search — only sealed content
+    /// is excluded.
+    @Test func searchMatchesBodyForUnlockedAndDraftLetters() {
+        let letters = [
+            item("Open", childID: childA, status: .unlocked, body: "OPENPHRASE"),
+            item("Draft", childID: childA, status: .draft, body: "DRAFTPHRASE", draft: true)
+        ]
+        #expect(LetterLibraryFilter.filter(letters, status: nil, childID: nil, searchText: "OPENPHRASE").count == 1)
+        #expect(LetterLibraryFilter.filter(letters, status: nil, childID: nil, searchText: "DRAFTPHRASE").count == 1)
     }
 
     @Test func allChildrenDoesNotBecomeFirstChild() {
