@@ -136,3 +136,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bayoumountainholdings.LettersToMyTests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Letters to My.app/Letters to My"
+        # The test bundle previously had no Info.plist and no generated one, so
+        # code signing failed ("target does not have an Info.plist file") and
+        # `xcodebuild test` could never run. That left the three Core Data /
+        # CloudKit test files, which are excluded from `swift test`, with no
+        # way to execute anywhere. Generating the plist makes the bundle
+        # signable and the test action runnable.
+        GENERATE_INFOPLIST_FILE: YES

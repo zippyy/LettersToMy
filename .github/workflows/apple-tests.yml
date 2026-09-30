@@ -1,0 +1,78 @@
+name: Apple tests
+
+# Full Xcode test run. `swift test` (see Core tests) only compiles the portable
+# SwiftPM core and deliberately excludes the Core Data / CloudKit-backed test
+# files, so three suites (CloudKitSyncHealthTests, LetterLibraryFilteringTests,
+# LetterDeletionCoreDataTests) plus PersistenceStoreBookkeepingTests are
+# invisible to it. Without this job they were never executed anywhere.
+#
+# No production signing secrets are required. A simulator has no iCloud
+# entitlement and NSPersistentCloudKitContainer terminates the process on
+# launch without one, so the app detects the XCTest host at runtime
+# (cloudKitAvailable in PersistenceController) and uses a plain container.
+#
+# NOTE: a dedicated `Test` build configuration was tried first and does NOT
+# work here — it makes the SwiftPM `LettersToMyCore` product resolve against a
+# mismatched build ("Unable to resolve Swift module dependency to a compatible
+# module"). Runtime test-host detection is what is verified below.
+#
+# Verified locally with this exact command:
+#   xcodebuild test -project LettersToMy.xcodeproj -scheme LettersToMy \
+#     -destination 'platform=iOS Simulator,name=iPhone 17' \
+#     -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""
+#   => 103 tests in 11 suites passed, 0 failures, 0 skipped
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  xcode-test:
+    name: xcodebuild test (simulator)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run the full iOS test suite (no signing secrets)
+        shell: bash
+        run: |
+          set -o pipefail
+          # Select an available iPhone simulator by UDID instead of guessing a
+          # model name, so this does not break when the runner's Xcode changes.
+          udid="$(xcrun simctl list devices available -j \
+            | /usr/bin/python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((dev["udid"] for rt,devs in d.items() if "iOS" in rt for dev in devs if dev["name"].startswith("iPhone")), ""))')"
+          if [ -z "$udid" ]; then
+            echo "No available iPhone simulator found" >&2
+            xcrun simctl list devices available >&2
+            exit 1
+          fi
+          echo "Using simulator UDID: $udid"
+          xcodebuild test \
+            -project LettersToMy.xcodeproj \
+            -scheme LettersToMy \
+            -destination "platform=iOS Simulator,id=$udid" \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | tee xcode-test.log
+
+      - name: Summarize failures
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "Test run with|Failing tests|error:|signal trap" xcode-test.log \
+            | tail -40 || true
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apple-xcode-test-log
+          path: xcode-test.log

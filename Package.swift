@@ -20,7 +20,8 @@ let package = Package(
             exclude: [
                 "CloudKitSyncHealthTests.swift",
                 "LetterLibraryFilteringTests.swift",
-                "LetterDeletionCoreDataTests.swift"
+                "LetterDeletionCoreDataTests.swift",
+                "PersistenceStoreBookkeepingTests.swift"
             ]
         ),
         .executableTarget(
