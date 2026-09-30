@@ -115,6 +115,7 @@
 		EBB8737775A0150F7FBF0D5C /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		ED99E1902963B03880D827C5 /* BackupRecordEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EB72DF7247BD1536CB5F35 /* BackupRecordEntity.swift */; };
 		EDD9BB3A37E7E6C7518B9B50 /* WebDAVBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D96485F4087EBD2C1682893 /* WebDAVBackupProvider.swift */; };
+		EFCA1D349B2E2658251D4E99 /* SelfHostedConnectionStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7AF343E00F37A372E28B82 /* SelfHostedConnectionStateTests.swift */; };
 		EFDBCF192246249A50C4524E /* LettersToMyManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C07D23B571617D6A72B09 /* LettersToMyManagedObjectModel.swift */; };
 		F3C61167E07BF36C348D51FE /* CollaboratorsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D8EB3DAD24206E3365A55 /* CollaboratorsView.swift */; };
 		F56EFE46B76BC90DBD3B0BFE /* RecoveryContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928F0588BD2ADFEF67B2FFDC /* RecoveryContactsView.swift */; };
@@ -197,6 +198,7 @@
 		C85C3FC066655BA92BC30361 /* BackupProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupProviders.swift; sourceTree = "<group>"; };
 		CA8A5E39997BB3AC2C28E2B1 /* LettersToMy */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LettersToMy; path = .; sourceTree = SOURCE_ROOT; };
 		CCEA85461F92C44C1FA40A48 /* CollaborationSharePlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationSharePlanTests.swift; sourceTree = "<group>"; };
+		CD7AF343E00F37A372E28B82 /* SelfHostedConnectionStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedConnectionStateTests.swift; sourceTree = "<group>"; };
 		CDB489D06A9A16F1F6CF4451 /* RecoveryContactEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryContactEntity.swift; sourceTree = "<group>"; };
 		D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedSettingsView.swift; sourceTree = "<group>"; };
 		D2A9917E2D311875E0790B9B /* CollaborationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationPolicyTests.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 				9EBD4D62CD688B8DC175AC5C /* LetterLibraryFilteringTests.swift */,
 				DA4EE693C9483ACAEC6285FF /* PersistenceStoreBookkeepingTests.swift */,
 				443C5AF6E07DE11E57216BE5 /* SelfHostedAPITests.swift */,
+				CD7AF343E00F37A372E28B82 /* SelfHostedConnectionStateTests.swift */,
 				096F30AC16AC5AAF72F47A63 /* UnlockRuleTests.swift */,
 			);
 			name = LettersToMyCoreTests;
@@ -593,6 +596,7 @@
 				00F970C44445171044E0DB43 /* LetterLibraryFilteringTests.swift in Sources */,
 				72D473020319B736210D66F5 /* PersistenceStoreBookkeepingTests.swift in Sources */,
 				94ECD194EC5CEC2A4458D2B4 /* SelfHostedAPITests.swift in Sources */,
+				EFCA1D349B2E2658251D4E99 /* SelfHostedConnectionStateTests.swift in Sources */,
 				8C8BD4D4F81FBCBC80A82997 /* UnlockRuleTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

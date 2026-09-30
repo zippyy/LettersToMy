@@ -158,7 +158,7 @@ struct SelfHostedSettingsView: View {
             // failure into "unreachable": a rejected token is an authentication
             // problem, and showing it as a network problem sends the user to
             // debug the wrong thing entirely.
-            connectionState = stateForIdentityFailure(report)
+            connectionState = SelfHostedConnectionState.fromIdentityFailure(report)
             capabilityText = ""
             return
         }
@@ -170,37 +170,6 @@ struct SelfHostedSettingsView: View {
         if case .failure(let e) = report.attachments { failures.append("attachments: \(e.localizedDescription)") }
         if !failures.isEmpty {
             connectionState = .serverError(failures.joined(separator: "\n"))
-        }
-    }
-
-    /// Map an identity-probe failure onto the matching user-facing state.
-    ///
-    /// `SelfHostedCapabilityCheck` returns a nil identity for every API error
-    /// (including a 401), so the error itself must be consulted to distinguish
-    /// "your token is wrong" from "the server is down".
-    private func stateForIdentityFailure(_ report: SelfHostedCapabilityReport) -> SelfHostedConnectionState {
-        let error: SelfHostedAPIError? = {
-            if case .failure(let e) = report.collaboration { return e }
-            if case .failure(let e) = report.backups { return e }
-            if case .failure(let e) = report.attachments { return e }
-            return nil
-        }()
-
-        switch error {
-        case .unauthorized:
-            return .authenticationFailed
-        case .timeout:
-            return .unreachable("the server did not respond in time")
-        case .unreachable(let detail):
-            return .unreachable(detail)
-        case .incompatibleServer(let detail):
-            return .incompatible(detail)
-        case .serverError(let code, let detail):
-            return .serverError("HTTP \(code): \(detail)")
-        case .some(let other):
-            return .serverError(other.localizedDescription)
-        case .none:
-            return .unreachable("could not contact server")
         }
     }
 }
