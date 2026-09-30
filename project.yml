@@ -51,7 +51,7 @@ schemes:
       # it from the file at LTM_SERVER_ENV_FILE (the server's api_keys.txt,
       # which lives outside the repository), so no credential is ever committed.
       environmentVariables:
-        LTM_SERVER_URL: http://192.168.80.232:8080
+        LTM_SERVER_URL: http://127.0.0.1:8080
         LTM_SERVER_ENV_FILE: /tmp/ltm-rt/api_keys.txt
   LettersToMyMac:
     build:
