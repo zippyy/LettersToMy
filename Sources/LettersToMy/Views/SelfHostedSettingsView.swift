@@ -154,7 +154,11 @@ struct SelfHostedSettingsView: View {
             lines.append("Capabilities: \(identity.capabilities.joined(separator: ", "))")
             capabilityText = lines.joined(separator: "\n")
         } else {
-            connectionState = .unreachable("could not contact server")
+            // The identity probe failed. Report WHY instead of collapsing every
+            // failure into "unreachable": a rejected token is an authentication
+            // problem, and showing it as a network problem sends the user to
+            // debug the wrong thing entirely.
+            connectionState = SelfHostedConnectionState.fromIdentityFailure(report)
             capabilityText = ""
             return
         }
