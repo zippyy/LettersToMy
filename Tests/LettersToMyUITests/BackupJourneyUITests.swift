@@ -23,7 +23,18 @@ final class BackupJourneyUITests: XCTestCase {
     }()
 
     private var token = ""
-    private let passphrase = "Runtime-Acceptance-Pass-42"
+
+    /// The backup passphrase is supplied at RUNTIME and never committed.
+    ///
+    /// §28 forbids a committed passphrase, so this reads it from the
+    /// environment the way the server token is read. It must be shared across
+    /// stages rather than generated per process: stage B creates the archive
+    /// and stage C restores it, so a per-process value would make the restore
+    /// fail for a reason that has nothing to do with the product.
+    private var passphrase = ""
+
+    /// A value that is deliberately NOT the passphrase. Not a credential, so it
+    /// needs no environment plumbing — its whole job is to be wrong.
     private let wrongPassphrase = "definitely-the-wrong-passphrase"
 
     override func setUpWithError() throws {
@@ -34,7 +45,9 @@ final class BackupJourneyUITests: XCTestCase {
                 NSLocalizedDescriptionKey: "no server token (set LTM_SERVER_TOKEN or LTM_SERVER_ENV_FILE)"
             ])
         }
-        print("JOURNEY runTag=\(Self.runTag) serverURL=\(ltmServerURL()) tokenLen=\(token.count)")
+        passphrase = ProcessInfo.processInfo.environment["LTM_BACKUP_PASSPHRASE"] ?? ""
+        if passphrase.isEmpty { passphrase = ltmBackupPassphrase() }
+        print("JOURNEY runTag=\(Self.runTag) serverURL=\(ltmServerURL()) tokenLen=\(token.count) passLen=\(passphrase.count)")
     }
 
     private var childName: String { "UIBACKUP-\(Self.runTag)-Child" }
@@ -279,9 +292,13 @@ final class BackupJourneyUITests: XCTestCase {
             "attachmentSaved=\(attached)",
             "libraryAfterReopen=\(after)",
         ].joined(separator: "\n")
-        let path = "/tmp/ltm-journey-oracle-\(Self.runTag).txt"
-        try? oracle.write(toFile: path, atomically: true, encoding: .utf8)
-        print("STAGE A ORACLE written to \(path)")
+        // Record the oracle in the LOG only. §28 forbids leaving a developer
+        // filesystem path in the suite, and the journey does not need the file:
+        // later stages assert against values the app itself persisted, which is
+        // the stronger check anyway.
+        print("STAGE A ORACLE BEGIN")
+        print(oracle)
+        print("STAGE A ORACLE END")
 
         XCTAssertTrue(attached,
                       "no attachment could be added through the UI -- the §5 attachment proof cannot proceed")
@@ -308,6 +325,19 @@ final class BackupJourneyUITests: XCTestCase {
         if exact.exists { return exact }
         print("STAGE no archive with \(expectedLetters) letters; falling back to the first row")
         return all.firstMatch
+    }
+
+    /// The identifiers of the REMOTE backup rows currently rendered in the
+    /// server restore picker.
+    ///
+    /// Read from the stable `RemoteBackupRow-<id>` accessibility identifier the
+    /// product exposes, so the assertion is about the app's real row set rather
+    /// than about a label that could coincidentally match something else.
+    private func remoteRowIdentifiers(_ app: XCUIApplication) -> [String] {
+        app.buttons
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "RemoteBackupRow-"))
+            .allElementsBoundByIndex
+            .map { String($0.identifier.dropFirst("RemoteBackupRow-".count)) }
     }
 
     /// The "Back Up Now" control for ONE destination.
@@ -614,50 +644,143 @@ final class BackupJourneyUITests: XCTestCase {
                              "the restored letter shows no attachment image in the app")
     }
 
-    // MARK: - Stage D: remote deletion
+    // MARK: - Stage D: remote deletion (§18 proof)
 
-    func testD_remoteDeleteSurface() {
+    /// §18: prove remote backup deletion through the real UI.
+    ///
+    /// Replaces `testD_remoteDeleteSurface`, which existed only to document the
+    /// capability GAP: it asserted nothing about deletion because the product
+    /// had no remote-delete surface at all. Now that the surface exists, this
+    /// test drives it and proves the outcome:
+    ///
+    ///   1. upload a backup of THIS run's data through the real UI;
+    ///   2. find it in the server restore picker;
+    ///   3. invoke the real remote-delete affordance and confirm it;
+    ///   4. verify the archive is gone from the SERVER (re-listed by the app,
+    ///      not merely absent from a stale screen);
+    ///   5. verify local letters survive.
+    ///
+    /// Self-contained: it seeds and uploads its own uniquely-named backup rather
+    /// than relying on residue from an earlier run, so it cannot pass on stale
+    /// server state.
+    func testD_remoteDeleteFlow() {
         let app = ltmLaunch(XCUIApplication())
         print("STAGE D start tag=\(Self.runTag)")
+
+        // ---- seed distinctly-named data FIRST, while the app is still on the
+        // clean Letters destination.
+        //
+        // MEASURED: creating the letter AFTER configuring the server leaves the
+        // "New Letter" control present but NOT hittable (XCTest logged
+        // "Computed hit point {-1, -1}"), so the tap was swallowed and the
+        // editor never opened. Stages A-C seed from this clean state for the
+        // same reason.
+        let keepTitle = "UIBACKUP-\(Self.runTag)-KeepMe"
+        writeLetter(app, title: keepTitle, body: "must survive remote delete", save: "Save Draft")
+        XCTAssertTrue(letterExists(app, keepTitle), "the local letter was not created")
+
+        // ---- wire the server (also registers it as a backup destination)
+        ltmConfigureSelfHosted(app, url: ltmServerURL(), token: token)
+        let connected = ltmWaitForConnected(app, timeout: 60)
+        XCTAssertTrue(connected.hasPrefix("API v"),
+                      "server not connected before the delete stage (saw '\(connected)')")
+
+        // ---- Backups screen + passphrase
         XCTAssertTrue(ltmOpenSettingsRow(app, row: "Manage Backups"), "'Manage Backups' row not found")
-        XCTAssertTrue(app.navigationBars["Backups"].waitForExistence(timeout: 25), "Backups screen did not open")
-        Thread.sleep(forTimeInterval: 1.0)
-        ltmCapture(app, "backups-full")
+        XCTAssertTrue(app.navigationBars["Backups"].waitForExistence(timeout: 25),
+                      "Backups screen did not open")
+        let pass = app.secureTextFields["Passphrase"].firstMatch
+        XCTAssertTrue(pass.waitForExistence(timeout: 20), "passphrase field missing")
+        pass.tap()
+        pass.typeText(passphrase)
+        ltmDismissKeyboard(app)
 
-        // Does the product expose any delete affordance for a REMOTE archive?
-        let localDelete = app.buttons["Delete Record"].exists
-        let swipeTargets = app.cells.count
-        print("STAGE D localDeleteRecord=\(localDelete) cells=\(swipeTargets)")
+        // ---- upload to the SELF-HOSTED destination specifically
+        let upNow = backUpNowButton(app, destinationTitle: "Self-Hosted Server")
+        XCTAssertTrue(upNow.waitForExistence(timeout: 20), "Back Up Now not found")
+        if upNow.isHittable { upNow.tap() }
+        else { upNow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+        let alertOK = app.alerts.buttons["OK"].firstMatch
+        var alertText = ""
+        if alertOK.waitForExistence(timeout: 180) {
+            alertText = ltmTexts(of: app.alerts.firstMatch)
+            print("STAGE D upload ALERT '\(alertText)'")
+            alertOK.tap()
+            Thread.sleep(forTimeInterval: 1.0)
+        }
+        XCTAssertTrue(alertText.contains("Self-Hosted Server"),
+                      "the delete stage did not upload to the self-hosted server (alert: '\(alertText)')")
 
+        // ---- open the server restore picker and locate a real archive row
         XCTAssertTrue(ltmScrollTo(app, "Restore from Self-Hosted Server"),
                       "restore row not found")
-        let row = app.buttons["Restore from Self-Hosted Server"].exists
+        let restoreEntry = app.buttons["Restore from Self-Hosted Server"].exists
             ? app.buttons["Restore from Self-Hosted Server"]
             : app.staticTexts["Restore from Self-Hosted Server"]
-        row.tap()
+        restoreEntry.tap()
         XCTAssertTrue(app.navigationBars["Restore from Server"].waitForExistence(timeout: 60),
                       "restore picker did not open")
-        Thread.sleep(forTimeInterval: 1.5)
-        ltmCapture(app, "remote-picker-for-delete")
+        Thread.sleep(forTimeInterval: 2.0)
 
-        // Look for ANY remote-delete control in the picker.
-        let remoteDelete = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@",
-                        "delete", "remove")).firstMatch
-        let archiveRow = app.staticTexts.containing(
-            NSPredicate(format: "label CONTAINS %@", "letters")).firstMatch
-        let hasArchive = archiveRow.exists
-        print("STAGE D remotePickerHasArchive=\(hasArchive) remoteDeleteControl=\(remoteDelete.exists)")
-        if archiveRow.exists {
-            archiveRow.swipeLeft()
-            Thread.sleep(forTimeInterval: 0.8)
-            let afterSwipe = app.buttons.matching(
-                NSPredicate(format: "label CONTAINS[c] %@", "delete")).firstMatch
-            print("STAGE D deleteControlAfterSwipe=\(afterSwipe.exists)")
-            ltmCapture(app, "remote-picker-after-swipe")
+        let archivesBefore = remoteRowIdentifiers(app).count
+        print("STAGE D remoteRowsBefore=\(archivesBefore)")
+        XCTAssertGreaterThan(archivesBefore, 0, "no remote backup rows were listed")
+
+        // Delete the FIRST listed row (newest first). Whatever it is, the
+        // assertion below is about the SERVER's state afterwards, not labels.
+        let firstRow = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "RemoteBackupRow-")).firstMatch
+        XCTAssertTrue(firstRow.waitForExistence(timeout: 30),
+                      "no remote row control with a stable identifier was rendered")
+        let rowIdentifier = firstRow.identifier
+        let archiveID = String(rowIdentifier.dropFirst("RemoteBackupRow-".count))
+        print("STAGE D deleting id=\(archiveID)")
+
+        // ---- §12-§14: the real affordance + destructive confirmation
+        let deleteControl = app.buttons["RemoteDelete-\(archiveID)"]
+        XCTAssertTrue(deleteControl.waitForExistence(timeout: 30),
+                      "the remote-delete control for \(archiveID) is absent -- §16 needs it")
+        deleteControl.tap()
+        Thread.sleep(forTimeInterval: 1.0)
+
+        let confirm = app.buttons["Delete Backup"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 15),
+                      "no destructive confirmation was shown before deleting a remote backup")
+        ltmCapture(app, "remote-delete-confirmation")
+        confirm.tap()
+        Thread.sleep(forTimeInterval: 3.0)
+
+        // ---- §16: the row must be gone, and the SERVER must agree
+        let assertGone = { (context: String) in
+            let ids = self.remoteRowIdentifiers(app)
+            XCTAssertFalse(ids.contains(archiveID),
+                           "\(context): the deleted archive \(archiveID) is still listed")
         }
-        // Evidence, not an assertion: §16 needs a remote-delete surface, and if
-        // the product has none this must be reported as an unimplemented
-        // capability rather than dressed up as a pass.
+        assertGone("after delete")
+
+        // Re-open the picker from scratch: this re-lists from the server rather
+        // than trusting the sheet that performed the delete.
+        let cancel = app.buttons["Cancel"].firstMatch
+        if cancel.exists { cancel.tap(); Thread.sleep(forTimeInterval: 1.0) }
+        XCTAssertTrue(ltmScrollTo(app, "Restore from Self-Hosted Server"),
+                      "restore row not found on re-entry")
+        let restoreEntry2 = app.buttons["Restore from Self-Hosted Server"].exists
+            ? app.buttons["Restore from Self-Hosted Server"]
+            : app.staticTexts["Restore from Self-Hosted Server"]
+        restoreEntry2.tap()
+        XCTAssertTrue(app.navigationBars["Restore from Server"].waitForExistence(timeout: 60),
+                      "restore picker did not reopen")
+        Thread.sleep(forTimeInterval: 2.0)
+        let archivesAfter = remoteRowIdentifiers(app)
+        print("STAGE D remoteRowsAfter=\(archivesAfter.count) stillContainsDeleted=\(archivesAfter.contains(archiveID))")
+        assertGone("after reopening the picker")
+
+        let cancel2 = app.buttons["Cancel"].firstMatch
+        if cancel2.exists { cancel2.tap(); Thread.sleep(forTimeInterval: 1.0) }
+
+        // ---- §16: local letters are untouched by a REMOTE deletion
+        XCTAssertTrue(letterExists(app, keepTitle),
+                      "a remote backup deletion removed a local letter -- the two must stay decoupled")
+        print("STAGE D local letter survived remote delete: '\(keepTitle)'")
     }
 }

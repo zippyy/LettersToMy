@@ -176,6 +176,82 @@ func stub(_ status: Int, _ body: String) {
     }
 }
 
+// MARK: - Remote backup deletion (§17/§19)
+
+/// §17: an invalid/expired token must surface as an authentication failure on
+/// DELETE, never as a silent success — otherwise the UI would drop the remote
+/// row while the archive is still on the server.
+@Test func deleteBackupUnauthorizedSurfaces() async throws {
+    stub(401, #"{"error":{"code":"unauthorized","message":"The API token is missing or invalid."}}"#)
+    let client = try makeClient()
+    await #expect(throws: SelfHostedAPIError.unauthorized) {
+        try await client.deleteBackup(id: "abc123")
+    }
+}
+
+/// §17: a 404 must surface as notFound so the caller can decide whether to
+/// refresh rather than reporting a generic failure.
+@Test func deleteBackupNotFoundSurfaces() async throws {
+    stub(404, #"{"error":{"code":"not_found","message":"backup not found"}}"#)
+    let client = try makeClient()
+    await #expect(throws: SelfHostedAPIError.notFound("backup not found")) {
+        try await client.deleteBackup(id: "missing")
+    }
+}
+
+/// §17: a server fault must not be reported as success. A recognised
+/// `storage_failure` code maps through the envelope's `default` branch to
+/// `.serverError`, which is what the UI surfaces.
+@Test func deleteBackupServerErrorSurfaces() async throws {
+    stub(500, #"{"error":{"code":"storage_failure","message":"unable to delete backup"}}"#)
+    let client = try makeClient()
+    do {
+        try await client.deleteBackup(id: "abc123")
+        Issue.record("expected a failure, got success")
+    } catch let error as SelfHostedAPIError {
+        guard case .serverError(500, _) = error else {
+            Issue.record("expected serverError(500, _), got \(error)")
+            return
+        }
+    }
+}
+
+/// §17/§19: an unreachable server is reported as unreachable, so the UI keeps
+/// the row and shows a meaningful error instead of a fake success.
+@Test func deleteBackupUnreachableSurfaces() async throws {
+    StubURLProtocol.requestHandler = { _ in
+        throw URLError(.cannotConnectToHost)
+    }
+    let client = try makeClient()
+    do {
+        try await client.deleteBackup(id: "abc123")
+        Issue.record("expected a failure, got success")
+    } catch let error as SelfHostedAPIError {
+        guard case .unreachable = error else {
+            Issue.record("expected .unreachable, got \(error)")
+            return
+        }
+    }
+}
+
+/// §15: a successful DELETE is the 204 the server documents, and must complete
+/// without throwing so the caller can then refresh from the server.
+@Test func deleteBackupSuccessCompletes() async throws {
+    var seen: URLRequest?
+    var method = ""
+    StubURLProtocol.requestHandler = { request in
+        seen = request
+        method = request.httpMethod ?? ""
+        let response = HTTPURLResponse(
+            url: request.url!, statusCode: 204, httpVersion: nil, headerFields: nil)!
+        return (response, Data())
+    }
+    let client = try makeClient()
+    try await client.deleteBackup(id: "abc123")
+    #expect(method == "DELETE", "remote deletion must use DELETE, saw '\(method)'")
+    #expect(seen?.url?.path == "/backup/abc123", "unexpected delete path '\(seen?.url?.path ?? "nil")'")
+}
+
 // MARK: - Invitation decode
 
 @Test func invitationDecodesArrays() async throws {

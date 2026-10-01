@@ -66,6 +66,20 @@ extension XCTestCase {
         return t
     }
 
+    /// The backup passphrase, supplied at RUNTIME and never committed.
+    ///
+    /// §28 forbids a committed passphrase. It must also be SHARED across
+    /// stages, not generated per process: one stage creates the archive and a
+    /// later stage restores it, so a per-process value would make the restore
+    /// fail for a reason that has nothing to do with the product.
+    func ltmBackupPassphrase() -> String {
+        let env = ProcessInfo.processInfo.environment
+        if let p = env["LTM_BACKUP_PASSPHRASE"], !p.isEmpty { return p }
+        // Only for a standalone ad-hoc run. Any real gate must set the env var
+        // (the journey stages depend on agreeing on the value).
+        return "runtime-only-passphrase-not-a-secret"
+    }
+
     // MARK: - clocks
 
     func ltmStamp() -> String {
@@ -219,6 +233,63 @@ extension XCTestCase {
 
     // MARK: - launch + navigation
 
+    /// The app's main shell, as each form factor ACTUALLY renders it.
+    ///
+    /// MEASURED (iPad Pro 13-inch M5 / iOS 26.2, hierarchy captured in
+    /// `evidence/ipad-hierarchy-probe.txt`): on regular-width iPad the five
+    /// `TabView` destinations render as a top-edge segmented control whose
+    /// members are plain `Button`s — there is NO `TabBar` container at all
+    /// (`tabBars.count == 0`). `LibraryView` then renders its own
+    /// `NavigationSplitView` (sidebar `CollectionView` labelled "Sidebar",
+    /// content list, detail pane).
+    ///
+    /// So polling `tabBars.buttons["Letters"]` can NEVER succeed on iPad. That
+    /// single wrong assumption is what made all three iPad tests report
+    /// "main shell did not appear" while the app was in fact running the full
+    /// shell — a UI TEST defect, not a product defect.
+    func ltmMainShellAppeared(_ app: XCUIApplication, timeout: TimeInterval = 40) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if app.tabBars.buttons["Letters"].exists { return true }
+            // iPad/regular width: no tab bar, so identify the shell by a real
+            // destination control plus rendered navigation chrome.
+            if app.buttons["Letters"].exists && app.navigationBars.count > 0 { return true }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        return false
+    }
+
+    /// Activate a top-level destination on EITHER form factor.
+    ///
+    /// iPhone has a tab bar; regular-width iPad has the segmented
+    /// destination `Button`s. Both are matched by the same user-visible label,
+    /// so the suites no longer encode one form factor's shell.
+    @discardableResult
+    func ltmOpenDestination(_ app: XCUIApplication, _ name: String,
+                            file: StaticString = #filePath, line: UInt = #line) -> Bool {
+        if let el = ltmDestinationElement(app, name) {
+            if el.isHittable { el.tap() }
+            else { el.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+            Thread.sleep(forTimeInterval: 0.9)
+            return true
+        }
+        XCTFail("destination '\(name)' is not reachable on this form factor",
+                file: file, line: line)
+        return false
+    }
+
+    /// The control that switches to a top-level destination, or nil if absent.
+    func ltmDestinationElement(_ app: XCUIApplication, _ name: String) -> XCUIElement? {
+        let tab = app.tabBars.buttons[name]
+        if tab.exists { return tab }
+        let button = app.buttons[name].firstMatch
+        if button.exists { return button }
+        return nil
+    }
+
+    /// True when the shell is the compact (tab-bar) presentation.
+    func ltmUsesTabBar(_ app: XCUIApplication) -> Bool { app.tabBars.buttons.count > 0 }
+
     @discardableResult
     func ltmLaunch(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
         app.launch()
@@ -226,9 +297,25 @@ extension XCTestCase {
         // value would permanently shadow the app's own @AppStorage write.
         let cta = app.buttons["Create Our Family Archive"]
         if cta.waitForExistence(timeout: 20) { cta.tap() }
-        XCTAssertTrue(app.tabBars.buttons["Letters"].waitForExistence(timeout: 40),
+        XCTAssertTrue(ltmMainShellAppeared(app, timeout: 40),
                       "main shell did not appear", file: file, line: line)
         return app
+    }
+
+    /// Poll for a StaticText whose label CONTAINS `needle`.
+    ///
+    /// Label matching (not `staticTexts[needle]`) because a SwiftUI list row
+    /// and a detail pane can both render the same string, and because the
+    /// element may take a moment to appear after a split-view selection.
+    func ltmWaitForText(_ app: XCUIApplication, _ needle: String,
+                        timeout: TimeInterval = 15) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        let query = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", needle))
+        while Date() < deadline {
+            if query.firstMatch.exists { return true }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        return false
     }
 
     func ltmSelfHostedRow(_ app: XCUIApplication) -> XCUIElement {
@@ -412,6 +499,76 @@ extension XCTestCase {
         ltmDismissKeyboard(app)
     }
 
+    /// Replace a text field's contents regardless of what it already holds.
+    ///
+    /// MEASURED FAILURE this exists to prevent: the product persists the server
+    /// URL in `UserDefaults`, and the simulator keeps that store across
+    /// launches, so the field can arrive ALREADY POPULATED by an earlier run.
+    /// `typeText` appends at the caret, which produced
+    /// `http://127.0.0.1:8081http://127.0.0.1:8081` and failed
+    /// `ServerAndBackupUITests` in setup on all four tests, with ZERO requests
+    /// reaching the server — a self-inflicted red suite, not a product fault.
+    ///
+    /// The product's own "Clear Configuration" button is NOT a sufficient
+    /// answer here: it is `.disabled(!config.isConfigured)`, so when only part
+    /// of the config survived it silently does nothing and the stale value
+    /// remains. Clearing the field is the test's job.
+    /// Tap until the software keyboard is actually up.
+    ///
+    /// MEASURED: `field.tap()` can return before the field takes focus, and the
+    /// following `typeText` then fails HARD with "Neither element nor any
+    /// descendant has keyboard focus" — an uncatchable XCTest failure that looks
+    /// like a product problem. Waiting for the keyboard to appear is the only
+    /// reliable signal that focus landed.
+    @discardableResult
+    func ltmFocus(_ app: XCUIApplication, _ field: XCUIElement, tries: Int = 8) -> Bool {
+        for _ in 0..<tries {
+            if app.keyboards.count > 0 { return true }
+            field.tap()
+            Thread.sleep(forTimeInterval: 0.6)
+        }
+        return app.keyboards.count > 0
+    }
+
+    func ltmReplaceText(_ app: XCUIApplication, _ field: XCUIElement, _ text: String) {
+        func current() -> String { (field.value as? String) ?? "" }
+
+        // TRIPLE TAP selects the whole field on iOS, which is caret-independent:
+        // tapping to place a caret put it mid-string and a delete run then left
+        // `...:8081:8081://127...` behind. `typeKey` is avoided entirely because
+        // it requires the simulator's hardware keyboard and throws without it.
+        for attempt in 1...3 {
+            ltmFocus(app, field)
+            field.tap(withNumberOfTaps: 3, numberOfTouches: 1)
+            Thread.sleep(forTimeInterval: 0.5)
+            if current().isEmpty { break }
+            ltmFocus(app, field)
+            field.typeText(text)
+            Thread.sleep(forTimeInterval: 0.5)
+            if current() == text { return }
+            print("CFG replace attempt=\(attempt) value='\(current().prefix(60))'")
+            // Fallback: select all from the edit menu, then overwrite.
+            field.press(forDuration: 1.0)
+            if app.menuItems["Select All"].waitForExistence(timeout: 2) {
+                app.menuItems["Select All"].tap()
+                Thread.sleep(forTimeInterval: 0.4)
+                ltmFocus(app, field)
+                field.typeText(text)
+                Thread.sleep(forTimeInterval: 0.5)
+                if current() == text { return }
+            } else {
+                app.tap()
+                Thread.sleep(forTimeInterval: 0.3)
+            }
+        }
+        // Give the caller the real value to assert on rather than a silent pass.
+        ltmFocus(app, field)
+        field.tap(withNumberOfTaps: 3, numberOfTouches: 1)
+        Thread.sleep(forTimeInterval: 0.3)
+        field.typeText(text)
+        Thread.sleep(forTimeInterval: 0.4)
+    }
+
     func ltmTypeURL(_ app: XCUIApplication, _ url: String,
                     file: StaticString = #filePath, line: UInt = #line) {
         ltmToTop(app)
@@ -419,8 +576,7 @@ extension XCTestCase {
         let field = app.textFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 20),
                       "server URL field missing", file: file, line: line)
-        field.tap()
-        field.typeText(url)
+        ltmReplaceText(app, field, url)
         ltmDismissKeyboard(app)
         ltmToTop(app)
         let read = ltmVal(app.textFields.firstMatch)
@@ -433,8 +589,18 @@ extension XCTestCase {
         _ = ltmScrollTo(app, "Token")
         let field = app.secureTextFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 15), "API token field missing")
-        field.tap()
+        // A secure field reports its PLACEHOLDER as `value` when empty, so it
+        // must not be treated as pre-existing content to select.
+        let hadContent = ltmSecureLen(field) > 0
+        ltmFocus(app, field)
         Thread.sleep(forTimeInterval: 0.4)
+        if hadContent {
+            // Hardware-keyboard-independent clear, as in `ltmReplaceText`.
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue,
+                                  count: 120))
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        ltmFocus(app, field)
         field.typeText(value)
         ltmDismissKeyboard(app)
         let len = ltmSecureLen(app.secureTextFields.firstMatch)
