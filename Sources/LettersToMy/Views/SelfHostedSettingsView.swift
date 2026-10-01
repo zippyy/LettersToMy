@@ -1,4 +1,5 @@
 import LettersToMyCore
+import OSLog
 import SwiftUI
 
 /// Settings → Self-Hosted Server.
@@ -7,6 +8,21 @@ import SwiftUI
 /// UserDefaults), API token (Keychain), enable/disable, and a genuine
 /// connection test that contacts the server and validates its identity
 /// and API version — never a bare-200 success.
+#if DEBUG
+/// DEBUG-only connection-probe diagnostics, kept deliberately small.
+///
+/// The classification a probe lands on is otherwise invisible: a rejected token
+/// and a dead server both arrive as a nil identity, which is precisely the
+/// confusion this feature exists to prevent. Two lines are retained — the inputs
+/// the probe ran with, and the state it concluded. Both are the facts needed to
+/// tell "the button did nothing" from "the server said no", and neither can
+/// contain the token (only its length is ever logged).
+private let probeLog = Logger(
+    subsystem: "com.bayoumountainholdings.LettersToMy",
+    category: "selfhosted-probe"
+)
+#endif
+
 struct SelfHostedSettingsView: View {
     @StateObject private var config = SelfHostedConfig.shared
 
@@ -123,6 +139,9 @@ struct SelfHostedSettingsView: View {
     }
 
     private func testConnection() async {
+        #if DEBUG
+        probeLog.info("PROBE entered enabled=\(config.enabled, privacy: .public) isConfigured=\(config.isConfigured, privacy: .public) url=\(config.serverURL, privacy: .public) tokenLen=\(config.apiToken.count, privacy: .public)")
+        #endif
         guard config.enabled, config.isConfigured else {
             connectionState = .notConfigured
             return
@@ -145,14 +164,23 @@ struct SelfHostedSettingsView: View {
         }
 
         // Run the full capability probe against the live server.
+        #if DEBUG
+        probeLog.info("PROBE clientBuilt url=\(config.serverURL, privacy: .public) tokenLen=\(config.apiToken.count, privacy: .public) -- capability check starting")
+        #endif
         let check = SelfHostedCapabilityCheck(client: client)
         let report = await check.run()
+        #if DEBUG
+        probeLog.info("PROBE result identityPresent=\(report.identity != nil, privacy: .public) service=\(report.identity?.service ?? "-", privacy: .public) apiVersion=\(report.identity?.apiVersion ?? -1, privacy: .public)")
+        #endif
 
         if let identity = report.identity {
             connectionState = .connected(identity)
             var lines = ["\(identity.displayName)", "API v\(identity.apiVersion)"]
             lines.append("Capabilities: \(identity.capabilities.joined(separator: ", "))")
             capabilityText = lines.joined(separator: "\n")
+            #if DEBUG
+            probeLog.info("PROBE state=connected label=\(connectionState.label, privacy: .public)")
+            #endif
         } else {
             // The identity probe failed. Report WHY instead of collapsing every
             // failure into "unreachable": a rejected token is an authentication
@@ -160,6 +188,15 @@ struct SelfHostedSettingsView: View {
             // debug the wrong thing entirely.
             connectionState = SelfHostedConnectionState.fromIdentityFailure(report)
             capabilityText = ""
+            #if DEBUG
+            let probeErr: String = {
+                if case .failure(let e) = report.collaboration { return "\(e)" }
+                if case .failure(let e) = report.backups { return "\(e)" }
+                if case .failure(let e) = report.attachments { return "\(e)" }
+                return "no-error-captured"
+            }()
+            probeLog.info("PROBE state=failure label=\(connectionState.label, privacy: .public) error=\(probeErr, privacy: .public)")
+            #endif
             return
         }
 
