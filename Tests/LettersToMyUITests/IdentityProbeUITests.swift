@@ -96,22 +96,6 @@ final class IdentityProbeUITests: XCTestCase {
         return byLabel.exists ? byLabel : app.switches.firstMatch
     }
 
-    /// Flip a SwiftUI `Form` Toggle to a target value.
-    ///
-    /// A `Form` Toggle is exposed as ONE accessibility element spanning the whole
-    /// row (measured: 370pt wide at x=16). `element.tap()` lands on the geometric
-    /// centre -- the LABEL area -- which does NOT flip the switch. The control
-    /// lives at the trailing edge, so that is where the tap must land. Confirmed
-    /// empirically: centre tap left value=0, trailing-edge tap flipped it to 1.
-    @discardableResult
-    private func setToggle(_ sw: XCUIElement, on: Bool) -> Bool {
-        let want = on ? "1" : "0"
-        if (sw.value as? String) == want { return true }
-        sw.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
-        Thread.sleep(forTimeInterval: 0.9)
-        return (sw.value as? String) == want
-    }
-
     private func capture(_ app: XCUIApplication, _ stage: String) {
         // debugDescription is one bounded snapshot; enumerating live element
         // arrays can throw when the hierarchy mutates mid-iteration.
@@ -130,34 +114,12 @@ final class IdentityProbeUITests: XCTestCase {
         return app
     }
 
-    /// Navigate Settings -> Self-Hosted Server. A row that exists but is not
-    /// hittable (keyboard overlap, mid-animation) is tapped by coordinate, and
-    /// the keyboard is dismissed first.
+    /// Navigate with the shared state-aware helper. The Settings stack may still
+    /// be pushed after a previous test or process relaunch.
     private func openSelfHosted(_ app: XCUIApplication) {
         dismissKeyboard(app)
-        app.tabBars.buttons["Settings"].tap()
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 25), "Settings did not open")
-        Thread.sleep(forTimeInterval: 0.5)
-
-        var row = app.buttons["Self-Hosted Server"]
-        if !row.exists { row = app.cells["Self-Hosted Server"] }
-        var tries = 0
-        while !(row.exists && row.isHittable) && tries < 8 {
-            app.swipeUp()
-            Thread.sleep(forTimeInterval: 0.4)
-            row = app.buttons["Self-Hosted Server"]
-            if !row.exists { row = app.cells["Self-Hosted Server"] }
-            tries += 1
-        }
-        XCTAssertTrue(row.exists, "Settings row 'Self-Hosted Server' not found")
-        if row.isHittable {
-            row.tap()
-        } else {
-            row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        }
-        XCTAssertTrue(app.navigationBars["Self-Hosted Server"].waitForExistence(timeout: 25),
-                      "Self-Hosted screen did not open")
-        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertTrue(ltmOpenSettingsRow(app, row: "Self-Hosted Server"),
+                      "could not normalize Settings and open Self-Hosted Server")
     }
 
     // MARK: - the single test
@@ -167,53 +129,20 @@ final class IdentityProbeUITests: XCTestCase {
         openSelfHosted(app)
         toTop(app)
 
-        // ---- 1. integration OFF (URL/token fields are .disabled(config.enabled))
-        XCTAssertTrue(scrollTo(app, "Enable Self-Hosted"), "Enable toggle not found")
-        let sw = theSwitch(app)
-        print("CFG sw label='\(sw.label)' initial=\(val(sw)) frame=\(sw.frame)")
-        setToggle(sw, on: false)
-        print("CFG sw afterOff=\(val(sw))")
-
-        // ---- 2. clear any leftover configuration
-        if scrollTo(app, "Clear Configuration") {
-            let clear = app.buttons["Clear Configuration"]
-            if clear.exists && clear.isEnabled { clear.tap(); Thread.sleep(forTimeInterval: 0.8) }
-        }
-        dismissKeyboard(app)
-
-        // ---- 3. server URL, typed then READ BACK (§11)
-        toTop(app)
-        scrollTo(app, "letters.example.com")
-        let urlField = app.textFields.firstMatch
-        XCTAssertTrue(urlField.waitForExistence(timeout: 20), "server URL field missing")
-        urlField.tap()
-        urlField.typeText(serverURL)
-        dismissKeyboard(app)
-        toTop(app)
+        // Use the shared keyboard-aware configuration path: direct typeText calls
+        // occasionally lost focus during simulator-driven navigation.
+        ltmClearConfiguration(app)
+        ltmTypeURL(app, serverURL)
         let urlRead = val(app.textFields.firstMatch)
-        print("CFG urlTyped='\(urlRead)' intended='\(serverURL)' match=\(urlRead == serverURL)")
+        let tokLen = ltmTypeToken(app, token, label: "valid-server")
+        XCTAssertEqual(tokLen, token.count, "server token did not stick in the secure field")
 
-        // ---- 4. token, typed then length READ BACK (never the value)
-        scrollTo(app, "Token")
-        let tokenField = app.secureTextFields.firstMatch
-        XCTAssertTrue(tokenField.exists, "API token field missing")
-        tokenField.tap()
-        tokenField.typeText(token)
-        dismissKeyboard(app)
-        let tokLen = (val(app.secureTextFields.firstMatch) as NSString).length
-        print("CFG tokenTypedLen=\(tokLen) intended=\(token.count)")
-
-        // ---- 5. enable LAST: enabling with a complete config auto-runs the probe
-        scrollTo(app, "Enable Self-Hosted")
-        let sw2 = theSwitch(app)
         // Enabling with a complete config auto-runs the probe via .onChange.
-        if setToggle(sw2, on: true) {
-            print("CFG sw afterOn=\(val(sw2)) ENABLED")
-        XCTAssertEqual(val(sw2), "1",
-                       "integration did not become enabled (Form Toggle tap technique)")
-        } else {
-            print("CFG sw afterOn=\(val(sw2)) FAILED-TO-ENABLE frame=\(sw2.frame)")
-        }
+        XCTAssertTrue(ltmDismissKnownBlockingSheet(app),
+                      "known password-autofill sheet could not be dismissed safely")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "integration did not become enabled")
+        let sw2 = theSwitch(app)
+        print("CFG configured url='\(urlRead)' sw=\(val(sw2)) tokenLen=\(tokLen)")
         capture(app, "after-configure")
 
         // ---- 6. tap Test Connection (the observable probe trigger)
@@ -274,37 +203,16 @@ final class IdentityProbeUITests: XCTestCase {
         openSelfHosted(app)
         toTop(app)
 
-        // configure exactly as the gate test does (duplicated deliberately so this
-        // test depends only on primitives, not on another test's flow)
-        XCTAssertTrue(scrollTo(app, "Enable Self-Hosted"), "Enable toggle not found")
-        let sw = theSwitch(app)
-        setToggle(sw, on: false)
-        if scrollTo(app, "Clear Configuration") {
-            let clear = app.buttons["Clear Configuration"]
-            if clear.exists && clear.isEnabled { clear.tap(); Thread.sleep(forTimeInterval: 0.8) }
-        }
-        dismissKeyboard(app)
-
-        toTop(app)
-        scrollTo(app, "letters.example.com")
-        let urlField = app.textFields.firstMatch
-        XCTAssertTrue(urlField.waitForExistence(timeout: 20), "server URL field missing")
-        urlField.tap()
-        urlField.typeText(serverURL)
-        dismissKeyboard(app)
-        toTop(app)
-
-        scrollTo(app, "Token")
-        let tokenField = app.secureTextFields.firstMatch
-        XCTAssertTrue(tokenField.exists, "API token field missing")
-        tokenField.tap()
-        tokenField.typeText(token)
-        dismissKeyboard(app)
-
-        scrollTo(app, "Enable Self-Hosted")
-        let sw2 = theSwitch(app)
-        let enabled = setToggle(sw2, on: true)
-        XCTAssertTrue(enabled, "integration did not become enabled")
+        // Configure through the shared, keyboard-aware harness primitives. A
+        // direct typeText after tap lost keyboard focus on this path; secure
+        // fields may also trigger the known, explicitly-dismissed AutoFill sheet.
+        ltmClearConfiguration(app)
+        ltmTypeURL(app, serverURL)
+        let tokenLength = ltmTypeToken(app, token, label: "identity-relaunch")
+        XCTAssertEqual(tokenLength, token.count, "server token did not stick in the secure field")
+        XCTAssertTrue(ltmDismissKnownBlockingSheet(app),
+                      "known password-autofill sheet could not be dismissed safely")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "integration did not become enabled")
         print("PERSIST configured url='\(val(app.textFields.firstMatch))' sw=\(val(theSwitch(app))) tokenLen=\((val(app.secureTextFields.firstMatch) as NSString).length)")
 
         // ---- kill the process: the only step that forces a read from storage
@@ -354,36 +262,12 @@ final class IdentityProbeUITests: XCTestCase {
     }
 
     /// Non-fatal counterpart to `openSelfHosted` for POST-PROBE diagnostics.
-    ///
-    /// By this point the probe result is already known, so a fragile navigation
-    /// step must not be able to fail the test: gate1 proved the identity probe
-    /// connected (`PROBE outcome success=true`) and then aborted on the
-    /// diagnostic's own navigation assertion. Reports instead of asserting.
+    /// Uses the same stack normalization but keeps the probe result authoritative.
     @discardableResult
     private func tolerantOpenSelfHosted(_ app: XCUIApplication) -> Bool {
         dismissKeyboard(app)
-        app.tabBars.buttons["Settings"].tap()
-        guard app.navigationBars["Settings"].waitForExistence(timeout: 20) else {
-            print("DIAG could not reach the Settings tab")
-            return false
-        }
-        Thread.sleep(forTimeInterval: 0.5)
-        var row = app.buttons["Self-Hosted Server"]
-        var tries = 0
-        while !(row.exists && row.isHittable) && tries < 8 {
-            app.swipeUp()
-            Thread.sleep(forTimeInterval: 0.4)
-            row = app.buttons["Self-Hosted Server"]
-            tries += 1
-        }
-        guard row.exists else {
-            print("DIAG Settings row 'Self-Hosted Server' not found")
-            return false
-        }
-        if row.isHittable { row.tap() }
-        else { row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-        let ok = app.navigationBars["Self-Hosted Server"].waitForExistence(timeout: 20)
-        if !ok { print("DIAG Self-Hosted screen did not reopen") }
-        return ok
+        let opened = ltmOpenSettingsRow(app, row: "Self-Hosted Server")
+        if !opened { print("DIAG shared Settings navigation could not reopen Self-Hosted") }
+        return opened
     }
 }

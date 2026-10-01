@@ -31,6 +31,8 @@ import XCTest
 final class ConnectionStateUITests: XCTestCase {
 
     private var serverURL = "http://127.0.0.1:8081"
+    private var liveServerURL = "http://127.0.0.1:8081"
+    private let offlineServerURL = "http://127.0.0.1:9"
     private var token = ""
 
     /// Deliberately alphanumeric so no keyboard autocorrection/autocapitalisation
@@ -41,7 +43,10 @@ final class ConnectionStateUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         let env = ProcessInfo.processInfo.environment
-        if let u = env["LTM_SERVER_URL"], !u.isEmpty { serverURL = u }
+        if let u = env["LTM_SERVER_URL"], !u.isEmpty {
+            serverURL = u
+            liveServerURL = u
+        }
         if let t = env["LTM_SERVER_TOKEN"], !t.isEmpty {
             token = t
         } else if let f = env["LTM_SERVER_ENV_FILE"] {
@@ -134,17 +139,6 @@ final class ConnectionStateUITests: XCTestCase {
         return byLabel.exists ? byLabel : app.switches.firstMatch
     }
 
-    /// Flip a `Form` Toggle. The control lives at the trailing edge of the row;
-    /// a centre tap hits the label and does nothing (measured, not assumed).
-    @discardableResult
-    private func setToggle(_ sw: XCUIElement, on: Bool) -> Bool {
-        let want = on ? "1" : "0"
-        if (sw.value as? String) == want { return true }
-        sw.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
-        Thread.sleep(forTimeInterval: 0.9)
-        return (sw.value as? String) == want
-    }
-
     private func capture(_ app: XCUIApplication, _ stage: String) {
         let desc = app.debugDescription.replacingOccurrences(of: "\n", with: " ~ ")
         print("VISIBLES[\(stage)] " + String(desc.prefix(2500)))
@@ -162,156 +156,49 @@ final class ConnectionStateUITests: XCTestCase {
 
     // MARK: - navigation
 
-    private func selfHostedRow(_ app: XCUIApplication) -> XCUIElement {
-        let button = app.buttons["Self-Hosted Server"]
-        if button.exists { return button }
-        return app.cells["Self-Hosted Server"]
-    }
-
-    /// Settings → tap the "Self-Hosted Server" row, from a settled scroll position.
-    /// Scrolls to the top first: the earlier failure mode was swiping so far that
-    /// a coordinate fallback tap landed on the navigation bar instead of the row.
-    private func tapSelfHostedRow(_ app: XCUIApplication) -> Bool {
-        for _ in 0..<3 { app.swipeDown(); Thread.sleep(forTimeInterval: 0.35) }
-        var row = selfHostedRow(app)
-        var tries = 0
-        while !(row.exists && row.isHittable) && tries < 8 {
-            app.swipeUp()
-            Thread.sleep(forTimeInterval: 0.6)
-            row = selfHostedRow(app)
-            tries += 1
-        }
-        guard row.exists else { return false }
-        Thread.sleep(forTimeInterval: 0.6)
-        if row.isHittable {
-            row.tap()
-        } else {
-            row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        }
-        if app.navigationBars["Self-Hosted Server"].waitForExistence(timeout: 10) { return true }
-        // one retry: the first tap can land mid-animation
-        Thread.sleep(forTimeInterval: 0.8)
-        row = selfHostedRow(app)
-        guard row.exists else { return false }
-        if row.isHittable { row.tap() } else { row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-        return app.navigationBars["Self-Hosted Server"].waitForExistence(timeout: 15)
-    }
-
+    /// Navigate through the shared stack normalizer. The Settings destination can
+    /// already be pushed after an earlier test or relaunch.
     private func openSelfHosted(_ app: XCUIApplication) {
         dismissKeyboard(app)
-        app.tabBars.buttons["Settings"].tap()
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 25), "Settings did not open")
-        Thread.sleep(forTimeInterval: 0.7)
-        XCTAssertTrue(tapSelfHostedRow(app), "could not open the Self-Hosted Server screen")
+        XCTAssertTrue(ltmOpenSettingsRow(app, row: "Self-Hosted Server"),
+                      "could not normalize Settings and open Self-Hosted Server")
         Thread.sleep(forTimeInterval: 0.5)
     }
 
-    /// §9 leave the Self-Hosted screen and come back.
-    ///
-    /// Measured behaviour on iOS 26: the per-tab navigation stack is PRESERVED
-    /// across tab switches, so re-tapping Settings returns to the still-pushed
-    /// Self-Hosted screen and `navigationBars["Settings"]` never appears (the
-    /// earlier version failed on exactly that). The screen must therefore be
-    /// POPPED explicitly. A process relaunch is the fallback: it is a stronger
-    /// persistence proof anyway, since it forces a read from Keychain.
+    /// Leave and return to prove configuration survives a navigation transition.
     @discardableResult
     private func leaveAndReturn(_ app: XCUIApplication, label: String) -> Bool {
-        dismissKeyboard(app)
-
-        if app.navigationBars["Self-Hosted Server"].exists,
-           let back = app.navigationBars["Self-Hosted Server"].buttons.firstMatch as XCUIElement?,
-           back.exists {
-            back.tap()
-        }
-        if app.navigationBars["Settings"].waitForExistence(timeout: 10) {
-            print("NAV[\(label)] popped back to Settings")
-            Thread.sleep(forTimeInterval: 0.7)
-            let ok = tapSelfHostedRow(app)
-            print("NAV[\(label)] reopened=\(ok)")
-            if ok { return true }
-        }
-
-        print("NAV[\(label)] pop did not settle -- falling back to a process relaunch")
-        app.terminate()
-        let app2 = XCUIApplication()
-        app2.launch()
-        let cta = app2.buttons["Create Our Family Archive"]
-        if cta.waitForExistence(timeout: 12) { cta.tap() }
-        guard app2.tabBars.buttons["Settings"].waitForExistence(timeout: 40) else {
-            print("NAV[\(label)] main shell did not appear after relaunch")
-            return false
-        }
-        app2.tabBars.buttons["Settings"].tap()
-        guard app2.navigationBars["Settings"].waitForExistence(timeout: 20) else {
-            print("NAV[\(label)] Settings did not open after relaunch")
-            return false
-        }
-        Thread.sleep(forTimeInterval: 0.7)
-        let ok = tapSelfHostedRow(app2)
-        print("NAV[\(label)] reopened after relaunch=\(ok)")
-        return ok
+        let result = ltmLeaveAndReturn(app, screen: "Self-Hosted Server", label: label)
+        print("NAV[\(label)] reopened=\(result)")
+        return result
     }
 
-    /// Non-fatal variant used once the probe result is already known.
+    /// Non-fatal counterpart used only for post-probe diagnostics.
     @discardableResult
     private func tolerantOpenSelfHosted(_ app: XCUIApplication) -> Bool {
         dismissKeyboard(app)
-        app.tabBars.buttons["Settings"].tap()
-        guard app.navigationBars["Settings"].waitForExistence(timeout: 20) else {
-            print("DIAG could not reach the Settings tab")
-            return false
-        }
-        Thread.sleep(forTimeInterval: 0.7)
-        let ok = tapSelfHostedRow(app)
-        if !ok { print("DIAG Self-Hosted screen did not reopen") }
-        return ok
+        let opened = ltmOpenSettingsRow(app, row: "Self-Hosted Server")
+        if !opened { print("DIAG shared Settings navigation could not reopen Self-Hosted") }
+        return opened
     }
 
     // MARK: - configuration primitives (real user interaction only)
 
-    /// Wipe URL + token + enabled through the real UI, exactly as a user would.
     private func clearConfiguration(_ app: XCUIApplication) {
-        XCTAssertTrue(scrollTo(app, "Enable Self-Hosted"), "Enable toggle not found")
-        let sw = theSwitch(app)
-        print("CFG toggle initial=\(val(sw))")
-        setToggle(sw, on: false)
-        if scrollTo(app, "Clear Configuration") {
-            let clear = app.buttons["Clear Configuration"]
-            if clear.exists && clear.isEnabled {
-                clear.tap()
-                Thread.sleep(forTimeInterval: 0.8)
-            }
-        }
-        dismissKeyboard(app)
+        ltmClearConfiguration(app)
+        print("CFG configuration cleared through shared UI helper")
     }
 
     private func typeURL(_ app: XCUIApplication) {
-        toTop(app)
-        scrollTo(app, "letters.example.com")
-        let urlField = app.textFields.firstMatch
-        XCTAssertTrue(urlField.waitForExistence(timeout: 20), "server URL field missing")
-        urlField.tap()
-        urlField.typeText(serverURL)
-        dismissKeyboard(app)
-        toTop(app)
-        let read = val(app.textFields.firstMatch)
-        print("CFG urlTyped='\(read)' intended='\(serverURL)' match=\(read == serverURL)")
-        XCTAssertEqual(read, serverURL, "server URL did not stick in the field")
+        ltmTypeURL(app, serverURL)
     }
 
-    /// Type a token into the (empty) secure field and read back only its LENGTH.
+    /// Type a token through the shared focus-aware helper and read back only length.
     @discardableResult
     private func typeToken(_ app: XCUIApplication, _ value: String, label: String) -> Int {
-        scrollTo(app, "Token")
-        let field = app.secureTextFields.firstMatch
-        XCTAssertTrue(field.waitForExistence(timeout: 15), "API token field missing")
-        field.tap()
-        Thread.sleep(forTimeInterval: 0.4)
-        field.typeText(value)
-        dismissKeyboard(app)
-        let len = secureLen(app.secureTextFields.firstMatch)
-        print("CFG token[\(label)] fieldLen=\(len) intendedLen=\(value.count)")
-        return len
+        let length = ltmTypeToken(app, value, label: label)
+        XCTAssertEqual(length, value.count, "API token did not stick in the secure field")
+        return length
     }
 
     /// §4: replace the STORED token through the real UI (no Keychain edits, no
@@ -323,32 +210,33 @@ final class ConnectionStateUITests: XCTestCase {
     private func replaceStoredToken(_ app: XCUIApplication, with newValue: String) -> String {
         scrollTo(app, "Enable Self-Hosted")
         let sw = theSwitch(app)
-        if (sw.value as? String) == "1" { _ = setToggle(sw, on: false) }
+        if (sw.value as? String) == "1" { _ = ltmSetIntegration(app, on: false) }
         Thread.sleep(forTimeInterval: 0.5)
 
         scrollTo(app, "Token")
         let field = app.secureTextFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 15), "API token field missing")
         XCTAssertTrue(field.isEnabled, "token field is still disabled -- integration was not switched off")
-        field.tap()
-        Thread.sleep(forTimeInterval: 0.4)
+        XCTAssertTrue(ltmFocus(app, field), "token field did not take keyboard focus")
         let before = secureLen(field)
         let deletes = max(before, 8) + 8
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: deletes))
         Thread.sleep(forTimeInterval: 0.5)
         let afterClear = secureLen(field)
+        XCTAssertTrue(ltmFocus(app, field), "token field lost keyboard focus after clearing")
         field.typeText(newValue)
         dismissKeyboard(app)
         let afterType = secureLen(app.secureTextFields.firstMatch)
         let how = "deletes=\(deletes) beforeLen=\(before) afterClearLen=\(afterClear) afterTypeLen=\(afterType)"
         print("REPLACE token \(how)")
         XCTAssertEqual(afterClear, 0, "the previous token was not cleared before typing the new value")
+        XCTAssertEqual(afterType, newValue.count, "the replacement token did not stick")
+        XCTAssertTrue(ltmDismissKnownBlockingSheet(app),
+                      "known password-autofill sheet could not be dismissed safely")
 
         // Re-enable. With a complete config this auto-runs the probe.
-        scrollTo(app, "Enable Self-Hosted")
-        let sw2 = theSwitch(app)
-        let ok = setToggle(sw2, on: true)
-        print("REPLACE re-enabled=\(ok) sw=\(val(sw2))")
+        let ok = ltmSetIntegration(app, on: true)
+        print("REPLACE re-enabled=\(ok) sw=\(val(theSwitch(app)))")
         XCTAssertTrue(ok, "integration did not become enabled after the token replacement")
         return how
     }
@@ -410,7 +298,7 @@ final class ConnectionStateUITests: XCTestCase {
         clearConfiguration(app)
         typeURL(app)
         typeToken(app, token, label: "valid")
-        XCTAssertTrue(setToggle(theSwitch(app), on: true), "integration did not become enabled")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "integration did not become enabled")
         tapTestConnection(app)
 
         let hit = waitForAny(app, ["API v", "Authentication failed", "Server unreachable",
@@ -431,7 +319,7 @@ final class ConnectionStateUITests: XCTestCase {
         clearConfiguration(app)
         typeURL(app)
         typeToken(app, token, label: "valid")
-        XCTAssertTrue(setToggle(theSwitch(app), on: true), "integration did not become enabled")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "integration did not become enabled")
         mark("VALID-BASELINE before token replacement")
         let baseline = waitForAny(app, ["API v", "Authentication failed", "Server unreachable"], timeout: 75)
         print("INVALID baseline(valid token) outcome=\(baseline)")
@@ -471,7 +359,7 @@ final class ConnectionStateUITests: XCTestCase {
         clearConfiguration(app)
         typeURL(app)
         typeToken(app, token, label: "restored")
-        XCTAssertTrue(setToggle(theSwitch(app), on: true), "integration did not re-enable")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "integration did not re-enable")
         if leaveAndReturn(app, label: "restored") {
             let rb = readBack(app, "restored")
             if let rb {
@@ -490,15 +378,29 @@ final class ConnectionStateUITests: XCTestCase {
                       "valid configuration did not reconnect after the invalid-token pass (saw '\(restored)')")
     }
 
+    private func restoreLiveServerConfiguration(_ app: XCUIApplication, reason: String) {
+        serverURL = liveServerURL
+        print("OFFLINE cleanup restoring live endpoint for later tests: \(serverURL)")
+        clearConfiguration(app)
+        typeURL(app)
+        typeToken(app, token, label: "live-cleanup")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "could not restore live configuration")
+        let outcome = waitForAny(app, ["API v", "Authentication failed", "Server unreachable"], timeout: 75)
+        print("OFFLINE cleanup live outcome=\(outcome) reason=\(reason)")
+        XCTAssertTrue(outcome.hasPrefix("API v"), "live server not restored for subsequent tests (saw '\(outcome)')")
+    }
+
     // MARK: - §11–§14 server offline
 
     func testServerOfflineReportsUnreachable() {
+        serverURL = offlineServerURL
+        print("OFFLINE configured endpoint=\(serverURL) (dedicated closed loopback port)")
         let app = launchApp()
         openSelfHosted(app)
         clearConfiguration(app)
         typeURL(app)
         typeToken(app, token, label: "valid")
-        XCTAssertTrue(setToggle(theSwitch(app), on: true), "integration did not become enabled")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "integration did not become enabled")
         mark("OFFLINE configured with a valid token; server unavailable")
 
         tapTestConnection(app)
@@ -510,11 +412,14 @@ final class ConnectionStateUITests: XCTestCase {
                      context: "offline server must not be reported as an authentication failure")
         XCTAssertEqual(hit, "Server unreachable",
                        "offline server was not classified as unreachable (saw '\(hit)')")
+        restoreLiveServerConfiguration(app, reason: "testServerOfflineReportsUnreachable")
     }
 
     // MARK: - §15–§16 offline usability + relaunch
 
     func testOfflineAppUsabilityAndRelaunch() {
+        serverURL = offlineServerURL
+        print("USABILITY configured endpoint=\(serverURL) (dedicated closed loopback port)")
         let runToken = String(UUID().uuidString.prefix(6))
         let letterTitle = "OfflineLetter \(runToken)"
 
@@ -583,7 +488,7 @@ final class ConnectionStateUITests: XCTestCase {
         clearConfiguration(app)
         typeURL(app)
         typeToken(app, token, label: "valid")
-        XCTAssertTrue(setToggle(theSwitch(app), on: true), "integration did not become enabled while offline")
+        XCTAssertTrue(ltmSetIntegration(app, on: true), "integration did not become enabled while offline")
         let statusWhileOffline = waitForAny(app, ["Server unreachable", "Authentication failed",
                                                   "API v", "Not configured"], timeout: 60)
         print("USABILITY selfhosted status while offline=\(statusWhileOffline)")
@@ -621,8 +526,17 @@ final class ConnectionStateUITests: XCTestCase {
         }
         print("RELAUNCH navigation=ok")
 
-        // saved self-hosted config remains, and is NOT a startup dependency
-        _ = tolerantOpenSelfHosted(app2)
+        // Reopen the preserved Settings child after relaunch, explicitly probe
+        // the still-dead loopback endpoint, and verify the persisted fields.
+        XCTAssertTrue(tolerantOpenSelfHosted(app2), "Self-Hosted settings did not reopen after relaunch")
+        tapTestConnection(app2)
+        let afterRelaunchState = waitForAny(
+            app2, ["Server unreachable", "Authentication failed", "API v"], timeout: 90
+        )
+        print("RELAUNCH offlineStatus=\(afterRelaunchState)")
+        XCTAssertEqual(afterRelaunchState, "Server unreachable",
+                       "offline configuration did not remain unreachable after relaunch")
+
         let after = readBack(app2, "offline-post-relaunch")
         XCTAssertNotNil(after, "could not read the configuration back after the relaunch")
         if let after {
@@ -630,10 +544,13 @@ final class ConnectionStateUITests: XCTestCase {
             XCTAssertEqual(after.sw, "1", "self-hosted integration did not stay enabled")
             XCTAssertGreaterThan(after.tokenLen, 0, "self-hosted token did not survive the relaunch")
         }
-        // no false connected state
         let falseConnected = anyLabel(app2, "API v").exists
         print("RELAUNCH falseConnected=\(falseConnected) (pre-relaunch url='\(before.url)' sw=\(before.sw))")
         XCTAssertFalse(falseConnected, "app showed a connected server after relaunch while the server was down")
+
+        // Leave the shared simulator configuration ready for the follow-up
+        // reconnect test; all offline assertions above have already completed.
+        restoreLiveServerConfiguration(app2, reason: "testOfflineAppUsabilityAndRelaunch")
     }
 
     // MARK: - §17 reconnect from persisted configuration

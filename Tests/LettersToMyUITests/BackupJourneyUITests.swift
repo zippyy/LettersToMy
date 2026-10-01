@@ -386,6 +386,11 @@ final class BackupJourneyUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Backups"].waitForExistence(timeout: 25),
                       "Backups screen did not open")
 
+        // iOS AutoFill may present a blocking "Save Password?" sheet after the
+        // Self-Hosted API token SecureField was used in Stage B setup.
+        XCTAssertTrue(ltmDismissKnownBlockingSheet(app),
+                      "known password-autofill sheet could not be dismissed safely")
+
         // ---- passphrase
         let pass = app.secureTextFields["Passphrase"].firstMatch
         XCTAssertTrue(pass.waitForExistence(timeout: 20), "passphrase field missing")

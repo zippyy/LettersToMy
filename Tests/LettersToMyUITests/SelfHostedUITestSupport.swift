@@ -224,6 +224,10 @@ extension XCTestCase {
     @discardableResult
     func ltmSetIntegration(_ app: XCUIApplication, on: Bool) -> Bool {
         XCTAssertTrue(ltmScrollTo(app, "Enable Self-Hosted"), "Enable toggle not found")
+        guard ltmDismissKnownBlockingSheet(app) else {
+            ltmSettingsFailureSnapshot(app, "known AutoFill sheet blocked the integration toggle")
+            return false
+        }
         Thread.sleep(forTimeInterval: 0.4)
         let sw = ltmEnableSwitch(app)
         let ok = ltmSetToggle(sw, on: on)
@@ -360,93 +364,219 @@ extension XCTestCase {
         Thread.sleep(forTimeInterval: 0.5)
     }
 
-    /// Navigate to the Settings ROOT, resilient to the two failure modes this
-    /// audit actually measured:
-    ///   * a pushed screen covering the root — iOS 26 preserves each tab's
-    ///     navigation stack, so arriving from Self-Hosted Server leaves the
-    ///     Settings row list invisible;
-    ///   * a tab tap that lands before the shell has settled after launch,
-    ///     which is silently swallowed and leaves the old screen up.
-    /// Both show up as the same symptom (no `navigationBars["Settings"]`), so
-    /// retry the cycle rather than waiting once.
-    ///
-    /// DO NOT detect "something is pushed" with `navigationBars.count > 0`.
-    /// The Letters root has its own navigation bar, so that test is TRUE on the
-    /// Letters tab and a blind `navigationBars.buttons.firstMatch` tap then
-    /// loops forever without ever tapping the tab (measured: 20 futile pops).
-    /// Only a real push has the `BackButton` identifier, so that is the trigger
-    /// — and the tab tap must be the thing that happens when no push exists.
-    @discardableResult
-    func ltmGoToSettingsRoot(_ app: XCUIApplication, timeout: TimeInterval = 45) -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        var attempts = 0
-        while Date() < deadline {
-            attempts += 1
-            if app.navigationBars["Settings"].exists { return true }
-
-            let back = app.navigationBars.buttons["BackButton"]
-            if back.exists && back.isHittable {
-                print("NAV[\(attempts)] popping pushed screen above Settings")
-                back.tap()
-                Thread.sleep(forTimeInterval: 0.8)
-                continue
-            }
-
-            let tab = app.tabBars.buttons["Settings"]
-            if tab.waitForExistence(timeout: 10) {
-                if tab.isHittable { tab.tap() }
-                else { tab.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-            } else {
-                print("NAV[\(attempts)] Settings tab not present")
-            }
-            Thread.sleep(forTimeInterval: 1.2)
+    /// Capture one accessibility-tree snapshot for navigation failures. The
+    /// filtered sections include the selected destination when XCTest exposes it,
+    /// navigation titles, visible controls, rows, and modal blockers. Do not
+    /// enumerate live XCUIElement arrays here: SwiftUI can re-render mid-read.
+    func ltmSettingsFailureSnapshot(_ app: XCUIApplication, _ reason: String) {
+        let snapshot = app.debugDescription
+        let lines = snapshot.components(separatedBy: "\n")
+        let destinations = ["Letters", "Timeline", "Family", "People", "Settings"]
+        let destinationLines = lines.filter { line in
+            destinations.contains { line.contains("label: '\($0)'") }
         }
-        print("NAV could not reach the Settings root after \(attempts) attempts; visible=\(ltmTexts(of: app).prefix(300))")
+        let selectedLines = destinationLines.filter {
+            $0.localizedCaseInsensitiveContains("selected")
+        }
+        let navLines = lines.filter { $0.contains("NavigationBar") }
+        let buttonLines = lines.filter { $0.contains("Button") || $0.contains("Tab") }
+        let textLines = lines.filter { $0.contains("StaticText") }
+        let cellLines = lines.filter { $0.contains("Cell") }
+        let modalLines = lines.filter {
+            let lower = $0.lowercased()
+            return lower.contains("sheet") || lower.contains("alert") ||
+                lower.contains("dialog") || lower.contains("popover")
+        }
+        func bounded(_ values: [String], _ max: Int = 1800) -> String {
+            String(values.joined(separator: " | ").prefix(max))
+        }
+        let selected = selectedLines.isEmpty
+            ? "not exposed; candidates: \(bounded(destinationLines, 900))"
+            : bounded(selectedLines, 900)
+        print("NAV FAILURE[\(reason)] selectedDestination=\(selected)")
+        print("NAV FAILURE[\(reason)] navigationTitles=\(bounded(navLines, 900))")
+        print("NAV FAILURE[\(reason)] BackButton=\(snapshot.contains("BackButton")) modalIndicators=\(bounded(modalLines, 900))")
+        print("NAV FAILURE[\(reason)] visibleButtons=\(bounded(buttonLines))")
+        print("NAV FAILURE[\(reason)] visibleStaticText=\(bounded(textLines))")
+        print("NAV FAILURE[\(reason)] visibleCells=\(bounded(cellLines))")
+    }
+
+    /// Dismiss only the known iOS password-autofill prompt that can cover the
+    /// app after a SecureField is entered. It is a real blocking sheet, not an
+    /// app confirmation; use its explicit non-destructive action, never a generic
+    /// Close or outside tap.
+    @discardableResult
+    func ltmDismissKnownBlockingSheet(_ app: XCUIApplication) -> Bool {
+        let prompt = app.sheets["Save Password?"]
+        guard prompt.exists else { return true }
+        let notNow = prompt.buttons["Not Now"]
+        guard notNow.exists && notNow.isHittable else { return false }
+        notNow.tap()
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if !app.sheets["Save Password?"].exists { return true }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
         return false
     }
 
-    /// Open any Settings row by name, scrolling to it if needed.
+    /// Normalize to the Settings root without assuming how the app got here.
+    /// iOS 26 preserves each destination's NavigationStack across tab switches
+    /// and relaunches. Settings is a TabBar button on iPhone and a top-edge
+    /// segmented-style Button on regular-width iPad.
     @discardableResult
-    func ltmOpenSettingsRow(_ app: XCUIApplication, row: String, timeout: TimeInterval = 25) -> Bool {
-        ltmDismissKeyboard(app)
+    func ltmGoToSettingsRoot(_ app: XCUIApplication, timeout: TimeInterval = 30) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        let settingsChildTitles = [
+            "Self-Hosted Server", "Backups", "Recovery Contacts",
+            "Add Recovery Contact", "Restore from Server", "Restore Archive"
+        ]
 
-        // Two rounds. The second re-enters the Settings root via the TAB BAR
-        // (the path a freshly launched app takes, which is verified reliable);
-        // arriving by POPPING a pushed screen can leave a row reporting
-        // exists=true / isHittable=false, which no amount of scrolling fixes.
-        for round in 1...2 {
-            guard ltmGoToSettingsRoot(app) else {
-                print("NAV Settings root unreachable for row '\(row)' (round \(round))")
+        while Date() < deadline {
+            // iOS can surface this exact AutoFill sheet after an API token was
+            // entered in a SecureField. Dismiss it only via its explicit
+            // non-destructive "Not Now" button; otherwise report the blocker.
+            if app.sheets["Save Password?"].exists {
+                if ltmDismissKnownBlockingSheet(app) { continue }
+                ltmSettingsFailureSnapshot(app, "blocking Save Password sheet has no safe action")
+                return false
+            }
+            // Only dismiss a blocker through its explicit, safe Cancel action.
+            // Never swipe a sheet away or tap an ambiguous generic Close button.
+            let alertCancel = app.alerts.buttons["Cancel"]
+            if alertCancel.exists && alertCancel.isHittable {
+                alertCancel.tap()
                 continue
             }
-            ltmDismissKeyboard(app)
-            Thread.sleep(forTimeInterval: 0.6)
-            for _ in 0..<3 { app.swipeDown(); Thread.sleep(forTimeInterval: 0.3) }
-
-            var target = app.buttons[row]
-            if !target.exists { target = app.cells[row] }
-            var tries = 0
-            while !(target.exists && target.isHittable) && tries < 6 {
-                app.swipeUp()
-                Thread.sleep(forTimeInterval: 0.5)
-                target = app.buttons[row]
-                if !target.exists { target = app.cells[row] }
-                tries += 1
+            let sheetCancel = app.sheets.buttons["Cancel"]
+            if sheetCancel.exists && sheetCancel.isHittable {
+                sheetCancel.tap()
+                continue
+            }
+            if app.alerts.count > 0 || app.sheets.count > 0 {
+                ltmSettingsFailureSnapshot(app, "blocking modal has no safe Cancel action")
+                return false
             }
 
-            if target.exists && target.isHittable {
-                target.tap()
-                return true
-            }
-            print("NAV row '\(row)' exists=\(target.exists) hittable=\(target.exists ? String(target.isHittable) : "n/a") keyboard=\(app.keyboards.count) texts=\(ltmTexts(of: app).prefix(220))")
+            let settingsRoot = app.navigationBars["Settings"]
+            let back = app.navigationBars.buttons["BackButton"]
+            if settingsRoot.exists && !back.exists { return true }
 
-            // Resettle by leaving and re-entering the Settings tab.
-            app.tabBars.buttons["Letters"].tap()
-            Thread.sleep(forTimeInterval: 0.8)
-            app.tabBars.buttons["Settings"].tap()
-            Thread.sleep(forTimeInterval: 1.0)
+            let isKnownSettingsChild = settingsChildTitles.contains {
+                app.navigationBars[$0].exists
+            }
+            if back.exists && back.isHittable && isKnownSettingsChild {
+                back.tap()
+                _ = settingsRoot.waitForExistence(
+                    timeout: min(8, max(1, deadline.timeIntervalSinceNow))
+                )
+                continue
+            }
+
+            guard let settingsDestination = ltmDestinationElement(app, "Settings") else {
+                Thread.sleep(forTimeInterval: 0.25)
+                continue
+            }
+            if settingsDestination.isSelected {
+                if back.exists && back.isHittable {
+                    back.tap()
+                    _ = settingsRoot.waitForExistence(
+                        timeout: min(8, max(1, deadline.timeIntervalSinceNow))
+                    )
+                    continue
+                }
+                if settingsRoot.exists { return true }
+            } else if settingsDestination.isHittable {
+                settingsDestination.tap()
+            }
+            // Re-evaluate observable state after the action; a tap is not proof.
+            Thread.sleep(forTimeInterval: 0.25)
         }
-        print("NAV Settings row '\(row)' could not be tapped after 2 rounds")
+
+        ltmSettingsFailureSnapshot(app, "Settings root timeout")
+        return false
+    }
+
+    /// Open a Settings row by its semantic label, regardless of whether SwiftUI
+    /// exposes it as a Button, Cell, or combined accessibility row. Normalize the
+    /// child stack AND the Form scroll position before tapping. A visible/hittable
+    /// row alone is insufficient immediately after switching tabs or restoring a
+    /// preserved Settings stack: the first tap can land during a stale scroll
+    /// geometry update and leave the NavigationLink unopened.
+    @discardableResult
+    func ltmOpenSettingsRow(_ app: XCUIApplication, row: String, timeout: TimeInterval = 35) -> Bool {
+        ltmDismissKeyboard(app)
+        let screenTitle = row == "Manage Backups" ? "Backups" : row
+        let targetScreen = app.navigationBars[screenTitle]
+        let backButton = app.navigationBars.buttons["BackButton"]
+        if targetScreen.exists && backButton.exists { return true }
+
+        let deadline = Date().addingTimeInterval(timeout)
+        guard ltmGoToSettingsRoot(app, timeout: min(30, timeout)) else {
+            ltmSettingsFailureSnapshot(app, "cannot normalize before row '\(row)'")
+            return false
+        }
+
+        // The first Settings section has a visible semantic header. Scroll down
+        // only while that marker is absent, checking the resulting accessibility
+        // state after each gesture instead of assuming a fixed number of swipes
+        // or a particular prior offset.
+        let settingsRoot = app.navigationBars["Settings"]
+        let topMarker = app.staticTexts["Preview"]
+        var reachedListTop = false
+        for _ in 0..<8 {
+            if settingsRoot.exists && !backButton.exists && topMarker.exists && topMarker.isHittable {
+                reachedListTop = true
+                break
+            }
+            guard settingsRoot.exists && !backButton.exists && Date() < deadline else { break }
+            app.swipeDown()
+            Thread.sleep(forTimeInterval: 0.35)
+        }
+        guard reachedListTop else {
+            ltmSettingsFailureSnapshot(app, "Settings list top marker not reached before row '\(row)'")
+            return false
+        }
+
+        func rowElement() -> XCUIElement {
+            let button = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", row)).firstMatch
+            if button.exists { return button }
+            let cell = app.cells.matching(NSPredicate(format: "label CONTAINS %@", row)).firstMatch
+            if cell.exists { return cell }
+            return app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS %@", row))
+                .firstMatch
+        }
+
+        // Settings rows are below the top marker. Scroll until the requested
+        // row is visible, then reacquire it and require stable geometry before
+        // tapping so no XCUIElement from a previous Form snapshot is reused.
+        for _ in 0..<10 {
+            guard Date() < deadline else { break }
+            let candidate = rowElement()
+            if candidate.exists && candidate.isHittable {
+                let initialFrame = candidate.frame
+                Thread.sleep(forTimeInterval: 0.4)
+                let settled = rowElement()
+                if settled.exists && settled.isHittable && settled.frame.equalTo(initialFrame) {
+                    settled.tap()
+                    let opened = targetScreen.waitForExistence(
+                        timeout: min(12, max(1, deadline.timeIntervalSinceNow))
+                    )
+                    if !opened {
+                        ltmSettingsFailureSnapshot(app, "row '\(row)' tapped but destination did not appear")
+                    }
+                    return opened
+                }
+                // A re-render or moving row invalidates the prior element; read
+                // the current state again without issuing another tap.
+                continue
+            }
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.35)
+        }
+
+        ltmSettingsFailureSnapshot(app, "Settings row '\(row)' not tappable after scroll normalization")
         return false
     }
 
