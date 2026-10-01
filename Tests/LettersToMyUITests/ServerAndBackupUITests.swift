@@ -108,7 +108,13 @@ final class ServerAndBackupUITests: XCTestCase {
         // "Status: Not configured" with an empty URL field.
         let toggle = app.switches.firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20), "Enable toggle missing")
-        if (toggle.value as? String) == "1" { toggle.tap() }   // force OFF first
+        // A SwiftUI Form Toggle is ONE row-wide accessibility element: element.tap()
+        // lands on the label at the geometric centre and does NOT flip the switch.
+        // The control is at the trailing edge (proven in ToggleSanityUITests).
+        if (toggle.value as? String) == "1" {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            Thread.sleep(forTimeInterval: 0.9)
+        }
 
         // Now clear any leftover URL/token (Keychain state also survives
         // reinstall on the simulator).
@@ -128,7 +134,12 @@ final class ServerAndBackupUITests: XCTestCase {
 
         // Enable LAST, now that the config is complete: enabling with a complete
         // config auto-starts the probe (.onChange(of: config.enabled)).
-        if (toggle.value as? String) != "1" { toggle.tap() }
+        if (toggle.value as? String) != "1" {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            Thread.sleep(forTimeInterval: 1.0)
+        }
+        XCTAssertEqual(toggle.value as? String, "1",
+                       "integration did not become enabled (Form Toggle tap technique)")
     }
 
     /// Wait for the probe to report a valid API v1 identity.
@@ -140,8 +151,11 @@ final class ServerAndBackupUITests: XCTestCase {
     /// assume it must tap it.
     @discardableResult
     private func waitForConnected(_ app: XCUIApplication, timeout: TimeInterval = 45) -> Bool {
-        app.staticTexts
-            .containing(NSPredicate(format: "label CONTAINS %@", "API v1"))
+        // §23: the connected state renders as a combined element (displayName +
+        // "API v1" + capabilities). An exact staticTexts["API v1"] can never match,
+        // so match any element type with CONTAINS.
+        app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "API v"))
             .firstMatch
             .waitForExistence(timeout: timeout)
     }
@@ -159,12 +173,50 @@ final class ServerAndBackupUITests: XCTestCase {
         Thread.sleep(forTimeInterval: seconds)
     }
 
+    /// Read back the real control state instead of assuming typeText() worked.
+    ///
+    /// On recent iOS an empty SwiftUI TextField can expose its PLACEHOLDER as the
+    /// accessibility value, so "the placeholder disappeared" is not proof the
+    /// typed text stuck. This prints what the app actually holds.
+    private func readbackControls(_ app: XCUIApplication, stage: String) {
+        let toggle = app.switches.firstMatch
+        let url = app.textFields.firstMatch
+        let tok = app.secureTextFields.firstMatch
+
+        let toggleVal = toggle.exists ? ((toggle.value as? String) ?? "nil") : "MISSING"
+        let urlVal = url.exists ? ((url.value as? String) ?? "nil") : "MISSING"
+        let urlEn = url.exists ? String(url.isEnabled) : "n/a"
+        let tokEn = tok.exists ? String(tok.isEnabled) : "n/a"
+        let tokLen = tok.exists ? (((tok.value as? String) ?? "").count) : -1
+
+        print("READBACK[\(stage)] toggle=\(toggleVal) urlEnabled=\(urlEn) urlValue=\(urlVal) tokenEnabled=\(tokEn) tokenValueLen=\(tokLen)")
+    }
+
+    /// §12: leave the screen and come back. If the URL resets or the toggle flips,
+    /// the defect is configuration persistence / UI interaction, not HTTP.
+    private func leaveAndReturn(_ app: XCUIApplication) {
+        if app.navigationBars.buttons.firstMatch.exists {
+            app.navigationBars.buttons.firstMatch.tap()
+        } else {
+            app.swipeRight()
+        }
+        composeWait(0.8)
+        openFromSettings(app, row: "Self-Hosted Server")
+    }
+
     // MARK: - Tests
 
     /// Valid token: the capability probe must report a real connected identity.
     func testSelfHosted_validToken_reportsConnectedWithCapabilities() {
         let app = launch()
         configureSelfHosted(app, url: baseURL, token: token)
+
+        // §11: prove what the controls actually contain before tapping.
+        readbackControls(app, stage: "after-configure")
+
+        // §12: prove the configuration survives a screen exit/re-entry.
+        leaveAndReturn(app)
+        readbackControls(app, stage: "after-return")
 
         let test = app.buttons["Test Connection"]
         XCTAssertTrue(test.waitForExistence(timeout: 15), "Test Connection missing")
@@ -176,6 +228,8 @@ final class ServerAndBackupUITests: XCTestCase {
             connected = waitForConnected(app)
         }
 
+        readbackControls(app, stage: "after-probe")
+        print("VISIBLES[after-probe] " + app.staticTexts.allElementsBoundByIndex.map { $0.label }.joined(separator: " ~ "))
         XCTAssertTrue(
             connected,
             "server never reported a valid API v1 identity. Visible texts: \(app.staticTexts.allElementsBoundByIndex.map { $0.label }.joined(separator: " | "))"
