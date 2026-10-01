@@ -100,6 +100,12 @@ enum AppAnalytics {
         ])
     }
 
+    /// A remote archive was deleted from the self-hosted server. No identifier
+    /// is recorded: the event counts, it does not need to name the archive.
+    static func backupRemoteDeleted() {
+        logEvent("backup_remote_deleted", params: nil)
+    }
+
     // MARK: - Settings
 
     static func iconChanged(_ iconName: String) {

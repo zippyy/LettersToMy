@@ -29,6 +29,13 @@ struct BackupSettingsView: View {
     @State private var remoteBackups: [BackupRemoteHandle] = []
     @State private var isListingRemote = false
     @State private var remoteListError: String?
+    /// §12–§17: deleting an archive from the self-hosted server. Kept separate
+    /// from the local `BackupRecordEntity` history on purpose — a remote
+    /// archive and a local history row are different things, and removing one
+    /// must never silently remove the other.
+    @State private var remoteDeleteTarget: BackupRemoteHandle?
+    @State private var isDeletingRemote = false
+    @State private var remoteDeleteError: String?
 
     private var service: BackupService { BackupServiceManager.shared.service }
 
@@ -62,6 +69,24 @@ struct BackupSettingsView: View {
         }
         .sheet(isPresented: $showingRemoteRestorePicker) {
             remoteRestorePickerSheet
+        }
+        // §14: remote deletion is destructive, so it is confirmed and the
+        // wording states exactly what is and is not removed.
+        .confirmationDialog(
+            "Delete this backup from the self-hosted server?",
+            isPresented: Binding(
+                get: { remoteDeleteTarget != nil },
+                set: { if !$0 { remoteDeleteTarget = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: remoteDeleteTarget
+        ) { handle in
+            Button("Delete Backup", role: .destructive) {
+                Task { await deleteRemoteBackup(handle) }
+            }
+            Button("Cancel", role: .cancel) { remoteDeleteTarget = nil }
+        } message: { handle in
+            Text("“\(handle.identifier)” will be removed from the server. This removes the remote backup file. Your current local letters are not deleted.")
         }
     }
 
@@ -399,6 +424,47 @@ struct BackupSettingsView: View {
         }
     }
 
+    /// §15–§17: delete a remote archive through the SAME provider abstraction
+    /// used to list, download, and restore it. No second networking path.
+    ///
+    /// Pessimistic by design: the row leaves the on-screen list only after the
+    /// server has confirmed, and the list is then re-read from the server so the
+    /// UI reflects server truth rather than an assumption. A failure leaves the
+    /// row in place and reports the error — never a fake success.
+    @MainActor
+    private func deleteRemoteBackup(_ handle: BackupRemoteHandle) async {
+        remoteDeleteTarget = nil
+        guard backupManager.availableDestinations.contains(.selfHosted) else {
+            remoteDeleteError = "The self-hosted server is not configured."
+            return
+        }
+        isDeletingRemote = true
+        remoteDeleteError = nil
+        defer { isDeletingRemote = false }
+        do {
+            try await service.removeBackup(from: .selfHosted, remoteIdentifier: handle.identifier)
+            // Re-read from the server so the picker shows what the server holds.
+            if let provider = await service.provider(for: .selfHosted) {
+                let handles = (try? await provider.listRemoteBackups()) ?? []
+                remoteBackups = handles.sorted { lhs, rhs in
+                    let lts = Int64(lhs.metadata["timestamp"] ?? "0") ?? 0
+                    let rts = Int64(rhs.metadata["timestamp"] ?? "0") ?? 0
+                    return lts > rts
+                }
+            } else {
+                remoteBackups.removeAll { $0.identifier == handle.identifier }
+            }
+            // Local letters and the local backup history are deliberately NOT
+            // touched: a remote archive and a local BackupRecordEntity are
+            // separate concepts, and removing one must not silently remove the
+            // other.
+            AppAnalytics.backupRemoteDeleted()
+        } catch {
+            // Keep the row: nothing was proven to be deleted.
+            remoteDeleteError = "Could not delete the remote backup: \(error.localizedDescription)"
+        }
+    }
+
     @ViewBuilder
     private var remoteRestorePickerSheet: some View {
         NavigationStack {
@@ -412,30 +478,63 @@ struct BackupSettingsView: View {
                 } else {
                     Section("Select a backup to restore") {
                         ForEach(remoteBackups, id: \.identifier) { handle in
-                            Button {
-                                Task { await downloadRemoteBackup(handle) }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(handle.identifier)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.primary)
-                                    HStack(spacing: 8) {
-                                        if let timestamp = handle.metadata["timestamp"],
-                                           let ms = Int64(timestamp) {
-                                            Text(Date(timeIntervalSince1970: Double(ms) / 1000)
-                                                .formatted(date: .abbreviated, time: .shortened))
+                            HStack(spacing: 12) {
+                                Button {
+                                    Task { await downloadRemoteBackup(handle) }
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(handle.identifier)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.primary)
+                                        HStack(spacing: 8) {
+                                            if let timestamp = handle.metadata["timestamp"],
+                                               let ms = Int64(timestamp) {
+                                                Text(Date(timeIntervalSince1970: Double(ms) / 1000)
+                                                    .formatted(date: .abbreviated, time: .shortened))
+                                            }
+                                            if let size = handle.metadata["size"] {
+                                                Text(ByteCountFormatter.string(fromByteCount: Int64(size) ?? 0, countStyle: .file))
+                                            }
+                                            if let letters = handle.metadata["letters"] {
+                                                Text("\(letters) letters")
+                                            }
                                         }
-                                        if let size = handle.metadata["size"] {
-                                            Text(ByteCountFormatter.string(fromByteCount: Int64(size) ?? 0, countStyle: .file))
-                                        }
-                                        if let letters = handle.metadata["letters"] {
-                                            Text("\(letters) letters")
-                                        }
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                     }
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
                                 }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("RemoteBackupRow-\(handle.identifier)")
+
+                                // §12–§13: a real, clearly REMOTE delete affordance.
+                                // Wording and identifier name the server, so it
+                                // cannot be confused with the local
+                                // "Delete Record" that removes a BackupRecordEntity.
+                                Button(role: .destructive) {
+                                    remoteDeleteError = nil
+                                    remoteDeleteTarget = handle
+                                } label: {
+                                    if isDeletingRemote {
+                                        ProgressView().controlSize(.small)
+                                    } else {
+                                        Image(systemName: "trash")
+                                    }
+                                }
+                                .buttonStyle(.borderless)
+                                .disabled(isDeletingRemote)
+                                .accessibilityIdentifier("RemoteDelete-\(handle.identifier)")
+                                .accessibilityLabel("Delete Remote Backup")
                             }
+                        }
+                    }
+
+                    if let remoteDeleteError {
+                        Section {
+                            Text(remoteDeleteError)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
                         }
                     }
                 }
