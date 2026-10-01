@@ -56,6 +56,7 @@
 		71E933A3C2C0BA1F65359C3F /* CloudKitSyncHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A120F554666E8F21E9A78A8 /* CloudKitSyncHealthTests.swift */; };
 		72D473020319B736210D66F5 /* PersistenceStoreBookkeepingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA4EE693C9483ACAEC6285FF /* PersistenceStoreBookkeepingTests.swift */; };
 		744EA2124A1CA578683F1D9D /* S3BackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C946E20EAA508545CF374D /* S3BackupProvider.swift */; };
+		76B835A871E3F464DBF67A75 /* BackupJourneyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B336CB58970AC15F1E7527CE /* BackupJourneyUITests.swift */; };
 		7967F8AA435180CB69238B3F /* icon-preview-Son.png in Resources */ = {isa = PBXBuildFile; fileRef = 40F6881991B0D35575994FBF /* icon-preview-Son.png */; };
 		7C47924C895A0A8FDC4EF9AA /* icon-preview-default.png in Resources */ = {isa = PBXBuildFile; fileRef = 772083D0C30F6004DF196272 /* icon-preview-default.png */; };
 		7CAA1D54D733DEEE99E87C74 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A151E4E63ACB9D4252AF79E1 /* KeychainHelper.swift */; };
@@ -89,6 +90,7 @@
 		BECC7B1371A57A80922C71A4 /* OnboardingLaunchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF60032F487B8C787BADF789 /* OnboardingLaunchUITests.swift */; };
 		BF7260E58F783D98858E277D /* SelfHostedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D280024436839C8DD3FD7620 /* SelfHostedSettingsView.swift */; };
 		BFDF0F615ABBAB7B13CC619D /* LetterAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CC07F3B82784F2223049EF /* LetterAttachment.swift */; };
+		C344129DBA3633504F344AC3 /* SelfHostedUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C861F1E3E189A6161A0C1F /* SelfHostedUITestSupport.swift */; };
 		C6FF00BA3EC6734EF61B3F2B /* SelfHostedBackupProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 830786848607769CBDB846C9 /* SelfHostedBackupProvider.swift */; };
 		C7FF085F9B162D56F33FC227 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0E39D832D41AD11A73DFB4D9 /* FirebaseAnalytics */; };
 		C80C95D180BA61A61A5D249E /* SelfHostedConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E221D8664C0EAB9CED23474 /* SelfHostedConnection.swift */; };
@@ -174,6 +176,7 @@
 		68C05E2ADB39A2D3762A3CE7 /* DeliveryRecordEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryRecordEntity.swift; sourceTree = "<group>"; };
 		6A120F554666E8F21E9A78A8 /* CloudKitSyncHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncHealthTests.swift; sourceTree = "<group>"; };
 		6C0161C38E7CB50077E00EC5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		71C861F1E3E189A6161A0C1F /* SelfHostedUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedUITestSupport.swift; sourceTree = "<group>"; };
 		73FC47038B20AB31609ADF45 /* CloudKitShareItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareItem.swift; sourceTree = "<group>"; };
 		747D1D868A17C3A59FD87B81 /* LetterDeletionCoreDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterDeletionCoreDataTests.swift; sourceTree = "<group>"; };
 		758C5AF2D7F43DE9AA176B87 /* BackupServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupServiceManager.swift; sourceTree = "<group>"; };
@@ -196,6 +199,7 @@
 		AB35F01553CCEE09C5C52D6B /* FamilyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyView.swift; sourceTree = "<group>"; };
 		AB88E49051C6D0C0C78990FD /* CloudKitSyncHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncHealth.swift; sourceTree = "<group>"; };
 		B1CD5BDF8ACEF1843B3BEE69 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		B336CB58970AC15F1E7527CE /* BackupJourneyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupJourneyUITests.swift; sourceTree = "<group>"; };
 		BF7C515B55D9908EE831F56D /* icon-preview-Granddaughter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon-preview-Granddaughter.png"; sourceTree = "<group>"; };
 		C50045384A4832EB8F6FFFA7 /* SelfHostedConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfHostedConfig.swift; sourceTree = "<group>"; };
 		C85C3FC066655BA92BC30361 /* BackupProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupProviders.swift; sourceTree = "<group>"; };
@@ -313,10 +317,12 @@
 		75ABBC1D69E7818FFE022FB1 /* LettersToMyUITests */ = {
 			isa = PBXGroup;
 			children = (
+				B336CB58970AC15F1E7527CE /* BackupJourneyUITests.swift */,
 				4EBC9CCDB29B83B5A8E28A3F /* ConnectionStateUITests.swift */,
 				D88FB07966262AB001D45375 /* CoreFlowUITests.swift */,
 				DE53AF55DDD8EC7B35ADB21D /* IdentityProbeUITests.swift */,
 				FF60032F487B8C787BADF789 /* OnboardingLaunchUITests.swift */,
+				71C861F1E3E189A6161A0C1F /* SelfHostedUITestSupport.swift */,
 				F31D446E1FC6D3849F3343B5 /* ServerAndBackupUITests.swift */,
 			);
 			name = LettersToMyUITests;
@@ -705,10 +711,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				76B835A871E3F464DBF67A75 /* BackupJourneyUITests.swift in Sources */,
 				2765298A8682CEE7D2C2E7DA /* ConnectionStateUITests.swift in Sources */,
 				5ECFA0C18CAA4E1CE668EDF0 /* CoreFlowUITests.swift in Sources */,
 				35C19812D2641970F2491713 /* IdentityProbeUITests.swift in Sources */,
 				BECC7B1371A57A80922C71A4 /* OnboardingLaunchUITests.swift in Sources */,
+				C344129DBA3633504F344AC3 /* SelfHostedUITestSupport.swift in Sources */,
 				E728304382370B3610D17BCB /* ServerAndBackupUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
