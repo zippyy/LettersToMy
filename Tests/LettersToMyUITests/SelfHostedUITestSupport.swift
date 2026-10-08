@@ -407,15 +407,22 @@ extension XCTestCase {
     /// Close or outside tap.
     @discardableResult
     func ltmDismissKnownBlockingSheet(_ app: XCUIApplication) -> Bool {
-        let prompt = app.sheets["Save Password?"]
-        guard prompt.exists else { return true }
-        let notNow = prompt.buttons["Not Now"]
-        guard notNow.exists && notNow.isHittable else { return false }
-        notNow.tap()
-        let deadline = Date().addingTimeInterval(5)
-        while Date() < deadline {
-            if !app.sheets["Save Password?"].exists { return true }
-            Thread.sleep(forTimeInterval: 0.2)
+        guard app.sheets["Save Password?"].exists else { return true }
+        for attempt in 0..<3 {
+            let prompt = app.sheets["Save Password?"]
+            if !prompt.exists { return true }
+            let notNow = prompt.buttons["Not Now"]
+            guard notNow.exists && notNow.isHittable else { return false }
+            if attempt == 0 { notNow.tap() }
+            else {
+                // Reacquire ONLY this safe system action after verifying the
+                // same prompt remains. Never tap through an unknown modal.
+                notNow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            }
+            let dismissed = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"), object: prompt)
+            if XCTWaiter.wait(for: [dismissed], timeout: 3) == .completed { return true }
+            print("NAV retry[Save Password Not Now] attempt=\(attempt + 1)")
         }
         return false
     }
@@ -497,6 +504,16 @@ extension XCTestCase {
         return false
     }
 
+    /// Recognize the actual backup destination, including its presented restore
+    /// picker/preview. A Settings section header alone is not a destination.
+    func ltmBackupDestinationAppeared(_ app: XCUIApplication) -> Bool {
+        if app.navigationBars["Backups"].exists ||
+            app.navigationBars["Restore from Server"].exists ||
+            app.navigationBars["Restore Archive"].exists { return true }
+        return app.secureTextFields["Passphrase"].firstMatch.exists &&
+            app.buttons["Back Up Now"].firstMatch.exists
+    }
+
     /// Open a Settings row by its semantic label, regardless of whether SwiftUI
     /// exposes it as a Button, Cell, or combined accessibility row. Normalize the
     /// child stack AND the Form scroll position before tapping. A visible/hittable
@@ -509,7 +526,11 @@ extension XCTestCase {
         let screenTitle = row == "Manage Backups" ? "Backups" : row
         let targetScreen = app.navigationBars[screenTitle]
         let backButton = app.navigationBars.buttons["BackButton"]
-        if targetScreen.exists && backButton.exists { return true }
+        func destinationAppeared() -> Bool {
+            row == "Manage Backups" ? ltmBackupDestinationAppeared(app) : targetScreen.exists
+        }
+        guard ltmDismissKnownBlockingSheet(app) else { return false }
+        if destinationAppeared() { return true }
 
         let deadline = Date().addingTimeInterval(timeout)
         guard ltmGoToSettingsRoot(app, timeout: min(30, timeout)) else {
@@ -525,6 +546,13 @@ extension XCTestCase {
         let topMarker = app.staticTexts["Preview"]
         var reachedListTop = false
         for _ in 0..<8 {
+            // AutoFill can arrive asynchronously AFTER returning to Settings.
+            // Resolve only that known safe prompt before any scroll/hit test.
+            guard ltmDismissKnownBlockingSheet(app),
+                  app.alerts.count == 0, app.sheets.count == 0 else {
+                ltmSettingsFailureSnapshot(app, "modal arrived while locating row '\(row)'")
+                return false
+            }
             if settingsRoot.exists && !backButton.exists && topMarker.exists && topMarker.isHittable {
                 reachedListTop = true
                 break
@@ -551,22 +579,43 @@ extension XCTestCase {
         // Settings rows are below the top marker. Scroll until the requested
         // row is visible, then reacquire it and require stable geometry before
         // tapping so no XCUIElement from a previous Form snapshot is reused.
+        var tapCount = 0
         for _ in 0..<10 {
             guard Date() < deadline else { break }
+            if destinationAppeared() { return true }
+            guard ltmDismissKnownBlockingSheet(app),
+                  app.alerts.count == 0, app.sheets.count == 0,
+                  settingsRoot.exists, !backButton.exists else {
+                ltmSettingsFailureSnapshot(app, "unexpected state before row '\(row)'")
+                return false
+            }
             let candidate = rowElement()
             if candidate.exists && candidate.isHittable {
                 let initialFrame = candidate.frame
                 Thread.sleep(forTimeInterval: 0.4)
                 let settled = rowElement()
                 if settled.exists && settled.isHittable && settled.frame.equalTo(initialFrame) {
-                    settled.tap()
-                    let opened = targetScreen.waitForExistence(
-                        timeout: min(12, max(1, deadline.timeIntervalSinceNow))
-                    )
-                    if !opened {
-                        ltmSettingsFailureSnapshot(app, "row '\(row)' tapped but destination did not appear")
+                    if tapCount == 0 { settled.tap() }
+                    else { settled.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+                    tapCount += 1
+                    let opened = XCTNSPredicateExpectation(
+                        predicate: NSPredicate { _, _ in destinationAppeared() }, object: app)
+                    if XCTWaiter.wait(for: [opened], timeout: min(5, max(1, deadline.timeIntervalSinceNow))) == .completed {
+                        return true
                     }
-                    return opened
+                    // A tap is not proof of navigation. Retry only the exact
+                    // observed failure state: still at the root, no modal,
+                    // with the original semantic row still visible/hittable.
+                    guard ltmDismissKnownBlockingSheet(app),
+                          app.alerts.count == 0, app.sheets.count == 0,
+                          settingsRoot.exists, !backButton.exists,
+                          rowElement().exists, rowElement().isHittable,
+                          tapCount < 3 else {
+                        ltmSettingsFailureSnapshot(app, "row '\(row)' tapped but destination did not appear")
+                        return false
+                    }
+                    print("NAV retry[row '\(row)'] tap=\(tapCount) root=true modal=false")
+                    continue
                 }
                 // A re-render or moving row invalidates the prior element; read
                 // the current state again without issuing another tap.

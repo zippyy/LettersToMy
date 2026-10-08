@@ -63,17 +63,43 @@ final class IPadSplitViewUITests: XCTestCase {
     /// `StaticText`; on iPhone the same destination is a pushed `Button`/link.
     /// Match both, preferring the tappable cell.
     private func openAllLetters(_ app: XCUIApplication) {
+        // The sidebar row exists as soon as the split view renders, but it is not
+        // hit-testable until the column settles (notably right after the editor
+        // dismisses). Waiting only for existence and then tapping the plain label
+        // is a no-op at hit point {-1,-1}, so require hittability first.
         let cell = letterCell(app, "All Letters")
-        if cell.waitForExistence(timeout: 12), cell.isHittable {
+        let tappable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND isHittable == true"), object: cell)
+        if XCTWaiter.wait(for: [tappable], timeout: 15) == .completed {
             cell.tap()
             Thread.sleep(forTimeInterval: 1.2)
             return
         }
-        let text = app.staticTexts["All Letters"].firstMatch
-        if text.waitForExistence(timeout: 6) {
-            text.tap()
-            Thread.sleep(forTimeInterval: 1.0)
+        // Bounded fallback: re-enter the destination and retry the sidebar row.
+        print("IPAD openAllLetters: sidebar cell not hittable; retrying via destination")
+        ltmOpenDestination(app, "Letters")
+        let retry = letterCell(app, "All Letters")
+        if retry.waitForExistence(timeout: 8), retry.isHittable {
+            retry.tap()
+            Thread.sleep(forTimeInterval: 1.2)
         }
+    }
+
+    /// Type into a field, tolerating the editor's cold-start first-responder lag.
+    ///
+    /// On the first test of a freshly installed/cold app instance the editor's
+    /// focus can lag behind the tap, and `typeText` then fails with "Neither
+    /// element nor any descendant has keyboard focus". Bounded: tap, wait for
+    /// focus, re-tap at most twice, then type.
+    private func typeIntoField(_ field: XCUIElement, _ text: String) {
+        for attempt in 0..<3 {
+            field.tap()
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: field)
+            if XCTWaiter.wait(for: [focused], timeout: 8) == .completed { break }
+            print("IPAD focus retry[field] attempt=\(attempt + 1)")
+        }
+        field.typeText(text)
     }
 
     /// Write a letter through the real editor and save it as a draft.
@@ -84,13 +110,11 @@ final class IPadSplitViewUITests: XCTestCase {
 
         let titleField = app.textFields["Title"].firstMatch
         XCTAssertTrue(titleField.waitForExistence(timeout: 20), "editor did not open")
-        titleField.tap()
-        titleField.typeText(title)
+        typeIntoField(titleField, title)
 
         let bodyField = app.textViews["Letter message"].firstMatch
         XCTAssertTrue(bodyField.exists, "letter body editor missing")
-        bodyField.tap()
-        bodyField.typeText(body)
+        typeIntoField(bodyField, body)
         ltmDismissKeyboard(app)
 
         let save = app.buttons["Save Draft"].firstMatch

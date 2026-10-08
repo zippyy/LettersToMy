@@ -604,13 +604,36 @@ final class BackupJourneyUITests: XCTestCase {
                       "restore-me letter missing before deletion")
         app.staticTexts[restoredTitle].firstMatch.swipeLeft()
         let del = app.buttons["Delete"].firstMatch
-        if del.waitForExistence(timeout: 15) {
-            del.tap()
-            let confirm = app.buttons["Delete"].firstMatch
-            if confirm.waitForExistence(timeout: 8) { confirm.tap() }
-        }
-        Thread.sleep(forTimeInterval: 1.5)
-        let gone = !app.staticTexts[restoredTitle].firstMatch.exists
+        XCTAssertTrue(del.waitForExistence(timeout: 15), "restore-me swipe delete action missing")
+        del.tap()
+
+        // This intentionally deletes ONLY the disposable RestoreMe draft so
+        // the following restore has an observable effect. The product's
+        // confirmation is "Delete Draft", not the swipe action's "Delete".
+        // A pending confirmation hides the row without deleting it, so absence
+        // under that modal is not a valid deletion oracle.
+        let confirmation = app.sheets["Delete Draft?"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 15),
+                      "restore-me draft deletion confirmation missing")
+        let confirm = confirmation.buttons["Delete Draft"]
+        XCTAssertTrue(confirm.exists && confirm.isHittable,
+                      "explicit Delete Draft confirmation is not actionable")
+        ltmCapture(app, "restore-me-delete-confirmation")
+        confirm.tap()
+        let dismissed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"), object: confirmation)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 15), .completed,
+                       "restore-me deletion confirmation did not dismiss")
+        openAllLetters(app)
+        let removed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: app.staticTexts[restoredTitle].firstMatch)
+        XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 15), .completed,
+                       "restore-me draft is still listed after confirmation")
+        XCTAssertTrue(app.staticTexts[draftTitle].firstMatch.exists &&
+                      app.staticTexts[sealedTitle].firstMatch.exists,
+                      "deleting restore-me damaged unrelated journey letters")
+        let gone = !confirmation.exists && !app.staticTexts[restoredTitle].firstMatch.exists
         print("STAGE C deleted restore-me letter gone=\(gone)")
         XCTAssertTrue(gone, "the restore-me letter could not be deleted through the UI")
 

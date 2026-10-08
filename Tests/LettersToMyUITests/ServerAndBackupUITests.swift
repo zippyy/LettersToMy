@@ -54,8 +54,8 @@ final class ServerAndBackupUITests: XCTestCase {
                       "server not connected; cannot exercise the backup screen (saw '\(connected)')")
 
         XCTAssertTrue(ltmOpenSettingsRow(app, row: "Manage Backups"), "'Manage Backups' row not found")
-        XCTAssertTrue(app.navigationBars["Backups"].waitForExistence(timeout: 25),
-                      "Backups screen did not open")
+        XCTAssertTrue(ltmBackupDestinationAppeared(app),
+                      "Backups destination did not open")
         ltmCapture(app, "backups-screen")
 
         let passphrase = app.secureTextFields["Passphrase"].firstMatch
